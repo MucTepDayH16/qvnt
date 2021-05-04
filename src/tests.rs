@@ -1,13 +1,14 @@
-use crate::{register::*, operator::*};
+use crate::{types::*, register::*, operator::*};
 
 #[test]
 fn ops() {
     let pend_ops = PendingOps::new()
-            | Op::h(1, 2)
-            | Op::x(3, 4)
-            | Op::rz(vec![(0, 5.)], 0);
+        | Op::id()
+        | Op::h(1, 2)
+        | Op::x(3, 4)
+        | Op::rz(vec![(0, 5.)], 0);
 
-    assert_eq!( pend_ops.len(), 4 );
+    assert_eq!(pend_ops.len(), 4);
 }
 
 #[test]
@@ -37,13 +38,13 @@ fn tensor() {
 
     let eps = 1e-9;
     assert!(
-        test_prob.iter().zip(true_prob.iter())
+        test_prob.into_iter().zip(true_prob.into_iter())
             .all(|(a, b)| (a - b).abs() < eps)
     );
 }
 
 #[test]
-fn aliases() {
+fn aliases_concat() {
     let alias1 = String::from("wat");
     let reg1 = QReg::new(3)
         .init_state(0)
@@ -82,9 +83,4 @@ fn virtual_regs() {
     assert_eq!(a[0],    0b01000);
     assert_eq!(a[1],    0b10000);
     assert_eq!(a[..],   0b11000);
-
-    let reg = QReg::new(3)
-        .init_state(0b010);
-
-    let _ = reg.get_vreg('_').unwrap();
 }
