@@ -28,11 +28,10 @@ use {
         types::{*, nums::*}
     }
 };
-use std::fmt::Debug;
 
 pub struct VReg(N, Vec<N>);
 
-impl fmt::Display for VReg {
+impl fmt::Debug for VReg {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:032x}", self.0)
     }
@@ -56,7 +55,7 @@ impl Index<RangeFull> for VReg {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct QReg {
     psi: Vec<C>,
     q_num: N,
