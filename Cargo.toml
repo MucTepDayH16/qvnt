@@ -1,16 +1,16 @@
 [package]
-name = "qvnt"
-version = "0.1.0"
-authors = ["MucTepDayH16"]
-edition = "2018"
+name        = "qvnt"
+version     = "0.1.0"
+authors     = ["MucTepDayH16"]
+edition     = "2018"
 
 [[bench]]
-name = "criterion"
-harness = false
+name        = "criterion"
+harness     = false
 
 [dependencies]
-criterion = "0.3"
-num = "0.4"
-rand = "0.8"
-rand_distr = "0.4"
-rayon = "1.5"
+criterion   = "0.3"
+num         = "0.4"
+rand        = "0.8"
+rand_distr  = "0.4"
+rayon       = "1.5"

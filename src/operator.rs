@@ -3,11 +3,13 @@ use {
         collections::{
             BTreeMap,
             VecDeque,
-            vec_deque::Iter,
         },
         boxed::Box,
         fmt,
-        ops::BitOr,
+        ops::{
+            BitOr,
+            BitOrAssign,
+        },
         string::String
     },
 
@@ -159,19 +161,19 @@ impl Op {
         }
     }
 
-    pub fn rz( angles_vec: Vec<(N, R)>, c_mask: N ) -> Self {
-        let angles = angles_vec
-            .iter()
+    pub fn phi( angles_vec: Vec<(N, R)>, c_mask: N ) -> Self {
+        let angles = angles_vec.clone()
+            .into_iter()
             .filter_map(
                 |(jdx, ang)|
-                    if c_mask & ( 1 << jdx ) != 0 {
+                    if c_mask & jdx != 0 {
                         None
                     } else {
-                        let phase = Self::phase_from_rad(ang * 0.5);
+                        let phase = Self::phase_from_rad(ang);
                         if phase == ANGLE_TABLE[ 0 ] {
                             None
                         } else {
-                            Some((*jdx, Self::phase_from_rad(ang * 0.5)))
+                            Some((jdx, phase))
                         }
                     }
             ).collect::<BTreeMap<N, C>>();
@@ -179,16 +181,19 @@ impl Op {
         if angles.is_empty() { return Self::id(); }
 
         Self {
-            name: format!( "RZ_c{}_{:?}", c_mask, angles_vec ),
+            name: if c_mask == 0 {
+                format!("RZ_{:?}", angles_vec)
+            } else {
+                format!("RZ_c{}_{:?}", c_mask, angles_vec)
+            },
             func: Some(Box::new(
                 move |psi, idx| {
                     let mut val = psi[idx];
                     if !idx & c_mask == 0 {
                         for (jdx, ang) in &angles {
-                            if ((idx ^ c_mask) >> jdx) & 1 != 0 {
-                                val *= ang;
-                            } else {
-                                val *= ang.conj();
+                            let count = ((idx ^ c_mask) & jdx).count_ones();
+                            if count > 0 {
+                                val *= ang.pow(count);
                             }
                         }
                     }
@@ -207,7 +212,7 @@ impl Op {
             let sqrt_count = a_mask.count_ones() as N;
             let mut sqrt = R::one();
             if sqrt_count.is_odd() {
-                sqrt *= R::SQRT_2() * 0.5;
+                sqrt *= SQRT_2 * 0.5;
             }
             sqrt / (N::one() << (sqrt_count >> 1)) as R
         };
@@ -217,7 +222,7 @@ impl Op {
             func: Some(Box::new(
                 move |psi, idy|
                     if !idy & c_mask == 0 {
-                        (0..psi.len()).filter_map(
+                        (0..psi.len()).into_iter().filter_map(
                             |idx|
                                 if (idx ^ idy) & !a_mask == 0 {
                                     Some(if (idx & idy & a_mask).count_ones().is_even() {
@@ -243,7 +248,7 @@ impl Op {
             let sqrt_count = a_mask.count_ones() as N;
             let mut sqrt = R::one();
             if sqrt_count.is_odd() {
-                sqrt *= R::SQRT_2() * 0.5;
+                sqrt *= SQRT_2 * 0.5;
             }
             sqrt / (N::one() << (sqrt_count >> 1)) as R
         };
@@ -265,6 +270,33 @@ impl Op {
                             }
                     ).sum::<C>() * sqrt
             )),
+        }
+    }
+
+    pub fn qft_no_swap( a_mask: N ) -> PendingOps {
+        let count = a_mask.count_ones() as usize;
+        match count {
+            0 => PendingOps::new(),
+            1 => PendingOps::new() | Self::h_uc(a_mask),
+            _ => {
+                let mut pend_ops = PendingOps::new();
+                let mut vec = Vec::<usize>::with_capacity(count);
+
+                for idx in 0..64 {
+                    let jdx = 1 << idx;
+                    if jdx & a_mask != 0 {
+                        vec.push(jdx);
+                    }
+                }
+
+                for i in 0..(count-1) {
+                    pend_ops = pend_ops
+                        | Op::h_uc(vec[i])
+                        | Op::phi(((i+1)..count).map(|j| (vec[j], PI * (0.5 as R).pow((j-i) as u8)) ).collect(), vec[i]);
+                }
+
+                pend_ops | Op::h_uc(vec[count-1])
+            }
         }
     }
 }
@@ -325,7 +357,7 @@ impl BitOr for PendingOps {
     type Output = Self;
 
     #[inline]
-    fn bitor(mut self, mut rhs: Self) -> Self {
+    fn bitor(mut self, rhs: Self) -> Self {
         self.bitor_assign(rhs);
         self
     }
@@ -359,7 +391,7 @@ impl<'a> BitOr<PendingOps> for &'a mut PendingOps {
     type Output = Self;
 
     #[inline]
-    fn bitor(self, mut rhs: PendingOps) -> Self {
+    fn bitor(self, rhs: PendingOps) -> Self {
         self.bitor_assign(rhs);
         self
     }

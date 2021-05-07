@@ -1,9 +1,6 @@
 use {
     std::{
         cmp::Ordering,
-        collections::{
-            BTreeMap,
-        },
         iter::*,
         fmt,
         mem::take,
@@ -17,11 +14,7 @@ use {
     },
     rand::prelude::*,
     rand_distr,
-    rayon::{
-        prelude::*,
-        ThreadPool,
-        ThreadPoolBuilder,
-    },
+    rayon::prelude::*,
 
     crate::{
         operator::*,
@@ -96,7 +89,34 @@ impl QReg {
         self
     }
 
-    pub fn get_vreg(&self, c: char) -> Option<VReg> {
+    pub fn get_vreg(&self) -> VReg {
+        let mut res = VReg(self.q_mask, Vec::with_capacity(self.q_num));
+
+        for idx in 0..self.q_num {
+            res.1.push(1 << idx);
+        }
+
+        res
+    }
+
+    pub fn get_vreg_by_mask(&self, mask: N) -> Option<VReg> {
+        if mask == 0 {
+            None
+        } else {
+            let mut vec = Vec::with_capacity(mask.count_ones() as usize);
+
+            for idx in 0..self.q_num {
+                let jdx = 1 << idx;
+                if jdx & mask != 0 {
+                    vec.push(jdx);
+                }
+            }
+
+            Some(VReg(mask, vec))
+        }
+    }
+
+    pub fn get_vreg_by_char(&self, c: char) -> Option<VReg> {
         let c = c as u8;
         let mut res = VReg(0, Vec::with_capacity(self.q_num));
         let mut idx = N::one();
@@ -142,7 +162,7 @@ impl QReg {
         }
     }
 
-    pub fn eval<'a>(&mut self, pend_ops: &'a mut PendingOps) -> &'a mut PendingOps {
+    pub fn eval<'a>(&mut self, pend_ops: &'a PendingOps) -> &'a PendingOps {
         let len = self.psi.len();
         let mut self_psi = take(&mut self.psi);
 
@@ -162,8 +182,6 @@ impl QReg {
     }
 
     fn normalize(&mut self) -> &mut Self {
-        let len = self.psi.len();
-
         let phase = self.psi[0].conj() / self.psi[0].norm();
         let norm = self.psi.par_iter().map(|v| v.norm_sqr()).sum::<R>().sqrt().inv() * phase;
 
@@ -208,18 +226,18 @@ impl QReg {
 
     pub fn sample_all(&mut self, count: N) -> Vec<N> {
         let p = self.get_probabilities();
-        let c = count as f64;
+        let c = count as R;
         let c_sqrt = c.sqrt();
 
         let n = p
             .par_iter()
             .map(|&p| {
-                let rnd: f64 = rand::thread_rng().sample(rand_distr::StandardNormal);
+                let rnd: R = rand::thread_rng().sample(rand_distr::StandardNormal);
                 p.sqrt() * rnd
             })
-            .collect::<Vec<f64>>();
+            .collect::<Vec<R>>();
 
-        let n_sum = n.par_iter().sum::<f64>();
+        let n_sum = n.par_iter().sum::<R>();
 
         let mut n = (0..self.psi.len())
             .into_par_iter()
