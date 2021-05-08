@@ -48,6 +48,8 @@ impl Index<RangeFull> for VReg {
     }
 }
 
+const MIN_QREG_LEN: usize = 8;
+
 #[derive(Default, Clone)]
 pub struct QReg {
     psi: Vec<C>,
@@ -61,7 +63,7 @@ impl QReg {
         let q_size = N::one() << q_num;
 
         let mut psi = Vec::new();
-        psi.resize(q_size, C::zero());
+        psi.resize(q_size.max(MIN_QREG_LEN), C::zero());
         psi[0] = C::one();
 
         Self {
@@ -172,7 +174,7 @@ impl QReg {
 
                 self_psi = (0..len)
                     .into_par_iter()
-                    .map_init(|| psi.clone(), |psi, idx| func(psi, idx))
+                    .map(|idx| func(psi.as_ref(), idx))
                     .collect();
             }
         }

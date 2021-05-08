@@ -15,8 +15,6 @@ use {
 
     crate::types::{*, nums::*}
 };
-use std::mem::take;
-use std::ops::BitOrAssign;
 
 static I_POW_TABLE: [C; 4] = [
     C{ re: 1., im: 0. },
@@ -222,7 +220,7 @@ impl Op {
             func: Some(Box::new(
                 move |psi, idy|
                     if !idy & c_mask == 0 {
-                        (0..psi.len()).into_iter().filter_map(
+                        (0..psi.len()).filter_map(
                             |idx|
                                 if (idx ^ idy) & !a_mask == 0 {
                                     Some(if (idx & idy & a_mask).count_ones().is_even() {

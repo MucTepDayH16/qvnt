@@ -17,7 +17,7 @@ fn quantum_reg() {
     let mask = 0b0110;
 
     let mut pend_ops = PendingOps::new()
-        //| Op::h_uc(0b1111)
+        | Op::h_uc(0b1111)
         | Op::phi(vec![(0b1010, 0.25 * PI), (0b1100, 0.5 * PI)], 0b0000)
         ;
     reg.eval(&pend_ops);
