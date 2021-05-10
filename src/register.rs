@@ -17,8 +17,8 @@ use {
     rayon::prelude::*,
 
     crate::{
+        math::*,
         operator::*,
-        types::{*, nums::*}
     }
 };
 

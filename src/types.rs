@@ -1,23 +1,5 @@
-pub use {
-    num::{
-        abs,
-        Complex,
-        Integer,
-        traits::{
-            Pow,
-            Inv,
-            real::Real,
-        },
-        One,
-        Zero,
-    },
-    std::f32::consts::*,
-};
+pub type N = usize;
+pub type Z = isize;
 
-pub mod nums {
-    pub type N = usize;
-    pub type Z = isize;
-
-    pub type R = f32;
-    pub type C = super::Complex<R>;
-}
+pub type R = f64;
+pub type C = num::complex::Complex<R>;

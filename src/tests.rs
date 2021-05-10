@@ -4,8 +4,8 @@ use crate::{types::*, register::*, operator::*};
 fn ops() {
     let pend_ops = PendingOps::new()
         | Op::id()
-        | Op::h(0b001, 0b010)
-        | Op::x(0b011, 0b100)
+        | Op::ch(0b001, 0b010)
+        | Op::cx(0b011, 0b100)
         | Op::phi(vec![(0b001, 5.)], 0b000);
 
     assert_eq!(pend_ops.len(), 4);
@@ -13,12 +13,13 @@ fn ops() {
 
 #[test]
 fn quantum_reg() {
-    let mut reg = QReg::new(4).init_state(0b1110);
+    let mut reg = QReg::new(4).init_state(0b0000);
     let mask = 0b0110;
 
     let mut pend_ops = PendingOps::new()
         | Op::h_uc(0b1111)
-        | Op::phi(vec![(0b1010, 0.25 * PI), (0b1100, 0.5 * PI)], 0b0000)
+        | Op::cy(0b0101, 0b0010)
+        //  | Op::phi(vec![(0b1010, 0.25 * PI), (0b1100, 0.5 * PI)], 0b0000)
         ;
     reg.eval(&pend_ops);
     pend_ops.clear();

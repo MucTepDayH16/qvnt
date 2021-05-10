@@ -19,12 +19,12 @@ fn main() {
     let mut data = BTreeMap::<usize, BTreeMap<usize, usize>>::new();
 
     let mut pend_ops = PendingOps::new()
-        | Op::h_uc( 0b111 )
-        | Op::x( 0b010, 0b001 )
-        | Op::h( 0b100, 0b001 )
+        | Op::h( 0b111 )
+        | Op::cx( 0b010, 0b001 )
+        | Op::ch( 0b100, 0b001 )
         | Op::phi( vec![ (0b010, 1.) ], 0b001 )
-        | Op::h( 0b001, 0b100 )
-        | Op::z_uc( 0b010 )
+        | Op::ch( 0b001, 0b100 )
+        | Op::z( 0b010 )
         ;
 
     for t_num in 8..=8 {
@@ -33,7 +33,7 @@ fn main() {
         custom_pool.install(|| {
             println!("Running in {} threads", rayon::current_num_threads());
 
-            for q_num in 10..=18 {
+            for q_num in 10..=16 {
                 let mut reg = QReg::new(q_num).init_state(0);
 
                 let clock = get_time();
