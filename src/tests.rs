@@ -8,7 +8,7 @@ fn ops() {
         Op::cx(0b011, 0b100) *
         Op::phi(vec![(0b001, 5.)], 0b000);
 
-    assert_eq!(pend_ops.len(), 4);
+    assert_eq!(pend_ops.len(), 3);
 }
 
 #[test]
@@ -111,4 +111,49 @@ fn qft() {
     let mut pend_ops = Op::qft_no_swap(0b1111);
 
     println!("{:?}", pend_ops);
+}
+
+#[test]
+fn operator_from_matrix() {
+    use crate::math::*;
+
+    assert!(is_unitary(
+        C::one(), C::zero(),
+        C::zero(), C::one()
+    ));
+
+    assert!(!is_unitary(
+        C::one(), C::one(),
+        C::one(), -C::one()
+    ));
+    assert!(is_scaled_unitary(
+        C::one(), C::one(),
+        C::one(), -C::one()
+    ));
+
+    assert!(!is_unitary(
+        C::one(), 2.0 * C::one(),
+        C::one(), -C::one()
+    ));
+    assert!(!is_scaled_unitary(
+        C::one(), 2.0 * C::one(),
+        C::one(), -C::one()
+    ));
+
+    assert!(is_unitary(
+        C::one() / SQRT_2, C::one() / SQRT_2,
+        C::one() / SQRT_2, -C::one() / SQRT_2
+    ));
+    assert!(is_hermitian(
+        C::one() / SQRT_2, C::one() / SQRT_2,
+        C::one() / SQRT_2, -C::one() / SQRT_2
+    ));
+
+    let angle: R = FRAC_PI_6;
+    let mut matrix = [[C::zero(), C::zero()], [C::zero(), C::zero()]];
+    matrix[0][0] = C::new(angle.cos(), 0.0);
+    matrix[0][1] = C::new(0.0, -angle.sin());
+    matrix[1][0] = matrix[0][1];
+    matrix[1][1] = matrix[0][0];
+    println!("{:?}", Op::u_1x1(0b001, matrix))
 }

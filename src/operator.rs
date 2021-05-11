@@ -357,6 +357,36 @@ impl Op {
         }
     }
 
+    pub(crate) fn u_1x1(a_mask: N, matrix: [[C; 2]; 2]) -> Operator {
+        let u = [matrix[0][0], matrix[0][1], matrix[1][0], matrix[1][1]];
+        #[cfg(test)] {
+            assert_eq!(a_mask.count_ones(), 1);
+
+            assert!(is_unitary(u[0], u[1], u[2], u[3]));
+        }
+
+        if is_diagonal(u[0], u[1], u[2], u[3]) {
+            Operator {
+                name: format!("Diag[{:?}, {:?}]", u[0], u[3]),
+                func: Box::new(
+                    move |psi, idx|
+                        u[if (idx & a_mask) != 0 { 3 } else { 0 }] * psi[idx]
+                )
+            }
+        } else {
+            Operator {
+                name: format!("Unitary[{:?}, {:?}, {:?}, {:?}]", u[0], u[1], u[2], u[3]),
+                func: Box::new(
+                    move |psi, idx| {
+                        let a = (idx & a_mask) != 0;
+                        let udx = (if a { 3 } else { 0 }, if a { 2 } else { 1 });
+                        u[udx.0] * psi[idx] + u[udx.1] * psi[idx ^ a_mask]
+                    }
+                )
+            }
+        }
+    }
+
     pub fn qft_no_swap( a_mask: N ) -> Op {
         let count = a_mask.count_ones() as usize;
         match count {
@@ -404,8 +434,23 @@ impl Mul for Op {
     }
 }
 
+impl<'a> Mul<Op> for &'a mut Op {
+    type Output = Self;
+
+    fn mul(self, mut rhs: Op) -> Self::Output {
+        self.mul_assign(rhs);
+        self
+    }
+}
+
 impl MulAssign for Op {
     fn mul_assign(&mut self, mut rhs: Self) {
+        self.0.append(&mut rhs.0);
+    }
+}
+
+impl<'a> MulAssign<Op> for &'a mut Op {
+    fn mul_assign(&mut self, mut rhs: Op) {
         self.0.append(&mut rhs.0);
     }
 }

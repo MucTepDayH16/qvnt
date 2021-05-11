@@ -11,6 +11,7 @@ pub use {
         One,
         Zero,
     },
+    float_cmp::*,
 
     crate::types::*,
 };
@@ -88,4 +89,38 @@ pub fn phase_from_rad(rad: R) -> C {
         } else {
             ANGLE_TABLE[deg]
         }
+}
+
+const ULPS: i64 = 2;
+
+pub fn is_diagonal(u0: C, u1: C, u2: C, u3: C) -> bool {
+    u1.norm_sqr().approx_eq_ulps(&0.0, ULPS)
+        && u2.norm_sqr().approx_eq_ulps(&0.0, ULPS)
+}
+
+pub fn is_unitary(u0: C, u1: C, u2: C, u3: C) -> bool {
+    let e00 = u0.norm_sqr() + u1.norm_sqr();
+    let e11 = u2.norm_sqr() + u3.norm_sqr();
+    let e01 = u0*u2.conj() + u1*u3.conj();
+
+    e00.approx_eq_ulps(&1.0, ULPS)
+        && e11.approx_eq_ulps(&1.0, ULPS)
+        && (e01.re + e01.im).approx_eq_ulps(&0.0, ULPS)
+}
+
+pub fn is_scaled_unitary(u0: C, u1: C, u2: C, u3: C) -> bool {
+    let e00 = u0.norm_sqr() + u1.norm_sqr();
+    let e11 = u2.norm_sqr() + u3.norm_sqr();
+    let e01 = u0*u2.conj() + u1*u3.conj();
+
+    e00.approx_eq_ulps(&e11, ULPS)
+        && (e01.re + e01.im).approx_eq_ulps(&0.0, ULPS)
+}
+
+pub fn is_hermitian(u0: C, u1: C, u2: C, u3: C) -> bool {
+    is_unitary(u0, u1, u2, u3)
+        && u0.im.approx_eq_ulps(&0.0, ULPS)
+        && u1.re.approx_eq_ulps(&u2.re, ULPS)
+        && u2.im.approx_eq_ulps(&(-u1.im), ULPS)
+        && u3.im.approx_eq_ulps(&0.0, ULPS)
 }
