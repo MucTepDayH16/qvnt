@@ -164,23 +164,20 @@ impl QReg {
         }
     }
 
-    pub fn eval<'a>(&mut self, pend_ops: &'a PendingOps) -> &'a PendingOps {
+    pub fn apply(&mut self, ops: &Op) {
         let len = self.psi.len();
         let mut self_psi = take(&mut self.psi);
 
-        for Op { name: _, func } in &pend_ops.0 {
-            if let Some(func) = func {
-                let psi = Arc::new(&mut self_psi);
+        for Operator { name: _, func } in &ops.0 {
+            let psi = Arc::new(&mut self_psi);
 
-                self_psi = (0..len)
-                    .into_par_iter()
-                    .map(|idx| func(psi.as_ref(), idx))
-                    .collect();
-            }
+            self_psi = (0..len)
+                .into_par_iter()
+                .map(|idx| func(psi.as_ref(), idx))
+                .collect();
         }
 
         self.psi = self_psi;
-        pend_ops
     }
 
     fn normalize(&mut self) -> &mut Self {

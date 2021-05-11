@@ -1,3 +1,5 @@
+pub use std::f64::consts::*;
+
 pub type N = usize;
 pub type Z = isize;
 

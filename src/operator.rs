@@ -7,8 +7,8 @@ use {
         boxed::Box,
         fmt,
         ops::{
-            BitOr,
-            BitOrAssign,
+            Mul,
+            MulAssign,
         },
         string::String
     },
@@ -18,29 +18,53 @@ use {
     }
 };
 
-pub struct Op {
+pub(crate) struct Operator {
     pub(crate) name: String,
-    pub(crate) func: Option<Box<dyn Fn(&Vec<C>, N) -> C + Send + Sync>>,
+    pub(crate) func: Box<dyn Fn(&Vec<C>, N) -> C + Send + Sync>,
 }
 
+impl fmt::Debug for Operator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
+#[derive(Debug)]
+pub struct Op(pub(crate) VecDeque<Operator>);
+
 impl Op {
+    pub fn len(&self) -> N {
+        self.0.len()
+    }
+
+    pub fn clear(&mut self) {
+        self.0.clear()
+    }
+
+    #[inline]
+    fn new_operator(name: String, func: Box<dyn Fn(&Vec<C>, N) -> C + Send + Sync>) -> Self {
+        Self(VecDeque::from(vec![Operator{name, func}]))
+    }
+
+    #[inline]
+    fn from_operatot(op: Operator) -> Self {
+        Self(VecDeque::from(vec![op]))
+    }
+
     pub fn id() -> Self {
-        Self{
-            name: String::from( "Id" ),
-            func: None,
-        }
+        Self(VecDeque::new())
     }
 
     pub fn x( a_mask: N ) -> Self {
         if a_mask == 0 { return Self::id(); }
 
-        Self {
-            name: format!("X_a{}", a_mask),
-            func: Some(Box::new(
+        Self::new_operator(
+            format!("X_a{}", a_mask),
+            Box::new(
                 move |psi, idx|
                     psi[idx ^ a_mask]
-            )),
-        }
+            )
+        )
     }
 
     pub fn cx( a_mask: N, c_mask: N ) -> Self {
@@ -48,31 +72,31 @@ impl Op {
         if a_mask == 0 { return Self::id(); }
         if c_mask == 0 { return Self::x(a_mask); }
 
-        Self {
-            name: format!("X_c{}_a{}", c_mask, a_mask),
-            func: Some(Box::new(
+        Self::new_operator(
+            format!("X_c{}_a{}", c_mask, a_mask),
+            Box::new(
                 move |psi, idx|
                     psi[if !idx & c_mask == 0 { idx ^ a_mask } else { idx }]
-            )),
-        }
+            )
+        )
     }
 
     pub fn y( a_mask: N ) -> Self {
         if a_mask == 0 { return Self::id(); }
 
-        let i = I_POW_TABLE[ (!count_bits(a_mask)).wrapping_add(1) & 0x3 ];
+        let i = I_POW_TABLE[(!count_bits(a_mask)).wrapping_add(1) & 0x3];
 
-        Self {
-            name: format!("X_a{}", a_mask),
-            func: Some(Box::new(
+        Self::new_operator(
+            format!("X_a{}", a_mask),
+            Box::new(
                 move |psi, idx|
                     i * if count_bits(idx & a_mask).is_odd() {
                         -psi[idx ^ a_mask]
                     } else {
                         psi[idx ^ a_mask]
                     }
-            )),
-        }
+            )
+        )
     }
 
     pub fn cy( a_mask: N, c_mask: N ) -> Self {
@@ -82,9 +106,9 @@ impl Op {
 
         let i = I_POW_TABLE[ (!count_bits(a_mask)).wrapping_add(1) & 0x3 ];
 
-        Self {
-            name: format!("X_c{}_a{}", c_mask, a_mask),
-            func: Some(Box::new(
+        Self::new_operator(
+            format!("X_c{}_a{}", c_mask, a_mask),
+            Box::new(
                 move |psi, idx|
                     if !idx & c_mask == 0 {
                         i * if count_bits(idx & a_mask).is_odd() {
@@ -95,24 +119,24 @@ impl Op {
                     } else {
                         psi[idx]
                     }
-            )),
-        }
+            )
+        )
     }
 
     pub fn z( a_mask: N ) -> Self {
         if a_mask == 0 { return Self::id(); }
 
-        Self {
-            name: format!("Z_a{}", a_mask),
-            func: Some(Box::new(
+        Self::new_operator(
+            format!("Z_a{}", a_mask),
+            Box::new(
                 move |psi, idx|
                     if count_bits(idx & a_mask).is_odd() {
                         -psi[idx]
                     } else {
                         psi[idx]
                     }
-            ))
-        }
+            )
+        )
     }
 
     pub fn cz( a_mask: N, c_mask: N ) -> Self {
@@ -120,45 +144,43 @@ impl Op {
         if a_mask == 0 { return Self::id(); }
         if c_mask == 0 { return Self::z(a_mask); }
 
-        Self {
-            name: format!("Z_c{}_a{}", c_mask, a_mask),
-            func: Some(Box::new(
+        Self::new_operator(
+            format!("Z_c{}_a{}", c_mask, a_mask),
+            Box::new(
                 move |psi, idx|
                     if !idx & c_mask == 0 && count_bits(idx & a_mask).is_odd() {
                         -psi[idx]
                     } else {
                         psi[idx]
                     }
-            )),
-        }
+            )
+        )
     }
 
     pub fn phi( angles_vec: Vec<(N, R)>, c_mask: N ) -> Self {
-        let angles = angles_vec.clone()
-            .into_iter()
-            .filter_map(
-                |(jdx, ang)|
-                    if c_mask & jdx != 0 {
+        let angles = angles_vec.clone().into_iter().filter_map(
+            |(jdx, ang)|
+                if c_mask & jdx != 0 {
+                    None
+                } else {
+                    let phase = phase_from_rad(ang);
+                    if phase == ANGLE_TABLE[0] {
                         None
                     } else {
-                        let phase = phase_from_rad(ang);
-                        if phase == ANGLE_TABLE[ 0 ] {
-                            None
-                        } else {
-                            Some((jdx, phase))
-                        }
+                        Some((jdx, phase))
                     }
-            ).collect::<BTreeMap<N, C>>();
+                }
+        ).collect::<BTreeMap<N, C>>();
 
         if angles.is_empty() { return Self::id(); }
 
-        Self {
-            name: if c_mask == 0 {
+        Self::new_operator(
+            if c_mask == 0 {
                 format!("RZ_{:?}", angles_vec)
             } else {
                 format!("RZ_c{}_{:?}", c_mask, angles_vec)
             },
-            func: Some(Box::new(
+            Box::new(
                 move |psi, idx| {
                     let mut val = psi[idx];
                     if !idx & c_mask == 0 {
@@ -171,87 +193,177 @@ impl Op {
                     }
                     val
                 }
-            )),
-        }
+            )
+        )
     }
 
     pub fn h( a_mask: N ) -> Self {
-        if a_mask == 0 { return Self::id(); }
-
-        let sqrt = {
-            let sqrt_count = a_mask.count_ones() as N;
-            let mut sqrt = R::one();
-            if sqrt_count.is_odd() {
-                sqrt *= SQRT_2 * 0.5;
+        fn h_op_1x1(a_mask: N) -> Operator {
+            #[cfg(test)] {
+                assert_eq!(a_mask.count_ones(), 1);
             }
-            sqrt / (N::one() << (sqrt_count >> 1)) as R
-        };
+            const SQRT_1_2: R = SQRT_2 * 0.5;
 
-        Self {
-            name: format!("H_a{}", a_mask),
-            func: Some(Box::new(
-                move |psi, idy|
-                    (0..psi.len()).filter_map(
-                        |idx|
-                            if (idx ^ idy) & !a_mask == 0 {
-                                Some(if (idx & idy & a_mask).count_ones().is_even() {
-                                    psi[idx]
-                                } else {
-                                    -psi[idx]
-                                })
-                            } else {
-                                None
-                            }
-                    ).sum::<C>() * sqrt
-            )),
+            Operator {
+                name: format!("H_a{}", a_mask),
+                func: Box::new(
+                    move |psi, idx| {
+                        let a = (idx & a_mask) != 0;
+                        (   if a { -psi[idx] } else { psi[idx] }    +
+                            psi[idx ^ a_mask]                       ) * SQRT_1_2
+                    }
+                )
+            }
+        }
+        fn h_op_2x2(a_mask: N, b_mask: N) -> Operator {
+            #[cfg(test)] {
+                assert_eq!(a_mask.count_ones(), 1);
+                assert_eq!(b_mask.count_ones(), 1);
+                assert_eq!(a_mask & b_mask, 0);
+            }
+
+            let ab_mask = a_mask | b_mask;
+
+            Operator {
+                name: format!("H_a{}", ab_mask),
+                func: Box::new(
+                    move |psi, idx| {
+                        let a = (idx & a_mask) != 0;
+                        let b = (idx & b_mask) != 0;
+                        (   if a ^ b { -psi[idx] } else { psi[idx] }                +
+                            if b { -psi[idx ^ a_mask] } else { psi[idx ^ a_mask] }  +
+                            if a { -psi[idx ^ b_mask] } else { psi[idx ^ b_mask] }  +
+                            psi[idx ^ ab_mask]                                      ) * 0.5
+                    }
+                )
+            }
+        }
+
+        let count = count_bits(a_mask);
+
+        match count {
+            0 => Self::id(),
+            1 => Self::from_operatot(h_op_1x1(a_mask)),
+            _ => {
+                let mut res = Op(VecDeque::with_capacity((count + 1) >> 1));
+                let mut idx = (1, 0);
+                let mut is_first = true;
+
+                while idx.0 <= a_mask {
+                    if idx.0 & a_mask != 0 {
+                        if is_first {
+                            idx.1 = idx.0;
+                            is_first = false;
+                        } else {
+                            res.0.push_back(h_op_2x2(idx.0, idx.1));
+                            is_first = true;
+                        }
+                    }
+                    idx.0 <<= 1;
+                }
+
+                if !is_first {
+                    res.0.push_back(h_op_1x1(idx.1));
+                }
+
+                res
+            }
         }
     }
 
     pub fn ch( a_mask: N, c_mask: N ) -> Self {
-        let a_mask = a_mask & !c_mask;
-        if a_mask == 0 { return Self::id(); }
-        if c_mask == 0 { return Self::h( a_mask ); }
+        fn ch_op_1x1(a_mask: N, c_mask: N) -> Operator {
+            #[cfg(test)] {
+                assert_eq!(a_mask.count_ones(), 1);
 
-        let sqrt = {
-            let sqrt_count = a_mask.count_ones() as N;
-            let mut sqrt = R::one();
-            if sqrt_count.is_odd() {
-                sqrt *= SQRT_2 * 0.5;
+                assert_eq!(a_mask & c_mask, 0);
             }
-            sqrt / (N::one() << (sqrt_count >> 1)) as R
-        };
+            const SQRT_1_2: R = SQRT_2 * 0.5;
 
-        Self {
-            name: format!("H_c{}_a{}", c_mask, a_mask),
-            func: Some(Box::new(
-                move |psi, idy|
-                    if !idy & c_mask == 0 {
-                        (0..psi.len()).filter_map(
-                            |idx|
-                                if (idx ^ idy) & !a_mask == 0 {
-                                    Some(if (idx & idy & a_mask).count_ones().is_even() {
-                                        psi[idx]
-                                    } else {
-                                        -psi[idx]
-                                    })
-                                } else {
-                                    None
-                                }
-                        ).sum::<C>() * sqrt
-                    } else {
-                        psi[idy]
+            Operator {
+                name: format!("H_a{}", a_mask),
+                func: Box::new(
+                    move |psi, idx|
+                        if !idx & c_mask == 0 {
+                            let a = (idx & a_mask) != 0;
+                            (   if a { -psi[idx] } else { psi[idx] }    +
+                                psi[idx ^ a_mask]                       ) * SQRT_1_2
+                        } else {
+                            psi[idx]
+                        }
+                )
+            }
+        }
+        fn ch_op_2x2(a_mask: N, b_mask: N, c_mask: N) -> Operator {
+            #[cfg(test)] {
+                assert_eq!(a_mask.count_ones(), 1);
+                assert_eq!(b_mask.count_ones(), 1);
+                assert_eq!(a_mask & b_mask, 0);
+
+                assert_eq!(a_mask & c_mask, 0);
+                assert_eq!(b_mask & c_mask, 0);
+            }
+
+            let ab_mask = a_mask | b_mask;
+
+            Operator {
+                name: format!("H_a{}", ab_mask),
+                func: Box::new(
+                    move |psi, idx|
+                        if !idx & c_mask == 0 {
+                            let a = (idx & a_mask) != 0;
+                            let b = (idx & b_mask) != 0;
+                            (   if a ^ b { -psi[idx] } else { psi[idx] }                +
+                                if b { -psi[idx ^ a_mask] } else { psi[idx ^ a_mask] }  +
+                                if a { -psi[idx ^ b_mask] } else { psi[idx ^ b_mask] }  +
+                                psi[idx ^ ab_mask]                                      ) * 0.5
+                        } else {
+                            psi[idx]
+                        }
+                )
+            }
+        }
+
+        let a_mask = a_mask & !c_mask;
+        let count = count_bits(a_mask);
+
+        match count {
+            0 => Self::id(),
+            1 => Self::from_operatot(ch_op_1x1(a_mask, c_mask)),
+            _ => {
+                let mut res = Op(VecDeque::with_capacity((count + 1) >> 1));
+                let mut idx = (1, 0);
+                let mut is_first = true;
+
+                while idx.0 <= a_mask {
+                    if idx.0 & a_mask != 0 {
+                        if is_first {
+                            idx.1 = idx.0;
+                            is_first = false;
+                        } else {
+                            res.0.push_back(ch_op_2x2(idx.0, idx.1, c_mask));
+                            is_first = true;
+                        }
                     }
-            )),
+                    idx.0 <<= 1;
+                }
+
+                if !is_first {
+                    res.0.push_back(ch_op_1x1(idx.1, c_mask));
+                }
+
+                res
+            }
         }
     }
 
-    pub fn qft_no_swap( a_mask: N ) -> PendingOps {
+    pub fn qft_no_swap( a_mask: N ) -> Op {
         let count = a_mask.count_ones() as usize;
         match count {
-            0 => PendingOps::new(),
-            1 => PendingOps::new() | Self::h(a_mask),
+            0 => Self::id(),
+            1 => Self::h(a_mask),
             _ => {
-                let mut pend_ops = PendingOps::new();
+                let mut res = VecDeque::new();
                 let mut vec = Vec::<usize>::with_capacity(count);
 
                 for idx in 0..64 {
@@ -262,20 +374,18 @@ impl Op {
                 }
 
                 for i in 0..(count-1) {
-                    pend_ops = pend_ops
-                        | Op::h(vec[i])
-                        | Op::phi(((i+1)..count).map(|j| (vec[j], PI * (0.5 as R).pow((j-i) as u8)) ).collect(), vec[i]);
+                    res.append(&mut Op::h(vec[i]).0);
+                    res.append(
+                        &mut Op::phi(
+                            ((i+1)..count).map(|j| (vec[j], PI * (0.5 as R).pow((j-i) as u8)) ).collect(),
+                            vec[i]).0
+                    );
                 }
 
-                pend_ops | Op::h(vec[count-1])
+                res.append(&mut Op::h(vec[count-1]).0);
+                Op(res)
             }
         }
-    }
-}
-
-impl fmt::Debug for Op {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.name.fmt(f)
     }
 }
 
@@ -285,92 +395,17 @@ impl Default for Op {
     }
 }
 
-#[derive(Debug)]
-pub struct PendingOps(pub(crate) VecDeque<Op>);
-
-impl PendingOps {
-    pub fn new() -> Self {
-        Self(VecDeque::with_capacity(32))
-    }
-
-    pub fn len(&self) -> N {
-        self.0.len()
-    }
-
-    pub fn clear(&mut self) {
-        self.0.clear()
-    }
-}
-
-impl Default for PendingOps {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl BitOr<Op> for PendingOps {
+impl Mul for Op {
     type Output = Self;
 
-    #[inline]
-    fn bitor(mut self, rhs: Op) -> Self {
-        self.bitor_assign(rhs);
+    fn mul(mut self, mut rhs: Self) -> Self::Output {
+        self.mul_assign(rhs);
         self
     }
 }
 
-impl BitOrAssign<Op> for PendingOps {
-    #[inline]
-    fn bitor_assign(&mut self, rhs: Op) {
-        self.0.push_back(rhs)
-    }
-}
-
-impl BitOr for PendingOps {
-    type Output = Self;
-
-    #[inline]
-    fn bitor(mut self, rhs: Self) -> Self {
-        self.bitor_assign(rhs);
-        self
-    }
-}
-
-impl BitOrAssign for PendingOps {
-    #[inline]
-    fn bitor_assign(&mut self, mut rhs: Self) {
-        self.0.append(&mut rhs.0)
-    }
-}
-
-impl<'a> BitOr<Op> for &'a mut PendingOps {
-    type Output = Self;
-
-    #[inline]
-    fn bitor(self, rhs: Op) -> Self {
-        self.bitor_assign(rhs);
-        self
-    }
-}
-
-impl<'a> BitOrAssign<Op> for &'a mut PendingOps {
-    #[inline]
-    fn bitor_assign(&mut self, rhs: Op) {
-        self.0.push_back(rhs)
-    }
-}
-
-impl<'a> BitOr<PendingOps> for &'a mut PendingOps {
-    type Output = Self;
-
-    #[inline]
-    fn bitor(self, rhs: PendingOps) -> Self {
-        self.bitor_assign(rhs);
-        self
-    }
-}
-
-impl<'a> BitOrAssign<PendingOps> for &'a mut PendingOps {
-    fn bitor_assign(&mut self, mut rhs: PendingOps) {
-        self.0.append(&mut rhs.0)
+impl MulAssign for Op {
+    fn mul_assign(&mut self, mut rhs: Self) {
+        self.0.append(&mut rhs.0);
     }
 }

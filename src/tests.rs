@@ -2,31 +2,31 @@ use crate::{types::*, register::*, operator::*};
 
 #[test]
 fn ops() {
-    let pend_ops = PendingOps::new()
-        | Op::id()
-        | Op::ch(0b001, 0b010)
-        | Op::cx(0b011, 0b100)
-        | Op::phi(vec![(0b001, 5.)], 0b000);
+    let pend_ops =
+        Op::id() *
+        Op::ch(0b001, 0b010) *
+        Op::cx(0b011, 0b100) *
+        Op::phi(vec![(0b001, 5.)], 0b000);
 
     assert_eq!(pend_ops.len(), 4);
 }
 
 #[test]
 fn quantum_reg() {
-    let mut reg = QReg::new(4).init_state(0b0000);
+    let mut reg = QReg::new(4).init_state(0b1100);
     let mask = 0b0110;
 
-    let mut pend_ops = PendingOps::new()
-        | Op::h_uc(0b1111)
-        | Op::cy(0b0101, 0b0010)
-        //  | Op::phi(vec![(0b1010, 0.25 * PI), (0b1100, 0.5 * PI)], 0b0000)
-        ;
-    reg.eval(&pend_ops);
-    pend_ops.clear();
+    let mut op =
+        Op::h(0b1111) *
+        Op::ch(0b0011, 0b1000);
 
+    reg.apply(&op);
+
+    println!("{:?}", op);
     println!("{:?}", reg);
 
-    assert_eq!(pend_ops.len(), 0);
+    op.clear();
+    assert_eq!(op.len(), 0);
     assert_eq!(reg.measure(mask) & !mask, 0);
 }
 
@@ -35,10 +35,10 @@ fn tensor() {
     let mut reg1 = QReg::new(2).init_state(0b01);
     let mut reg2 = QReg::new(1).init_state(0b1);
 
-    let mut pend_ops = PendingOps::new() | Op::h_uc(0b01);
+    let mut pend_ops = Op::h(0b01);
 
-    reg1.eval(&pend_ops);
-    reg2.eval(&pend_ops);
+    reg1.apply(&pend_ops);
+    reg2.apply(&pend_ops);
 
     let test_prob = (reg1 * reg2).get_probabilities();
     let true_prob = vec![0.25, 0.25, 0., 0., 0.25, 0.25, 0., 0.];

@@ -11,7 +11,6 @@ pub use {
         One,
         Zero,
     },
-    std::f64::consts::*,
 
     crate::types::*,
 };
