@@ -4,14 +4,7 @@ use {
 };
 
 fn qreg_multithreading(q_num: usize, t_num: usize) {
-    let mut pend_ops =
-          Op::id()
-        * Op::h( 0b111 )
-        * Op::cx( 0b010, 0b001 )
-        * Op::ch( 0b100, 0b001 )
-        * Op::phi( vec![ (0b001, 1.) ], 0b001 )
-        * Op::ch( 0b001, 0b100 )
-        * Op::z( 0b010 );
+    let mut pend_ops = Op::bench_circuit();
 
     let custom_pool = rayon::ThreadPoolBuilder::new()
         .num_threads(t_num).build().unwrap();

@@ -5,3 +5,6 @@ pub type Z = isize;
 
 pub type R = f64;
 pub type C = num::complex::Complex<R>;
+
+pub type M1 = [C; 4];
+pub type M2 = [C; 16];
