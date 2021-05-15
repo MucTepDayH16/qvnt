@@ -168,12 +168,13 @@ impl QReg {
         let len = self.psi.len();
         let mut self_psi = take(&mut self.psi);
 
-        for Operator { name: _, func } in &ops.0 {
+        for Operator { name: _, control, func } in &ops.0 {
             let psi = Arc::new(&mut self_psi);
 
             self_psi = (0..len)
                 .into_par_iter()
-                .map(|idx| func(psi.as_ref(), idx))
+                .map_init(|| *control.clone(),
+                          |c_mask, idx| if !idx & *c_mask == 0 { func(psi.as_ref(), idx) } else { psi[idx] })
                 .collect();
         }
 
@@ -271,7 +272,7 @@ impl QReg {
 
 impl fmt::Debug for QReg {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.psi.fmt(f)
+        self.psi[0..8].fmt(f)
     }
 }
 

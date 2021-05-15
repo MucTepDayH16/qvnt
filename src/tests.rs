@@ -4,9 +4,9 @@ use crate::{types::*, register::*, operator::*};
 fn ops() {
     let pend_ops =
         Op::id() *
-        Op::h(0b001, 0b010) *
-        Op::x(0b011, 0b100) *
-        Op::phi(vec![(0b001, 5.)], 0b000);
+        Op::h(0b001).c(0b010) *
+        Op::x(0b011).c(0b100) *
+        Op::phi(vec![(5.0, 0b001)]);
 
     assert_eq!(pend_ops.len(), 3);
 }
@@ -17,9 +17,9 @@ fn quantum_reg() {
     let mask = 0b0110;
 
     let mut op =
-        Op::h(0b1111, 0b0000)
-        * Op::h(0b0011, 0b1000)
-        * Op::swap(0b0001, 0b0100, 0b0010)
+        Op::h(0b1111)
+        * Op::h(0b0011).c(0b1000)
+        * Op::swap(0b1001).c(0b0010)
         ;
 
     reg.apply(&op);
@@ -37,7 +37,7 @@ fn tensor() {
     let mut reg1 = QReg::new(2).init_state(0b01);
     let mut reg2 = QReg::new(1).init_state(0b1);
 
-    let mut pend_ops = Op::h(0b01, 0);
+    let mut pend_ops = Op::h(0b01);
 
     reg1.apply(&pend_ops);
     reg2.apply(&pend_ops);
@@ -79,12 +79,12 @@ fn virtual_regs() {
     //  qreg    x[3];
     reg *= QReg::new(3).set_alias_char('x');
     //  qreg    a[2];
-    reg *= QReg::new(2).set_alias_char('a');
+    reg *= QReg::new(2).set_alias_char('y');
 
     let r = reg.get_vreg();
     let m = reg.get_vreg_by_mask(0b01101).unwrap();
     let x = reg.get_vreg_by_char('x').unwrap();
-    let a = reg.get_vreg_by_char('a').unwrap();
+    let y = reg.get_vreg_by_char('y').unwrap();
 
     assert_eq!(r[0],    0b00001);
     assert_eq!(r[1],    0b00010);
@@ -103,9 +103,9 @@ fn virtual_regs() {
     assert_eq!(x[2],    0b00100);
     assert_eq!(x[..],   0b00111);
 
-    assert_eq!(a[0],    0b01000);
-    assert_eq!(a[1],    0b10000);
-    assert_eq!(a[..],   0b11000);
+    assert_eq!(y[0],    0b01000);
+    assert_eq!(y[1],    0b10000);
+    assert_eq!(y[..],   0b11000);
 }
 
 #[test]
@@ -157,8 +157,8 @@ fn operator_from_matrix() {
     matrix[1] = C::new(0.0, -angle.sin());
     matrix[2] = matrix[1];
     matrix[3] = matrix[0];
-    println!("{:?}", Op::uni_1x1(matrix, 0b001, 0));
-    println!("{:?}", Op::if_b_then_u1_else_u0(matrix, matrix, 0b0001, 0b1000, 0))
+    println!("{:?}", Op::uni_1x1(matrix, 0b001));
+    println!("{:?}", Op::if_b_then_u1_else_u0(matrix, matrix, 0b0001, 0b1000))
 }
 
 #[test]
@@ -168,29 +168,35 @@ fn rotate_operators() {
     println!("{:?}", (PHASE * 0.5).sin_cos());
 
     //  rx
+    let op = Op::rx(PHASE, 0b1);
+
     let mut reg0 = QReg::new(1).init_state(0b0);
-    reg0.apply(&Op::rx(PHASE, 0b1, 0));
+    reg0.apply(&op);
     let mut reg1 = QReg::new(1).init_state(0b1);
-    reg1.apply(&Op::rx(PHASE, 0b1, 0));
+    reg1.apply(&op);
     println!("{:?}\n{:?}\n", reg0, reg1);
 
     //  ry
+    let op = Op::ry(PHASE, 0b1);
+
     let mut reg0 = QReg::new(1).init_state(0b0);
-    reg0.apply(&Op::ry(PHASE, 0b1, 0));
+    reg0.apply(&op);
     let mut reg1 = QReg::new(1).init_state(0b1);
-    reg1.apply(&Op::ry(PHASE, 0b1, 0));
+    reg1.apply(&op);
     println!("{:?}\n{:?}\n", reg0, reg1);
 
 
     //  rz
+    let op = Op::rz(PHASE, 0b1);
+
     let mut reg0 = QReg::new(1).init_state(0b0);
-    reg0.apply(&Op::rz(PHASE, 0b1, 0));
+    reg0.apply(&op);
     let mut reg1 = QReg::new(1).init_state(0b1);
-    reg1.apply(&Op::rz(PHASE, 0b1, 0));
+    reg1.apply(&op);
     println!("{:?}\n{:?}\n", reg0, reg1);
 
     //  rxx
-    let op = Op::rxx(PHASE, 0b11, 0);
+    let op = Op::rxx(PHASE, 0b11);
 
     let mut reg0 = QReg::new(2).init_state(0b00);
     reg0.apply(&op);
@@ -203,7 +209,7 @@ fn rotate_operators() {
     println!("{:?}\n{:?}\n{:?}\n{:?}\n", reg0, reg1, reg2, reg3);
 
     //  ryy
-    let op = Op::ryy(PHASE, 0b11, 0);
+    let op = Op::ryy(PHASE, 0b11);
 
     let mut reg0 = QReg::new(2).init_state(0b00);
     reg0.apply(&op);
@@ -216,7 +222,22 @@ fn rotate_operators() {
     println!("{:?}\n{:?}\n{:?}\n{:?}\n", reg0, reg1, reg2, reg3);
 
     //  rzz
-    let op = Op::rzz(PHASE, 0b11, 0);
+    let op = Op::rzz(PHASE, 0b11);
+
+    let mut reg0 = QReg::new(2).init_state(0b00);
+    reg0.apply(&op);
+    let mut reg1 = QReg::new(2).init_state(0b01);
+    reg1.apply(&op);
+    let mut reg2 = QReg::new(2).init_state(0b10);
+    reg2.apply(&op);
+    let mut reg3 = QReg::new(2).init_state(0b11);
+    reg3.apply(&op);
+    println!("{:?}\n{:?}\n{:?}\n{:?}\n", reg0, reg1, reg2, reg3);
+
+    //  swap
+    let op =
+        Op::sqrt_swap(0b11)
+            * Op::sqrt_swap(0b11);
 
     let mut reg0 = QReg::new(2).init_state(0b00);
     reg0.apply(&op);
