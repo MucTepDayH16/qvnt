@@ -4,7 +4,7 @@ use {
 };
 
 fn qreg_multithreading(q_num: usize, t_num: usize) {
-    let mut pend_ops = Op::bench_circuit();
+    let mut pend_ops = Op::qft(0b111);
 
     let custom_pool = rayon::ThreadPoolBuilder::new()
         .num_threads(t_num).build().unwrap();
@@ -22,7 +22,7 @@ fn qreg_multithreading(q_num: usize, t_num: usize) {
 
 fn qvnt_bench(crit: &mut Criterion) {
     for th_num in 1..=12 {
-        for qu_num in 10..=28 {
+        for qu_num in 12..=20 {
             crit.bench_function(
                 format!("evaluate_qu{}_th{}", qu_num, th_num).as_str(),
                 |b| b.iter(|| {

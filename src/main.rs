@@ -1,7 +1,7 @@
 use {
     std::{
         collections::BTreeMap,
-        time::*,
+        time::Instant,
     },
     rayon::prelude::*,
 
@@ -10,10 +10,6 @@ use {
         register::QReg,
     },
 };
-
-fn get_time() -> u128 {
-    SystemTime::now().duration_since( UNIX_EPOCH ).unwrap().as_millis()
-}
 
 fn main() {
     let mut data = BTreeMap::<usize, BTreeMap<usize, usize>>::new();
@@ -29,15 +25,13 @@ fn main() {
             for q_num in 20..=24 {
                 let mut reg = QReg::new(q_num).init_state(0);
 
-                let clock = get_time();
+                let clock = Instant::now();
 
                 reg.apply(&ops);
-
                 //  println!( "{:?}", reg );
-                //  println!( "{:?}", reg.sample_all( 1024 ) );
                 let x = reg.measure(0b100);
 
-                let clock = get_time() - clock;
+                let clock = clock.elapsed().as_millis();
                 println!("\tQReg[{}] done in {}ms", q_num, clock);
 
                 data.entry(q_num as usize).or_insert(BTreeMap::new())
