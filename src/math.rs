@@ -79,6 +79,7 @@ pub fn count_bits(n: N) -> N {
 
 #[inline]
 pub fn phase_from_rad(rad: R) -> C {
+    /*
     let deg = (rad.to_degrees().round() as Z).mod_floor(&360) as N;
     let (quat, deg) = deg.div_mod_floor(&90);
 
@@ -89,6 +90,8 @@ pub fn phase_from_rad(rad: R) -> C {
         } else {
             ANGLE_TABLE[deg]
         }
+     */
+    C::from_polar(1.0, rad)
 }
 
 const ULPS: i64 = 2;

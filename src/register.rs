@@ -169,13 +169,21 @@ impl QReg {
         let mut self_psi = take(&mut self.psi);
 
         for Operator { name: _, control, func } in &ops.0 {
-            let psi = Arc::new(&mut self_psi);
+            let psi = Arc::new(self_psi);
+            let c_mask = *control.clone();
+            let par_iter = (0..len).into_par_iter();
 
-            self_psi = (0..len)
-                .into_par_iter()
-                .map_init(|| *control.clone(),
-                          |c_mask, idx| if !idx & *c_mask == 0 { func(psi.as_ref(), idx) } else { psi[idx] })
-                .collect();
+            self_psi = if c_mask != 0 {
+                par_iter
+                    .map_init(|| (c_mask, psi.clone()),
+                              |(c_mask, psi), idx| if !idx & *c_mask == 0 { func(psi, idx) } else { psi[idx] })
+                    .collect()
+            } else {
+                par_iter
+                    .map_init(|| psi.clone(),
+                              |psi, idx| func(psi, idx))
+                    .collect()
+            };
         }
 
         self.psi = self_psi;

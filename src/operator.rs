@@ -27,11 +27,9 @@ impl Operator {
 impl fmt::Debug for Operator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let c_mask = *self.control;
-        write!(f, "{}", if c_mask != 0 {
-            format!("C{}_", c_mask)
-        } else {
-            String::new()
-        } + &self.name)
+        write!(f, "{}",
+               if c_mask != 0 { format!("C{}_", c_mask) } else { String::new() }
+                   + &self.name)
     }
 }
 
@@ -118,14 +116,21 @@ impl Op {
 
     pub fn y(a_mask: N) -> Self {
         let i = I_POW_TABLE[ (!count_bits(a_mask)).wrapping_add(1) & 0x3 ];
-        let _op = move |psi: &[C], idx: N, a_mask: N| -> C {
-            i * if count_bits(idx & a_mask).is_odd() {
-                -psi[idx ^ a_mask]
-            } else {
-                psi[idx ^ a_mask]
-            }
-        };
-        simple_operator_definition!("Y", a_mask, _op)
+        if a_mask == 0 {
+            Self::id()
+        } else {
+            Operator {
+                name: format!("{}{}", "Y", a_mask),
+                control: Arc::new(0),
+                func: Box::new(move |psi, idx| -> C {
+                    i * if count_bits(idx & a_mask).is_odd() {
+                        -psi[idx ^ a_mask]
+                    } else {
+                        psi[idx ^ a_mask]
+                    }
+                })
+            }.into()
+        }
     }
     pub fn ry(phase: R, a_mask: N) -> Self {
         #[inline(always)] fn _op(psi: &[C], idx: N, a_mask: N, mut ang: C) -> C {
@@ -161,6 +166,14 @@ impl Op {
         }
         simple_operator_definition!("S", a_mask, _op)
     }
+    pub fn t(a_mask: N) -> Self {
+        #[inline(always)] fn _op(psi: &[C], idx: N, a_mask: N) -> C {
+            let count = count_bits(idx & a_mask);
+            (if count & 1 != 0 { ANGLE_TABLE[45] } else { C::one() })
+                * I_POW_TABLE[(count >> 1) & 3] * psi[idx]
+        }
+        simple_operator_definition!("T", a_mask, _op)
+    }
     pub fn rz(phase: R, a_mask: N) -> Self {
         #[inline(always)] fn _op(psi: &[C], idx: N, a_mask: N, mut ang: C) -> C {
             let mut psi = psi[idx];
@@ -179,93 +192,76 @@ impl Op {
     }
 
     pub fn phi(angles_vec: Vec<(R, N)>) -> Self {
-        let angles = angles_vec.clone().into_iter().filter_map(
-            |(ang, jdx)| {
-                let phase = phase_from_rad(ang);
-                if phase == ANGLE_TABLE[0] {
-                    None
-                } else {
-                    Some((jdx, phase))
+        let mut angles = BTreeMap::new();
+        for (val, idx) in angles_vec.iter() {
+            let mut jdx = 1;
+            while jdx <= *idx {
+                if jdx & *idx != 0 {
+                    angles.entry(jdx).or_insert(C::new(0.0, 0.0)).im += *val;
                 }
+                jdx <<= 1;
             }
-        ).collect::<BTreeMap<N, C>>();
+        }
+        angles.iter_mut().for_each(|(idx, val)| *val = C::from_polar(1.0, val.im));
 
-        if angles.is_empty() { return Self::id(); }
-
-        Operator {
-            name: format!("PHASE({:?})", angles_vec),
-            control: Arc::new(0),
-            func: Box::new(
-                move |psi, idx| {
-                    let mut val = psi[idx];
-                    for (jdx, ang) in &angles {
-                        let count = (idx & jdx).count_ones();
-                        if count > 0 {
-                            val *= ang.pow(count);
+        if angles.is_empty() {
+            Self::id()
+        } else {
+            Operator {
+                name: format!("Phase{:?}", angles_vec),
+                control: Arc::new(0),
+                func: Box::new(
+                    move |psi, idx| {
+                        let mut val = psi[idx];
+                        for (jdx, ang) in &angles {
+                            if idx & jdx != 0 {
+                                val *= ang;
+                            }
                         }
+                        val
                     }
-                    val
-                }
-            )
-        }.into()
+                )
+            }.into()
+        }
     }
 
     pub fn swap(ab_mask: N) -> Self {
         assert_eq!(ab_mask.count_ones(), 2);
-
-
-        Operator {
-            name: format!("SWAP{}", ab_mask),
-            control: Arc::new(0),
-            func: Box::new(
-                move |psi, mut idx| {
-                    if (idx & ab_mask).count_ones().is_odd() {
-                        psi[idx ^ ab_mask]
-                    } else {
-                        psi[idx]
-                    }
-                }
-            )
-        }.into()
+        #[inline(always)] fn _op(psi: &[C], idx: N, ab_mask: N) -> C {
+            if (idx & ab_mask).count_ones().is_odd() {
+                psi[idx ^ ab_mask]
+            } else {
+                psi[idx]
+            }
+        }
+        simple_operator_definition!("SWAP", ab_mask, _op)
     }
     pub fn sqrt_swap(ab_mask: N) -> Self {
         assert_eq!(ab_mask.count_ones(), 2);
-
-        Operator {
-            name: format!("sqrt_SWAP{}", ab_mask),
-            control: Arc::new(0),
-            func: Box::new(
-                move |psi, mut idx| {
-                    if (idx & ab_mask).count_ones().is_odd() {
-                        let psi = (psi[idx], psi[idx ^ ab_mask]);
-                        0.5 * C {
-                            re: (psi.0.re - psi.0.im) + (psi.1.re + psi.1.im),
-                            im: (psi.0.im + psi.0.re) + (psi.1.im - psi.1.re)
-                        }
-                    } else {
-                        psi[idx]
-                    }
+        #[inline(always)] fn _op(psi: &[C], idx: N, ab_mask: N) -> C {
+            if (idx & ab_mask).count_ones().is_odd() {
+                let psi = (psi[idx], psi[idx ^ ab_mask]);
+                0.5 * C {
+                    re: (psi.0.re - psi.0.im) + (psi.1.re + psi.1.im),
+                    im: (psi.0.im + psi.0.re) + (psi.1.im - psi.1.re)
                 }
-            )
-        }.into()
+            } else {
+                psi[idx]
+            }
+        }
+        simple_operator_definition!("sqrt_SWAP", ab_mask, _op)
     }
     pub fn i_swap(ab_mask: N) -> Self {
         assert_eq!(ab_mask.count_ones(), 2);
-
-        Operator {
-            name: format!("iSWAP{}", ab_mask),
-            control: Arc::new(0),
-            func: Box::new(
-                move |psi, mut idx| {
-                    if (idx & ab_mask).count_ones().is_odd() {
-                        let psi = psi[idx ^ ab_mask];
-                        C { re: -psi.im, im: psi.re }
-                    } else {
-                        psi[idx]
-                    }
-                }
-            )
-        }.into()
+        #[inline(always)] fn _op(psi: &[C], idx: N, ab_mask: N) -> C {
+            if (idx & ab_mask).count_ones().is_odd() {
+                let psi = psi[idx ^ ab_mask];
+                C { re: -psi.im, im: psi.re }
+            } else {
+                psi[idx]
+            }
+        }
+        simple_operator_definition!("iSWAP", ab_mask, _op)
     }
     pub fn sqrt_i_swap(ab_mask: N) -> Self {
         assert_eq!(ab_mask.count_ones(), 2);
@@ -497,6 +493,7 @@ impl Op {
             * Op::phi(vec![ (1.0, 0b010) ]).c(0b001)
             * Op::h(0b001).c(0b100)
             * Op::z(0b010)
+            * Op::rxx(FRAC_PI_6, 0b101)
     }
 }
 
