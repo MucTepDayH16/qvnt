@@ -16,7 +16,7 @@ fn qreg_multithreading(q_num: usize, t_num: usize) {
         pend_ops.clear();
 
         let mask = 0b100;
-        assert_eq!(reg.measure(mask) & !mask, 0);
+        assert_eq!(reg.measure_mask(mask) & !mask, 0);
     });
 }
 
