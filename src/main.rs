@@ -29,11 +29,11 @@ fn main() {
 
                 reg.apply(&ops);
                 //  println!( "{:?}", reg );
-                let x = reg.measure(0b100);
+                let measured = reg.measure_mask(0b110);
+                //  println!("{}", measured);
 
                 let clock = clock.elapsed().as_millis();
                 println!("\tQReg[{}] done in {}ms", q_num, clock);
-
                 data.entry(q_num as usize).or_insert(BTreeMap::new())
                     .entry(t_num as usize).or_insert(clock as usize);
             }

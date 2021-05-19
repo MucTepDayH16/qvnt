@@ -190,11 +190,8 @@ impl QReg {
     }
 
     fn normalize(&mut self) -> &mut Self {
-        let phase = self.psi[0].conj() / self.psi[0].norm();
-        let norm = self.psi.par_iter().map(|v| v.norm_sqr()).sum::<R>().sqrt().inv() * phase;
-
-        self.psi.par_iter_mut().for_each(|v| *v *= norm);
-
+        let norm = self.psi.par_iter().map(|v| v.norm_sqr()).sum::<R>().sqrt().inv();
+        self.psi.par_iter_mut().for_each_with(norm, |n, v| *v *= *n);
         self
     }
 
@@ -206,7 +203,25 @@ impl QReg {
         self.psi.par_iter().map(|z| z.norm_sqr()).collect()
     }
 
-    pub fn measure(&mut self, mask: N) -> N {
+    fn collapse_mask(&mut self, idy: N, mask: N) {
+        let len = self.psi.len();
+        let psi = Arc::new(take(&mut self.psi));
+
+        self.psi = (0..len)
+            .into_par_iter()
+            .map_init(
+                || psi.clone(),
+                move |psi, idx|
+                    if (idx ^ idy) & mask != 0 {
+                        C::zero()
+                    } else {
+                        psi[idx]
+                    }
+            ).collect();
+
+        self.normalize();
+    }
+    pub fn measure_mask(&mut self, mask: N) -> N {
         let mask = mask & self.q_mask;
         if mask == 0 { return 0; }
 
@@ -216,23 +231,14 @@ impl QReg {
             ).unwrap()
         );
 
-        let len = self.psi.len();
-        let psi = Arc::new(take(&mut self.psi));
-
-        self.psi = (0..len)
-            .into_par_iter()
-            .map(move |idx|
-                if (idx ^ rand_idx) & mask != 0 {
-                    C::zero()
-                } else {
-                    psi[idx]
-                }).collect();
-
-        self.normalize();
+        self.collapse_mask(rand_idx, mask);
         rand_idx & mask
     }
+    pub fn measure(&mut self) -> N {
+        self.measure_mask(self.q_mask)
+    }
 
-    pub fn sample_all(&mut self, count: N) -> Vec<N> {
+    pub fn sample_all(&self, count: N) -> Vec<N> {
         let p = self.get_probabilities();
         let c = count as R;
         let c_sqrt = c.sqrt();
