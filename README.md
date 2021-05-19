@@ -43,6 +43,7 @@ ___
 *  2-qubits rotation operators, *aka* Ising gates;
 *  *SWAP*, *iSWAP* operators and square rooted ones;
 *  *QFT* with and without swapping qubits after applying;
+*  General unitary operators, constructed from 2x2 or 4x4 complex matrices; 
 
 Also, __ALL__ these operators could be turned into controlled ones, using ```.c(...)``` syntax:
 ```rust
