@@ -22,7 +22,7 @@ let mut q_reg = QReg::new(10).alias_char('x');
 //  or with initial state, where 3 qubits are already in state |1>
 //  let q_reg = QReg::new(10).alias_char('x').init_state(0b0011100000);
 
-//  get register 'x', to interact with specified qubits
+//  get virtual register 'x', to interact with specified qubits
 let x = q_reg.get_vreg_by_char('x').unwrap();
 
 //  create qft operation, acting on first 5 qubits in q_reg

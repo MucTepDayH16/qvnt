@@ -3,9 +3,10 @@ name        = "qvnt"
 version     = "0.1.0"
 authors     = ["Denis Drozhzhin <denisdrozhzhin1999@gmail.com>"]
 edition     = "2018"
-repository  = "https://github.com/MucTepDayH16/qvnt.git"
+repository  = "https://github.com/MucTepDayH16/qvnt/"
 readme      = "README.md"
-description = "Quantum Simulation"
+description = "Advanced quantum computation simulator."
+license     = "MIT OR Apache-2.0"
 
 [dependencies]
 num         = "0.4"
