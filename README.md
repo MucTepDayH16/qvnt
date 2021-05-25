@@ -12,10 +12,7 @@ ___
 ___
 ## Usage
 ```rust
-use qvnt::{
-   operator::Op,
-   register::QReg,
-}
+use qvnt::prelude::*;
 
 //  create quantum register, called 'x', with 10 qubits
 let mut q_reg = QReg::new(10).alias_char('x');

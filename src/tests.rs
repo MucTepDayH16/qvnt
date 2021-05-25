@@ -2,10 +2,7 @@ use crate::{types::*, register::*, operator::*};
 
 #[test]
 fn replace_of_main() {
-    use {
-        std::{time::Instant, collections::BTreeMap,},
-        crate::{operator::Op, register::QReg,}
-    };
+    use std::{time::Instant, collections::BTreeMap,};
 
     let mut data = BTreeMap::<usize, BTreeMap<usize, usize>>::new();
 
