@@ -361,6 +361,11 @@ impl Op {
         }
     }
 
+    pub fn u3(phi: R, the: R, lam: R, a_mask: N) -> Self {
+        Self::rz(phi, a_mask)
+            * Self::ry(the, a_mask)
+            * Self::rz(lam, a_mask)
+    }
     pub fn uni_1x1(u: M1, a_mask: N) -> Self {
         assert_eq!(a_mask.count_ones(), 1);
         assert!(is_unitary_m1(&u));
