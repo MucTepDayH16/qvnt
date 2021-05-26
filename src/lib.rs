@@ -3,6 +3,7 @@ mod tests;
 
 mod types;
 mod math;
+mod bits_iter;
 
 pub mod prelude {
     use super::operator::Op;

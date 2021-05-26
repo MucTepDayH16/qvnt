@@ -54,18 +54,20 @@ macro_rules! simple_operator_definition {
 }
 macro_rules! rotate_operator_definition {
     ($name:literal, $dim:expr, $phase:expr, $mask:expr, $operation:expr) => {{
-        assert_eq!($mask.count_ones(), $dim);
         let ang = phase_from_rad($phase * 0.5);
+        let mut ops = Op::id();
 
-        if ang == ANGLE_TABLE[0] {
-            Op::id()
-        } else {
-            Operator {
-                name: format!("{}{}({})", $name, $mask, $phase),
-                control: Arc::new(0),
-                func: Box::new(move |psi, idx| $operation(psi, idx, $mask, ang))
-            }.into()
+        if ang != ANGLE_TABLE[0] {
+            for mask in crate::bits_iter::BitsIter::from($mask) {
+                ops *= Operator {
+                    name: format!("{}{}({})", $name, mask, $phase),
+                    control: Arc::new(0),
+                    func: Box::new(move |psi, idx| $operation(psi, idx, mask, ang))
+                }
+            }
         }
+
+        ops
     }};
 }
 
@@ -101,7 +103,7 @@ impl Op {
         #[inline(always)] fn _op(psi: &[C], idx: N, a_mask: N, ang: C) -> C {
             let mut psi = (psi[idx], psi[idx ^ a_mask]);
             psi.1 = C::new(psi.1.im, -psi.1.re);
-            ang.re * psi.0 + ang.im * psi.1
+            psi.0.scale(ang.re) + psi.1.scale(ang.im)
         }
         rotate_operator_definition!("RX", 1, phase, a_mask, _op)
     }
@@ -489,7 +491,7 @@ impl Op {
             * Op::h(0b111)
             * Op::h(0b100).c(0b001)
             * Op::x(0b001).c(0b110)
-            * Op::ry(1.2, 0b100)
+            * Op::rx(1.2, 0b100)
             * Op::phi(vec![ (1.0, 0b010) ]).c(0b001)
             * Op::h(0b001).c(0b100)
             * Op::z(0b010)
@@ -506,7 +508,16 @@ impl Default for Op {
 impl Mul for Op {
     type Output = Self;
 
-    fn mul(mut self, mut rhs: Self) -> Self::Output {
+    fn mul(mut self, mut rhs: Self) -> Self {
+        self.mul_assign(rhs);
+        self
+    }
+}
+
+impl Mul<Operator> for Op {
+    type Output = Self;
+
+    fn mul(mut self, mut rhs: Operator) -> Self {
         self.mul_assign(rhs);
         self
     }
@@ -524,6 +535,12 @@ impl<'a> Mul<Op> for &'a mut Op {
 impl MulAssign for Op {
     fn mul_assign(&mut self, mut rhs: Self) {
         self.0.append(&mut rhs.0);
+    }
+}
+
+impl MulAssign<Operator> for Op {
+    fn mul_assign(&mut self, mut rhs: Operator) {
+        self.0.push_back(rhs);
     }
 }
 
