@@ -6,9 +6,11 @@ mod math;
 mod bits_iter;
 
 pub mod prelude {
-    use super::operator::Op;
-    use super::register::{QReg, VReg};
+    pub use super::operator::Op;
+    pub use super::register::{VReg, QReg};
+    pub use super::threads::qvnt_num_threads;
 }
 
 pub mod operator;
 pub mod register;
+pub mod threads;

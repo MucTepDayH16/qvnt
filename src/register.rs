@@ -74,7 +74,11 @@ impl QReg {
     }
 
     pub fn init_state(mut self, i_state: N) -> Self {
-        self.psi.iter_mut().for_each(|val| *val = C::zero());
+        let mut self_psi = take(&mut self.psi);
+        self.psi = crate::threads::global_install(move || {
+            self_psi.par_iter_mut().for_each(|val| *val = C::zero());
+            self_psi
+        });
         self.psi[self.q_mask & i_state] = C::one();
         self
     }
@@ -150,17 +154,19 @@ impl QReg {
 
         let q_num = self.q_num + other.q_num;
         let q_size = N::one() << q_num;
-        let psi = (0..q_size)
-            .into_par_iter()
-            .map(
-                move |idx|
-                    self_psi[(idx >> shift.0) & mask.0] * other_psi[(idx >> shift.1) & mask.1]
-            ).collect();
+        let psi = crate::threads::global_install(|| {
+            (0..q_size)
+                .into_par_iter()
+                .map(
+                    move |idx|
+                        self_psi[(idx >> shift.0) & mask.0] * other_psi[(idx >> shift.1) & mask.1]
+                ).collect()
+        });
 
         Self {
             psi, q_num,
             q_mask: q_size.wrapping_add(!N::zero()),
-            alias
+            alias,
         }
     }
 
@@ -168,46 +174,56 @@ impl QReg {
         let len = self.psi.len();
         let mut self_psi = take(&mut self.psi);
 
-        for Operator { name: _, control, func } in &ops.0 {
-            let psi = Arc::new(self_psi);
-            let c_mask = *control.clone();
-            let par_iter = (0..len).into_par_iter();
+        self.psi = crate::threads::global_install(move || {
+            for Operator { name: _, control, func } in &ops.0 {
+                let psi = Arc::new(self_psi);
+                let c_mask = *control.clone();
+                let par_iter = (0..len).into_par_iter();
 
-            self_psi = if c_mask != 0 {
-                par_iter
-                    .map_init(|| (c_mask, psi.clone()),
-                              |(c_mask, psi), idx| if !idx & *c_mask == 0 { func(psi, idx) } else { psi[idx] })
-                    .collect()
-            } else {
-                par_iter
-                    .map_init(|| psi.clone(),
-                              |psi, idx| func(psi, idx))
-                    .collect()
-            };
-        }
+                self_psi = if c_mask != 0 {
+                    par_iter
+                        .map_init(|| (c_mask, psi.clone()),
+                                  |(c_mask, psi), idx| if !idx & *c_mask == 0 { func(psi, idx) } else { psi[idx] })
+                        .collect()
+                } else {
+                    par_iter
+                        .map_init(|| psi.clone(),
+                                  |psi, idx| func(psi, idx))
+                        .collect()
+                };
+            }
 
-        self.psi = self_psi;
+            self_psi
+        });
     }
 
     fn normalize(&mut self) -> &mut Self {
-        let norm = self.psi.par_iter().map(|v| v.norm_sqr()).sum::<R>().sqrt().inv();
-        self.psi.par_iter_mut().for_each_with(norm, |n, v| *v *= *n);
+        let mut self_psi = take(&mut self.psi);
+        self.psi = crate::threads::global_install(move || {
+            let norm = self_psi.par_iter().map(|v| v.norm_sqr()).sum::<R>().sqrt().inv();
+            self_psi.par_iter_mut().for_each_with(norm, |n, v| *v *= *n);
+            self_psi
+        });
         self
     }
 
     pub fn get_polar(&mut self) -> Vec<(R, R)> {
-        self.psi.par_iter().map(|z| z.to_polar()).collect()
+        crate::threads::global_install(|| {
+            self.psi.par_iter().map(|z| z.to_polar()).collect()
+        })
     }
 
     pub fn get_probabilities(&self) -> Vec::<R> {
-        self.psi.par_iter().map(|z| z.norm_sqr()).collect()
+        crate::threads::global_install(|| {
+            self.psi.par_iter().map(|z| z.norm_sqr()).collect()
+        })
     }
 
     fn collapse_mask(&mut self, idy: N, mask: N) {
         let len = self.psi.len();
         let psi = Arc::new(take(&mut self.psi));
 
-        self.psi = (0..len)
+        self.psi = crate::threads::global_install(|| (0..len)
             .into_par_iter()
             .map_init(
                 || psi.clone(),
@@ -217,7 +233,8 @@ impl QReg {
                     } else {
                         psi[idx]
                     }
-            ).collect();
+            ).collect()
+        );
 
         self.normalize();
     }
@@ -243,25 +260,29 @@ impl QReg {
         let c = count as R;
         let c_sqrt = c.sqrt();
 
-        let n = p
-            .par_iter()
-            .map(|&p| {
-                let rnd: R = rand::thread_rng().sample(rand_distr::StandardNormal);
-                p.sqrt() * rnd
-            })
-            .collect::<Vec<R>>();
+        let (mut n, delta) = crate::threads::global_install(|| {
+            let n = p
+                .par_iter()
+                .map(|&p| {
+                    let rnd: R = rand::thread_rng().sample(rand_distr::StandardNormal);
+                    p.sqrt() * rnd
+                })
+                .collect::<Vec<R>>();
 
-        let n_sum = n.par_iter().sum::<R>();
+            let n_sum = n.par_iter().sum::<R>();
 
-        let mut n = (0..self.psi.len())
-            .into_par_iter()
-            .map(|idx| {
-                let x = (c * p[idx] + c_sqrt * (n[idx] - n_sum * p[idx])).round() as Z;
-                if x > 0 { x as N } else { 0 }
-            })
-            .collect::<Vec<N>>();
+            let mut n = (0..self.psi.len())
+                .into_par_iter()
+                .map(|idx| {
+                    let x = (c * p[idx] + c_sqrt * (n[idx] - n_sum * p[idx])).round() as Z;
+                    if x > 0 { x as N } else { 0 }
+                })
+                .collect::<Vec<N>>();
 
-        let delta = n.par_iter().sum::<N>() as Z - count as Z;
+            let delta = n.par_iter().sum::<N>() as Z - count as Z;
+
+            (n, delta)
+        });
         match delta.cmp(&0) {
             Ordering::Less => {
                 for idx in 0..(delta.abs() as N) {
