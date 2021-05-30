@@ -52,6 +52,9 @@ const MIN_QREG_LEN: usize = 8;
 
 #[derive(Default, Clone)]
 pub struct QReg {
+    #[cfg(test)]
+    pub(crate) psi: Vec<C>,
+    #[cfg(not(test))]
     psi: Vec<C>,
     q_num: N,
     q_mask: N,

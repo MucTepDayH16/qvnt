@@ -58,11 +58,16 @@ macro_rules! rotate_operator_definition {
         let mut ops = Op::id();
 
         if ang != ANGLE_TABLE[0] {
+            let mut real_mask = 0;
             for mask in crate::bits_iter::BitsIter::from($mask) {
-                ops *= Operator {
-                    name: format!("{}{}({})", $name, mask, $phase),
-                    control: Arc::new(0),
-                    func: Box::new(move |psi, idx| $operation(psi, idx, mask, ang))
+                real_mask |= mask;
+                if count_bits(real_mask) == $dim {
+                    ops *= Operator {
+                        name: format!("{}{}({})", $name, real_mask, $phase),
+                        control: Arc::new(0),
+                        func: Box::new(move |psi, idx| $operation(psi, idx, real_mask, ang))
+                    };
+                    real_mask = 0;
                 }
             }
         }
