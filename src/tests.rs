@@ -110,7 +110,7 @@ fn virtual_regs() {
 
 #[test]
 fn qft() {
-    let mut pend_ops = Op::qft_no_swap(0b1111);
+    let mut pend_ops = Op::qft(0b1111);
 
     println!("{:?}", pend_ops);
 }
@@ -192,49 +192,74 @@ fn get_matrix_4x4(ops: &Op) -> [[C; 4]; 4] {
 #[test]
 fn simple_operators() {
     use num::{One, Zero};
+    const SQRT_1_2: R = SQRT_2 * 0.5;
     const _1: C = C{ re: 1.0, im: 0.0 };
     const _0: C = C{ re: 0.0, im: 0.0 };
     const _i: C = C{ re: 0.0, im: 1.0 };
 
     //x
     assert_eq!(
-        get_matrix_2x2(&Op::x(0b1)),
+        Op::x(0b1).matrix_t::<2>(),
         [   [_0, _1],
             [_1, _0]]
     );
     //y
     assert_eq!(
-        get_matrix_2x2(&Op::y(0b1)),
-        [   [_0, -_i],
-            [_i, _0]]
+        Op::y(0b1).matrix_t(),
+        [   [_0, _i],
+            [-_i, _0]]
     );
     //z
     assert_eq!(
-        get_matrix_2x2(&Op::z(0b1)),
+        Op::z(0b1).matrix_t::<2>(),
         [   [_1, _0],
             [_0, -_1]]
     );
     //s
     assert_eq!(
-        get_matrix_2x2(&Op::s(0b1)),
+        Op::s(0b1).matrix_t::<2>(),
         [   [_1, _0],
             [_0, _i]]
     );
     //t
     assert_eq!(
-        get_matrix_2x2(&Op::t(0b1)),
-        [   [_1, _0],
-            [_0, C::new(SQRT_2 * 0.5, SQRT_2 * 0.5)]]
+        Op::t(0b1).matrix_t::<2>(),
+        [   [_1, _0                             ],
+            [_0, SQRT_1_2 * (_1 + _i) ]]
     );
 
     //swap
-    println!("{:?}", get_matrix_4x4(&Op::swap(0b11)));
+    assert_eq!(
+        Op::swap(0b11).matrix_t::<4>(),
+        [   [_1, _0, _0, _0],
+            [_0, _0, _1, _0],
+            [_0, _1, _0, _0],
+            [_0, _0, _0, _1]]
+    );
     //i_swap
-    println!("{:?}", get_matrix_4x4(&Op::i_swap(0b11)));
+    assert_eq!(
+        Op::i_swap(0b11).matrix_t::<4>(),
+        [   [_1, _0, _0, _0],
+            [_0, _0, _i, _0],
+            [_0, _i, _0, _0],
+            [_0, _0, _0, _1]]
+    );
     //sqrt_swap
-    println!("{:?}", get_matrix_4x4(&Op::sqrt_swap(0b11)));
+    assert_eq!(
+        Op::sqrt_swap(0b11).matrix_t::<4>(),
+        [   [_1, _0,                _0,                 _0],
+            [_0, 0.5 * (_1 + _i),   0.5 * (_1 - _i),    _0],
+            [_0, 0.5 * (_1 - _i),   0.5 * (_1 + _i),    _0],
+            [_0, _0,                _0,                 _1]]
+    );
     //sqrt_i_swap
-    println!("{:?}", get_matrix_4x4(&Op::sqrt_i_swap(0b11)));
+    assert_eq!(
+        Op::sqrt_i_swap(0b11).matrix_t::<4>(),
+        [   [_1, _0,            _0,             _0],
+            [_0, SQRT_1_2 * _1, SQRT_1_2 * _i,  _0],
+            [_0, SQRT_1_2 * _i, SQRT_1_2 * _1,  _0],
+            [_0, _0,            _0,             _1]]
+    );
 }
 
 #[test]

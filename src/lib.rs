@@ -9,6 +9,14 @@ pub mod prelude {
     pub use super::operator::Op;
     pub use super::register::{VReg, QReg};
     pub use super::threads::qvnt_num_threads;
+
+    pub mod consts {
+        pub const _1: crate::types::C = crate::types::C{ re: 1.0, im: 0.0 };
+        pub const _0: crate::types::C = crate::types::C{ re: 0.0, im: 0.0 };
+        pub const _i: crate::types::C = crate::types::C{ re: 0.0, im: 1.0 };
+
+        pub const SQRT_1_2: crate::types::R = crate::types::SQRT_2 * 0.5;
+    }
 }
 
 pub mod operator;

@@ -3,11 +3,11 @@ Advansed quantum computation simulator, written in *Rust*
 ___
 ## Features
 1. Ability to simulate up to 64 qubits, which is a limit for 64-bits machines.
-   But usual machine (with 4Gb RAM) only allowed to run 26 qubits, which is enough for study cases.
-2. A set of necessary 1- or 2-qubits operations, including general 1x1 and 2x2 unitary matrix, to build your own quantum circuits.
-3. Existed quantum operations are tested and debugged to be safe in use.
-4. Accelerated circuit execution using multithreaded *Rayon* library.
-5. Complex quantum registers manipulations: tensor product of two registers and aliases for qubit to *humanify* interaction with register
+   But usual machine (with 4Gb RAM) only allowed to run 26 qubits, which is enough for study cases;
+2. A set of necessary 1- or 2-qubits operations, including general 1x1 and 2x2 unitary matrix, to build your own quantum circuits;
+3. Existed quantum operations are tested and debugged to be safe in use;
+4. Accelerated circuit execution using multithreaded *Rayon* library;
+5. Complex quantum registers manipulations: tensor product of two registers and aliases for qubit to *humanify* interaction with register.
 
 ___
 ## Usage
@@ -34,13 +34,14 @@ println!("{}", q_reg.measure_mask(x[0] | x[1] | x[2]));
 
 ___
 ## Implemented operations
-*  Pauli's *X*, *Y* & *Z* operators;
-*  Phase shift operator;
-*  1-qubit rotation operators;
-*  2-qubits rotation operators, *aka* Ising gates;
-*  *SWAP*, *iSWAP* operators and square rooted ones;
-*  *QFT* with and without swapping qubits after applying;
-*  General unitary operators, constructed from 2x2 or 4x4 complex matrices; 
+* Pauli's *X*, *Y* & *Z* operators;
+* *S* & *T* operators;
+* Phase shift operator;
+* 1-qubit rotation operators;
+* 2-qubits rotation operators, *aka* Ising coupling gates;
+* *SWAP*, *iSWAP* operators and square rooted ones;
+* Quantum Fourier Transform;
+* Universal *U3* operator.
 
 Also, __ALL__ these operators could be turned into controlled ones, using ```.c(...)``` syntax:
 ```rust
@@ -53,3 +54,4 @@ ___
 ## In work
 1. Optimizing and vectorizing operations.
 2. Adding inverse operators for implemented ones.
+3. Writing documentation for all functions.

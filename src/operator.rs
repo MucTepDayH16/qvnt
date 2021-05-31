@@ -87,10 +87,56 @@ impl Op {
         self.0.clear()
     }
 
+    /// Matrix form of a given operator.
+    ///
+    /// Return transponed matrix representation for the operator.
+    ///
+    /// ```rust
+    /// use qvnt::prelude::*;
+    /// use consts::{_0, _1, _i};
+    /// assert_eq!(
+    ///     Op::y(0b10).matrix_t::<4>(),
+    ///     [   [_0,  _0, _i, _0],
+    ///         [_0,  _0, _0, _i],
+    ///         [-_i, _0, _0, _0],
+    ///         [_0, -_i, _0, _0]]
+    /// );
+    /// ```
+    pub fn matrix_t<const Q_SIZE: usize>(&self) -> [[C; Q_SIZE]; Q_SIZE] {
+        assert_eq!(Q_SIZE.count_ones(), 1);
+        assert_ne!(Q_SIZE & 0b11111, 0);
+        let mut matrix = [[C::zero(); Q_SIZE]; Q_SIZE];
+        for b in 0..Q_SIZE {
+            let mut reg = crate::register::QReg::new(5).init_state(b);
+            reg.apply(self);
+            unsafe { matrix[b].clone_from_slice(&reg.psi[0..Q_SIZE]) };
+        }
+        matrix
+    }
+
+    /// Identity operator.
+    ///
+    /// For any quantum state |q>, identity operator does not change state.
+    ///
+    /// I |q> = |q>
+    #[inline(always)]
     pub fn id() -> Self {
         Self(VecDeque::new())
     }
 
+    /// Controlled version of operator.
+    ///
+    /// Change the operator to one controlled by given qubits.
+    ///
+    /// ```rust
+    /// use qvnt::prelude::*;
+    /// // Get *X* Pauli operator, aka *NOT* gate, acting on first qubit.
+    /// let usual_op = Op::x(0b001);
+    /// // Get this operator, controlled by second and third qubit.
+    /// // This operator is the Toffoli gate, *aka* CCNot gate.
+    /// // Previous *usual_op* operator is consumed.
+    /// let contr_op = usual_op.c(0b110);
+    /// ```
     pub fn c(mut self, c_mask: N) -> Self {
         self.0.iter_mut().for_each(move |op|
             op.control = Arc::new(*op.control | c_mask)
@@ -98,12 +144,22 @@ impl Op {
         self
     }
 
+    /// Pauli *X* operator, *aka* NOT gate.
+    ///
+    /// Performs negation for given qubits.
+    ///
+    /// X |0> = |1>
+    ///
+    /// X |1> = |0>
     pub fn x(a_mask: N) -> Self {
         #[inline(always)] fn _op(psi: &[C], idx: N, a_mask: N) -> C {
             psi[idx ^ a_mask]
         }
         simple_operator_definition!("X", a_mask, _op)
     }
+    /// *X* rotation operator.
+    ///
+    /// Performs *phase* radians rotation around X axis on a Bloch sphere.
     pub fn rx(phase: R, a_mask: N) -> Self {
         #[inline(always)] fn _op(psi: &[C], idx: N, a_mask: N, ang: C) -> C {
             let mut psi = (psi[idx], psi[idx ^ a_mask]);
@@ -112,6 +168,9 @@ impl Op {
         }
         rotate_operator_definition!("RX", 1, phase, a_mask, _op)
     }
+    /// *Ising XX* coupling gate.
+    ///
+    /// Performs *phase* radians rotation around XX axis on 2-qubit Bloch spheres.
     pub fn rxx(phase: R, ab_mask: N) -> Self {
         #[inline(always)] fn _op(psi: &[C], idx: N, ab_mask: N, ang: C) -> C {
             let mut psi = (psi[idx], psi[idx ^ ab_mask]);
@@ -139,6 +198,9 @@ impl Op {
             }.into()
         }
     }
+    /// *Y* rotation operator.
+    ///
+    /// Performs *phase* radians rotation around Y axis on a Bloch sphere.
     pub fn ry(phase: R, a_mask: N) -> Self {
         #[inline(always)] fn _op(psi: &[C], idx: N, a_mask: N, mut ang: C) -> C {
             let mut psi = (psi[idx], psi[idx ^ a_mask]);
@@ -147,6 +209,9 @@ impl Op {
         }
         rotate_operator_definition!("RY", 1, phase, a_mask, _op)
     }
+    /// *Ising YY* coupling gate.
+    ///
+    /// Performs *phase* radians rotation around YY axis on 2-qubit Bloch spheres.
     pub fn ryy(phase: R, ab_mask: N) -> Self {
         #[inline(always)] fn _op(psi: &[C], idx: N, ab_mask: N, mut ang: C) -> C {
             let mut psi = (psi[idx], psi[idx ^ ab_mask]);
@@ -157,6 +222,13 @@ impl Op {
         rotate_operator_definition!("RYY", 2, phase, ab_mask, _op)
     }
 
+    /// Pauli *Z* operator.
+    ///
+    /// Negate an amplitude of 1-state.
+    ///
+    /// Z |0> = |0>
+    ///
+    /// Z |1> = -|1>
     pub fn z(a_mask: N) -> Self {
         #[inline(always)] fn _op(psi: &[C], idx: N, a_mask: N) -> C {
             if count_bits(idx & a_mask).is_odd() {
@@ -167,12 +239,26 @@ impl Op {
         }
         simple_operator_definition!("Z", a_mask, _op)
     }
+    /// *S* operator.
+    ///
+    /// Square root of *Z* operator.
+    ///
+    /// S |0> = |0>
+    ///
+    /// S |1> = i|1>
     pub fn s(a_mask: N) -> Self {
         #[inline(always)] fn _op(psi: &[C], idx: N, a_mask: N) -> C {
             I_POW_TABLE[count_bits(idx & a_mask) & 3] * psi[idx]
         }
         simple_operator_definition!("S", a_mask, _op)
     }
+    /// *S* operator.
+    ///
+    /// Fourth root of *Z* operator.
+    ///
+    /// T |0> = |0>
+    ///
+    /// T |1> = (1+i)/sqrt(2) |1>
     pub fn t(a_mask: N) -> Self {
         #[inline(always)] fn _op(psi: &[C], idx: N, a_mask: N) -> C {
             let count = count_bits(idx & a_mask);
@@ -181,6 +267,9 @@ impl Op {
         }
         simple_operator_definition!("T", a_mask, _op)
     }
+    /// *Z* rotation operator.
+    ///
+    /// Performs *phase* radians rotation around Z axis on a Bloch sphere.
     pub fn rz(phase: R, a_mask: N) -> Self {
         #[inline(always)] fn _op(psi: &[C], idx: N, a_mask: N, mut ang: C) -> C {
             let mut psi = psi[idx];
@@ -189,6 +278,9 @@ impl Op {
         }
         rotate_operator_definition!("RZ", 1, phase, a_mask, _op)
     }
+    /// *Ising ZZ* coupling gate.
+    ///
+    /// Performs *phase* radians rotation around ZZ axis on 2-qubit Bloch spheres.
     pub fn rzz(phase: R, ab_mask: N) -> Self {
         #[inline(always)] fn _op(psi: &[C], idx: N, ab_mask: N, mut ang: C) -> C {
             let mut psi = psi[idx];
@@ -198,6 +290,18 @@ impl Op {
         rotate_operator_definition!("RZZ", 2, phase, ab_mask, _op)
     }
 
+    /// Phase shift operator.
+    ///
+    /// Performs phase shift for a range of given qubits by corresponding phase.
+    ///
+    /// ```rust
+    /// use qvnt::prelude::*;
+    /// use std::f64::consts::PI;
+    /// //  Take a third root of *Z* gate.
+    /// let z_pow_a = Op::phi(vec![(PI / 3., 0b1)]);
+    /// //  Equivalent to Op::z(0b1).
+    /// let z = Op::phi(vec![(PI, 0b1)]);
+    /// ```
     pub fn phi(angles_vec: Vec<(R, N)>) -> Self {
         let mut angles = BTreeMap::new();
         for (val, idx) in angles_vec.iter() {
@@ -232,6 +336,11 @@ impl Op {
         }
     }
 
+    /// *SWAP* gate.
+    ///
+    /// Performs SWAP of 2 qubits' value.
+    ///
+    /// SWAP |ab> = |ba>
     pub fn swap(ab_mask: N) -> Self {
         assert_eq!(ab_mask.count_ones(), 2);
         #[inline(always)] fn _op(psi: &[C], idx: N, ab_mask: N) -> C {
@@ -243,6 +352,26 @@ impl Op {
         }
         simple_operator_definition!("SWAP", ab_mask, _op)
     }
+    /// Square root of *SWAP* gate.
+    ///
+    /// Performs a *"half"* SWAP of 2 qubits' value.
+    /// This gate could couple qubits.
+    ///
+    /// sqrt(SWAP) * sqrt(SWAP) |ab> = |ba>
+    ///
+    /// ```rust
+    /// use qvnt::prelude::*;
+    /// use consts::*;
+    ///
+    /// //  sqrt(SWAP) gate's matrix representation:
+    /// assert_eq!(
+    ///     Op::sqrt_swap(0b11).matrix_t::<4>(),
+    ///     [   [_1, _0,              _0,              _0],
+    ///         [_0, 0.5 * (_1 + _i), 0.5 * (_1 - _i), _0],
+    ///         [_0, 0.5 * (_1 - _i), 0.5 * (_1 + _i), _0],
+    ///         [_0, _0,              _0,              _1]]
+    /// );
+    /// ```
     pub fn sqrt_swap(ab_mask: N) -> Self {
         assert_eq!(ab_mask.count_ones(), 2);
         #[inline(always)] fn _op(psi: &[C], idx: N, ab_mask: N) -> C {
@@ -258,6 +387,17 @@ impl Op {
         }
         simple_operator_definition!("sqrt_SWAP", ab_mask, _op)
     }
+    /// *iSWAP* gate.
+    ///
+    /// Perform SWAP of 2 qubits' value, multiplying bu *i* if qubits are not equals.
+    ///
+    /// iSWAP |00> = |00>
+    ///
+    /// iSWAP |01> = i |01>
+    ///
+    /// iSWAP |10> = i |10>
+    ///
+    /// iSWAP |11> = |11>
     pub fn i_swap(ab_mask: N) -> Self {
         assert_eq!(ab_mask.count_ones(), 2);
         #[inline(always)] fn _op(psi: &[C], idx: N, ab_mask: N) -> C {
@@ -270,6 +410,26 @@ impl Op {
         }
         simple_operator_definition!("iSWAP", ab_mask, _op)
     }
+    /// Square root of *iSWAP* gate.
+    ///
+    /// Performs a *"half"* iSWAP of 2 qubits' value.
+    /// This gate could couple qubits.
+    ///
+    /// sqrt(iSWAP) * sqrt(iSWAP) |ab> = iSWAP |ab>
+    ///
+    /// ```rust
+    /// use qvnt::prelude::*;
+    /// use consts::*;
+    ///
+    /// //  sqrt(iSWAP) gate's matrix representation:
+    /// assert_eq!(
+    ///     Op::sqrt_swap(0b11).matrix_t::<4>(),
+    ///     [   [_1, _0,            _0,            _0],
+    ///         [_0, SQRT_1_2 * _1, SQRT_1_2 * _i, _0],
+    ///         [_0, SQRT_1_2 * _i, SQRT_1_2 * _1, _0],
+    ///         [_0, _0,            _0,            _1]]
+    /// );
+    /// ```
     pub fn sqrt_i_swap(ab_mask: N) -> Self {
         assert_eq!(ab_mask.count_ones(), 2);
         const SQRT_1_2: R = SQRT_2 * 0.5;
@@ -290,6 +450,14 @@ impl Op {
         }.into()
     }
 
+    /// Hadamard gate.
+    ///
+    /// Performs Hadamard transform on a given qubits.
+    /// This is the simplest operation that create a superposition from a pure state |i>
+    ///
+    /// H |0> = |+> = ( |0> + |1> ) / sqrt(2)
+    ///
+    /// H |1> = |-> = ( |0> - |1> ) / sqrt(2)
     pub fn h(a_mask: N) -> Self {
         fn _op_1x1(a_mask: N) -> Operator {
             {
@@ -366,12 +534,40 @@ impl Op {
         }
     }
 
-    pub fn u3(phi: R, the: R, lam: R, a_mask: N) -> Self {
-        Self::rz(phi, a_mask)
-            * Self::ry(the, a_mask)
-            * Self::rz(lam, a_mask)
+    /// *U1(lam)* gate.
+    ///
+    /// First universal operator. Equivalent to *RZ* and U3(0,0,lam).
+    pub fn u1(lam: R, a_mask: N) -> Self {
+        Self::rz(lam, a_mask)
     }
-    pub fn uni_1x1(u: M1, a_mask: N) -> Self {
+    /// *U2(phi,lam)* gate.
+    ///
+    /// Second universal operator. Equivalent to U3(PI/2, phi, lam)
+    pub fn u2(phi: R, lam: R, a_mask: N) -> Self {
+        Self::rz(lam + PI, a_mask)
+            * Self::h(a_mask)
+            * Self::rz(phi, a_mask)
+    }
+    /// *U3(the,phi,lam)* gate.
+    ///
+    /// Third universal operator.
+    ///
+    /// 3 parameters are enough to describe any unitary operator.
+    /// All gates could be expressed in term of *U3* up to a phase factor.
+    ///
+    /// X = i U3(PI,PI,0)
+    ///
+    /// Y = i U3(PI,0,0)
+    ///
+    /// Z = i U3(0,0,PI)
+    ///
+    /// Z^a = i U3(0,0,PI*a)
+    pub fn u3(the: R, phi: R, lam: R, a_mask: N) -> Self {
+        Self::rz(lam, a_mask)
+            * Self::ry(the, a_mask)
+            * Self::rz(phi, a_mask)
+    }
+    pub(crate) fn uni_1x1(u: M1, a_mask: N) -> Self {
         assert_eq!(a_mask.count_ones(), 1);
         assert!(is_unitary_m1(&u));
 
@@ -397,7 +593,7 @@ impl Op {
             }
         }.into()
     }
-    pub fn uni_2x2(u: M2, a_mask: N, b_mask: N) -> Self {
+    pub(crate) fn uni_2x2(u: M2, a_mask: N, b_mask: N) -> Self {
         assert_eq!(a_mask.count_ones(), 1);
         assert_eq!(b_mask.count_ones(), 1);
         assert_eq!(a_mask & b_mask, 0);
@@ -434,7 +630,7 @@ impl Op {
             }
         }.into()
     }
-    pub fn if_b_then_u1_else_u0(u0: M1, u1: M1, a_mask: N, b_mask: N) -> Self {
+    pub(crate) fn if_b_then_u1_else_u0(u0: M1, u1: M1, a_mask: N, b_mask: N) -> Self {
         let mut u = [C::zero(); 16];
         u[0b0000] = u0[0b00];
         u[0b0001] = u0[0b01];
@@ -447,25 +643,14 @@ impl Op {
         Self::uni_2x2(u, a_mask, b_mask)
     }
 
+    /// Discrete Fourier transform for the quantum state's amplitudes.
+    ///
+    /// Fourier transform with factor 1/sqrt(N).
+    /// This transform keeps the norm of vector, so it could be applied as unitary operator.
+    /// It use the technique of fast fourier transform and have O(n*log(n)) time complexity.
+    ///
+    /// Fourier transform on a single qubit is just a Hadamard gate.
     pub fn qft(a_mask: N) -> Self {
-        let mut vec_mask = Vec::with_capacity(count_bits(a_mask));
-        let mut idx = 1;
-        while idx <= a_mask {
-            if idx & a_mask != 0 {
-                vec_mask.push(idx);
-            }
-            idx <<= 1;
-        }
-
-        let mut swaps = Op::id();
-        let len = vec_mask.len();
-        for i in 0..(len >> 1) {
-            swaps *= Op::swap(vec_mask[i] | vec_mask[len - i - 1]);
-        }
-
-        Self::qft_no_swap(a_mask) * swaps
-    }
-    pub fn qft_no_swap(a_mask: N) -> Self {
         let count = a_mask.count_ones() as usize;
         match count {
             0 => Self::id(),
@@ -495,8 +680,31 @@ impl Op {
             }
         }
     }
+    /// Discrete Fourier transform with qubits' swap
+    ///
+    /// QFT is differ from real DFT by a bit order of amplitudes indices.
+    /// *qft_swapped* is a natural version of DFT.
+    pub fn qft_swapped(a_mask: N) -> Self {
+        let mut vec_mask = Vec::with_capacity(count_bits(a_mask));
+        let mut idx = 1;
+        while idx <= a_mask {
+            if idx & a_mask != 0 {
+                vec_mask.push(idx);
+            }
+            idx <<= 1;
+        }
 
-    pub fn bench_circuit() -> Self {
+        let mut swaps = Op::id();
+        let len = vec_mask.len();
+        for i in 0..(len >> 1) {
+            swaps *= Op::swap(vec_mask[i] | vec_mask[len - i - 1]);
+        }
+
+        Self::qft(a_mask) * swaps
+    }
+
+    #[cfg(test)]
+    pub(crate) fn bench_circuit() -> Self {
         Op::id()
             * Op::h(0b111)
             * Op::h(0b100).c(0b001)
