@@ -102,6 +102,7 @@ impl Op {
     ///         [_0, -_i, _0, _0]]
     /// );
     /// ```
+    #[cfg(test)]
     pub fn matrix_t<const Q_SIZE: usize>(&self) -> [[C; Q_SIZE]; Q_SIZE] {
         assert_eq!(Q_SIZE.count_ones(), 1);
         assert_ne!(Q_SIZE & 0b11111, 0);
