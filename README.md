@@ -1,5 +1,11 @@
 # QVNT
+
+![minimum supported rust version](https://img.shields.io/badge/rustc-1.52+-red.svg)
+[![Crate](http://meritbadge.herokuapp.com/qvnt)](https://crates.io/crates/qvnt)
+
 Advansed quantum computation simulator, written in *Rust*
+
+
 ___
 ## Features
 1. Ability to simulate up to 64 qubits, which is a limit for 64-bits machines.
