@@ -2,6 +2,7 @@
 
 ![minimum supported rust version](https://img.shields.io/badge/rustc-1.52+-red.svg)
 [![Crate](http://meritbadge.herokuapp.com/qvnt)](https://crates.io/crates/qvnt)
+[![docs.rs](https://docs.rs/qvnt/badge.svg)](https://docs.rs/qvnt/)
 
 Advansed quantum computation simulator, written in *Rust*
 
