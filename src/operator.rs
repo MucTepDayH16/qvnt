@@ -102,11 +102,10 @@ impl Op {
     ///         [_0, -_i, _0, _0]]
     /// );
     /// ```
-    #[cfg(test)]
     pub fn matrix_t<const Q_SIZE: usize>(&self) -> [[C; Q_SIZE]; Q_SIZE] {
         assert_eq!(Q_SIZE.count_ones(), 1);
         assert_ne!(Q_SIZE & 0b11111, 0);
-        let mut matrix = [[C::zero(); Q_SIZE]; Q_SIZE];
+        let mut matrix = [[C_ZERO; Q_SIZE]; Q_SIZE];
         for b in 0..Q_SIZE {
             let mut reg = crate::register::QReg::new(5).init_state(b);
             reg.apply(self);
@@ -190,7 +189,7 @@ impl Op {
                 name: format!("{}{}", "Y", a_mask),
                 control: Arc::new(0),
                 func: Box::new(move |psi, idx| -> C {
-                    i * if count_bits(idx & a_mask).is_odd() {
+                    i * if count_bits(idx & a_mask) & 1 == 1 {
                         -psi[idx ^ a_mask]
                     } else {
                         psi[idx ^ a_mask]
@@ -217,7 +216,7 @@ impl Op {
         #[inline(always)] fn _op(psi: &[C], idx: N, ab_mask: N, mut ang: C) -> C {
             let mut psi = (psi[idx], psi[idx ^ ab_mask]);
             psi.1 = C::new(psi.1.im, -psi.1.re);
-            if (idx & ab_mask).count_ones().is_even() { ang.im = -ang.im; }
+            if (idx & ab_mask).count_ones() & 1 == 0 { ang.im = -ang.im; }
             ang.re * psi.0 + ang.im * psi.1
         }
         rotate_operator_definition!("RYY", 2, phase, ab_mask, _op)
@@ -232,7 +231,7 @@ impl Op {
     /// Z |1> = -|1>
     pub fn z(a_mask: N) -> Self {
         #[inline(always)] fn _op(psi: &[C], idx: N, a_mask: N) -> C {
-            if count_bits(idx & a_mask).is_odd() {
+            if count_bits(idx & a_mask) & 1 == 1 {
                 -psi[idx]
             } else {
                 psi[idx]
@@ -263,7 +262,7 @@ impl Op {
     pub fn t(a_mask: N) -> Self {
         #[inline(always)] fn _op(psi: &[C], idx: N, a_mask: N) -> C {
             let count = count_bits(idx & a_mask);
-            (if count & 1 != 0 { ANGLE_TABLE[45] } else { C::one() })
+            (if count & 1 != 0 { ANGLE_TABLE[45] } else { I_POW_TABLE[0] })
                 * I_POW_TABLE[(count >> 1) & 3] * psi[idx]
         }
         simple_operator_definition!("T", a_mask, _op)
@@ -285,7 +284,7 @@ impl Op {
     pub fn rzz(phase: R, ab_mask: N) -> Self {
         #[inline(always)] fn _op(psi: &[C], idx: N, ab_mask: N, mut ang: C) -> C {
             let mut psi = psi[idx];
-            if (idx & ab_mask).count_ones().is_even() { ang.im = -ang.im; }
+            if (idx & ab_mask).count_ones() & 1 == 0 { ang.im = -ang.im; }
             ang * psi
         }
         rotate_operator_definition!("RZZ", 2, phase, ab_mask, _op)
@@ -345,7 +344,7 @@ impl Op {
     pub fn swap(ab_mask: N) -> Self {
         assert_eq!(ab_mask.count_ones(), 2);
         #[inline(always)] fn _op(psi: &[C], idx: N, ab_mask: N) -> C {
-            if (idx & ab_mask).count_ones().is_odd() {
+            if (idx & ab_mask).count_ones() & 1 == 1 {
                 psi[idx ^ ab_mask]
             } else {
                 psi[idx]
@@ -376,7 +375,7 @@ impl Op {
     pub fn sqrt_swap(ab_mask: N) -> Self {
         assert_eq!(ab_mask.count_ones(), 2);
         #[inline(always)] fn _op(psi: &[C], idx: N, ab_mask: N) -> C {
-            if (idx & ab_mask).count_ones().is_odd() {
+            if (idx & ab_mask).count_ones() & 1 == 1 {
                 let psi = (psi[idx], psi[idx ^ ab_mask]);
                 0.5 * C {
                     re: (psi.0.re - psi.0.im) + (psi.1.re + psi.1.im),
@@ -402,7 +401,7 @@ impl Op {
     pub fn i_swap(ab_mask: N) -> Self {
         assert_eq!(ab_mask.count_ones(), 2);
         #[inline(always)] fn _op(psi: &[C], idx: N, ab_mask: N) -> C {
-            if (idx & ab_mask).count_ones().is_odd() {
+            if (idx & ab_mask).count_ones() & 1 == 1 {
                 let psi = psi[idx ^ ab_mask];
                 C { re: -psi.im, im: psi.re }
             } else {
@@ -424,7 +423,7 @@ impl Op {
     ///
     /// //  sqrt(iSWAP) gate's matrix representation:
     /// assert_eq!(
-    ///     Op::sqrt_swap(0b11).matrix_t::<4>(),
+    ///     Op::sqrt_i_swap(0b11).matrix_t::<4>(),
     ///     [   [_1, _0,            _0,            _0],
     ///         [_0, SQRT_1_2 * _1, SQRT_1_2 * _i, _0],
     ///         [_0, SQRT_1_2 * _i, SQRT_1_2 * _1, _0],
@@ -440,7 +439,7 @@ impl Op {
             control: Arc::new(0),
             func: Box::new(
                 move |psi, mut idx| {
-                    if (idx & ab_mask).count_ones().is_odd() {
+                    if (idx & ab_mask).count_ones() & 1 == 1 {
                         let psi = (psi[idx], psi[idx ^ ab_mask]);
                         SQRT_1_2 * C { re: psi.0.re - psi.1.im, im: psi.0.im + psi.1.re }
                     } else {
@@ -632,7 +631,7 @@ impl Op {
         }.into()
     }
     pub(crate) fn if_b_then_u1_else_u0(u0: M1, u1: M1, a_mask: N, b_mask: N) -> Self {
-        let mut u = [C::zero(); 16];
+        let mut u = [C_ZERO; 16];
         u[0b0000] = u0[0b00];
         u[0b0001] = u0[0b01];
         u[0b0100] = u0[0b10];
@@ -671,7 +670,7 @@ impl Op {
                     res.append(&mut Op::h(vec[i]).0);
                     res.append(
                         &mut Op::phi(
-                            ((i+1)..count).map(|j| (PI * (0.5 as R).pow((j-i) as u8), vec[j]) ).collect())
+                            ((i+1)..count).map(|j| (PI * (0.5 as R).powi((j-i) as i32), vec[j]) ).collect())
                             .c(vec[i]).0
                     );
                 }

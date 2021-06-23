@@ -1,20 +1,10 @@
 pub use {
-    num::{
-        abs,
-        Complex,
-        Integer,
-        traits::{
-            Pow,
-            Inv,
-            real::Real,
-        },
-        One,
-        Zero,
-    },
     float_cmp::*,
-
     crate::types::*,
 };
+
+pub const C_ONE: C = C{ re: 1., im: 0. };
+pub const C_ZERO: C = C{ re: 0., im: 0. };
 
 pub const I_POW_TABLE: [C; 4] = [
     C{ re: 1., im: 0. },

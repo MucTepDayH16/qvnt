@@ -52,10 +52,7 @@ const MIN_QREG_LEN: usize = 8;
 
 #[derive(Default, Clone)]
 pub struct QReg {
-    #[cfg(test)]
     pub(crate) psi: Vec<C>,
-    #[cfg(not(test))]
-    psi: Vec<C>,
     q_num: N,
     q_mask: N,
     alias: Vec<u8>,
@@ -63,15 +60,15 @@ pub struct QReg {
 
 impl QReg {
     pub fn new(q_num: usize) -> Self {
-        let q_size = N::one() << q_num;
+        let q_size = 1_usize << q_num;
 
         let mut psi = Vec::new();
-        psi.resize(q_size.max(MIN_QREG_LEN), C::zero());
-        psi[0] = C::one();
+        psi.resize(q_size.max(MIN_QREG_LEN), C_ZERO);
+        psi[0] = C_ONE;
 
         Self {
             psi, q_num,
-            q_mask: q_size.wrapping_add(!N::zero()),
+            q_mask: q_size.wrapping_add(!0_usize),
             alias: Vec::new()
         }
     }
@@ -79,10 +76,10 @@ impl QReg {
     pub fn init_state(mut self, i_state: N) -> Self {
         let mut self_psi = take(&mut self.psi);
         self.psi = crate::threads::global_install(move || {
-            self_psi.par_iter_mut().for_each(|val| *val = C::zero());
+            self_psi.par_iter_mut().for_each(|val| *val = C_ZERO);
             self_psi
         });
-        self.psi[self.q_mask & i_state] = C::one();
+        self.psi[self.q_mask & i_state] = C_ONE;
         self
     }
 
@@ -128,7 +125,7 @@ impl QReg {
     pub fn get_vreg_by_char(&self, c: char) -> Option<VReg> {
         let c = c as u8;
         let mut res = VReg(0, Vec::with_capacity(self.q_num));
-        let mut idx = N::one();
+        let mut idx = 1;
 
         for &a in &self.alias {
             if a == c {
@@ -156,7 +153,7 @@ impl QReg {
         let other_psi = Arc::new(take(&mut other.psi));
 
         let q_num = self.q_num + other.q_num;
-        let q_size = N::one() << q_num;
+        let q_size = 1_usize << q_num;
         let psi = crate::threads::global_install(|| {
             (0..q_size)
                 .into_par_iter()
@@ -168,7 +165,7 @@ impl QReg {
 
         Self {
             psi, q_num,
-            q_mask: q_size.wrapping_add(!N::zero()),
+            q_mask: q_size.wrapping_add(!0_usize),
             alias,
         }
     }
@@ -203,7 +200,7 @@ impl QReg {
     fn normalize(&mut self) -> &mut Self {
         let mut self_psi = take(&mut self.psi);
         self.psi = crate::threads::global_install(move || {
-            let norm = self_psi.par_iter().map(|v| v.norm_sqr()).sum::<R>().sqrt().inv();
+            let norm = 1. / self_psi.par_iter().map(|v| v.norm_sqr()).sum::<R>().sqrt();
             self_psi.par_iter_mut().for_each_with(norm, |n, v| *v *= *n);
             self_psi
         });
@@ -232,7 +229,7 @@ impl QReg {
                 || psi.clone(),
                 move |psi, idx|
                     if (idx ^ idy) & mask != 0 {
-                        C::zero()
+                        C_ZERO
                     } else {
                         psi[idx]
                     }

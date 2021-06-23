@@ -120,39 +120,39 @@ fn operator_from_matrix() {
     use crate::math::*;
 
     assert!(is_unitary_m1(&[
-        C::one(), C::zero(),
-        C::zero(), C::one()
+        C_ONE, C_ZERO,
+        C_ZERO, C_ONE
     ]));
 
     assert!(!is_unitary_m1(&[
-        C::one(), C::one(),
-        C::one(), -C::one()
+        C_ONE, C_ONE,
+        C_ONE, -C_ONE
     ]));
     assert!(is_scaled_unitary_m1(&[
-        C::one(), C::one(),
-        C::one(), -C::one()
+        C_ONE, C_ONE,
+        C_ONE, -C_ONE
     ]));
 
     assert!(!is_unitary_m1(&[
-        C::one(), 2.0 * C::one(),
-        C::one(), -C::one()
+        C_ONE, 2.0 * C_ONE,
+        C_ONE, -C_ONE
     ]));
     assert!(!is_scaled_unitary_m1(&[
-        C::one(), 2.0 * C::one(),
-        C::one(), -C::one()
+        C_ONE, 2.0 * C_ONE,
+        C_ONE, -C_ONE
     ]));
 
     assert!(is_unitary_m1(&[
-        C::one() / SQRT_2, C::one() / SQRT_2,
-        C::one() / SQRT_2, -C::one() / SQRT_2
+        C_ONE / SQRT_2, C_ONE / SQRT_2,
+        C_ONE / SQRT_2, -C_ONE / SQRT_2
     ]));
     assert!(is_hermitian_m1(&[
-        C::one() / SQRT_2, C::one() / SQRT_2,
-        C::one() / SQRT_2, -C::one() / SQRT_2
+        C_ONE / SQRT_2, C_ONE / SQRT_2,
+        C_ONE / SQRT_2, -C_ONE / SQRT_2
     ]));
 
     let angle: R = FRAC_PI_6;
-    let mut matrix = [C::zero(); 4];
+    let mut matrix = [C_ZERO; 4];
     matrix[0] = C::new(angle.cos(), 0.0);
     matrix[1] = C::new(0.0, -angle.sin());
     matrix[2] = matrix[1];
@@ -191,7 +191,6 @@ fn get_matrix_4x4(ops: &Op) -> [[C; 4]; 4] {
 
 #[test]
 fn simple_operators() {
-    use num::{One, Zero};
     const SQRT_1_2: R = SQRT_2 * 0.5;
     const _1: C = C{ re: 1.0, im: 0.0 };
     const _0: C = C{ re: 0.0, im: 0.0 };
