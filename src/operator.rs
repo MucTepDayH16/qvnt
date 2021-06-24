@@ -5,16 +5,41 @@ use {
         fmt,
         ops::{ Mul, MulAssign, },
         string::String,
-        sync::{ Arc, RwLock }
+        sync::{ Arc }
     },
 
     crate::math::*,
 };
+use crate::operator::OpAtomic::{SelfConj, SelfAndInv};
+
+type BoxedFunc = Box<dyn Fn(&Vec<C>, N) -> C + Send + Sync>;
+
+pub enum OpAtomic {
+    SelfConj(BoxedFunc),
+    SelfAndInv(BoxedFunc, BoxedFunc)
+}
+
+impl OpAtomic {
+    pub fn get_func(&self) -> &BoxedFunc {
+        use OpAtomic::*;
+        match self {
+            SelfConj(f) => f,
+            SelfAndInv(f, ..) => f,
+        }
+    }
+
+    pub fn inv(&mut self) {
+        use OpAtomic::*;
+        if let SelfAndInv(s, i) = self {
+            std::mem::swap(s, i);
+        }
+    }
+}
 
 pub(crate) struct Operator {
     pub(crate) name: String,
     pub(crate) control: Arc<usize>,
-    pub(crate) func: Box<dyn Fn(&Vec<C>, N) -> C + Send + Sync>,
+    pub(crate) func: OpAtomic,
 }
 
 impl Operator {
@@ -22,14 +47,25 @@ impl Operator {
         self.name = name;
         self
     }
+
+    fn inv(mut self) -> Self {
+        self.func.inv();
+        self
+    }
 }
 
 impl fmt::Debug for Operator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let c_mask = *self.control;
-        write!(f, "{}",
-               if c_mask != 0 { format!("C{}_", c_mask) } else { String::new() }
-                   + &self.name)
+        let mut s = String::new();
+        if c_mask != 0 {
+            s += &format!("C{}_", c_mask);
+        }
+        s += &self.name;
+        if false {
+            s += "_dgr";
+        }
+        write!(f, "{}", s)
     }
 }
 
@@ -40,14 +76,28 @@ impl Into<Op> for Operator {
 }
 
 macro_rules! simple_operator_definition {
-    ($name:literal, $mask:expr, $operation:expr) => {{
+    ($name:literal, $mask:expr, $op:expr) => {{
         if $mask == 0 {
             Op::id()
         } else {
             Operator {
                 name: format!("{}{}", $name, $mask),
                 control: Arc::new(0),
-                func: Box::new(move |psi, idx| $operation(psi, idx, $mask))
+                func: SelfConj(Box::new(move |psi, idx| $op(psi, idx, $mask)))
+            }.into()
+        }
+    }};
+    ($name:literal, $mask:expr, $op:expr, $inv:expr) => {{
+        if $mask == 0 {
+            Op::id()
+        } else {
+            Operator {
+                name: format!("{}{}", $name, $mask),
+                control: Arc::new(0),
+                func: SelfAndInv(
+                    Box::new(move |psi, idx| $op(psi, idx, $mask)),
+                    Box::new(move |psi, idx| $inv(psi, idx, $mask))
+                )
             }.into()
         }
     }};
@@ -65,7 +115,10 @@ macro_rules! rotate_operator_definition {
                     ops *= Operator {
                         name: format!("{}{}({})", $name, real_mask, $phase),
                         control: Arc::new(0),
-                        func: Box::new(move |psi, idx| $operation(psi, idx, real_mask, ang))
+                        func: SelfAndInv(
+                            Box::new(move |psi, idx| $operation(psi, idx, real_mask, ang)),
+                            Box::new(move |psi, idx| $operation(psi, idx, real_mask, ang.conj()))
+                        )
                     };
                     real_mask = 0;
                 }
@@ -89,7 +142,7 @@ impl Op {
 
     /// Matrix form of a given operator.
     ///
-    /// Return transponed matrix representation for the operator.
+    /// Return transposed matrix representation for the operator.
     ///
     /// ```rust
     /// use qvnt::prelude::*;
@@ -109,7 +162,7 @@ impl Op {
         for b in 0..Q_SIZE {
             let mut reg = crate::register::QReg::new(5).init_state(b);
             reg.apply(self);
-            unsafe { matrix[b].clone_from_slice(&reg.psi[0..Q_SIZE]) };
+            { matrix[b].clone_from_slice(&reg.psi[0..Q_SIZE]) };
         }
         matrix
     }
@@ -141,6 +194,10 @@ impl Op {
         self.0.iter_mut().for_each(move |op|
             op.control = Arc::new(*op.control | c_mask)
         );
+        self
+    }
+    pub fn dgr(mut self) -> Self {
+        self.0 = self.0.into_iter().rev().map(Operator::inv ).collect();
         self
     }
 
@@ -188,13 +245,13 @@ impl Op {
             Operator {
                 name: format!("{}{}", "Y", a_mask),
                 control: Arc::new(0),
-                func: Box::new(move |psi, idx| -> C {
+                func: SelfConj(Box::new(move |psi, idx| -> C {
                     i * if count_bits(idx & a_mask) & 1 == 1 {
                         -psi[idx ^ a_mask]
                     } else {
                         psi[idx ^ a_mask]
                     }
-                })
+                }))
             }.into()
         }
     }
@@ -203,7 +260,7 @@ impl Op {
     /// Performs *phase* radians rotation around Y axis on a Bloch sphere.
     pub fn ry(phase: R, a_mask: N) -> Self {
         #[inline(always)] fn _op(psi: &[C], idx: N, a_mask: N, mut ang: C) -> C {
-            let mut psi = (psi[idx], psi[idx ^ a_mask]);
+            let psi = (psi[idx], psi[idx ^ a_mask]);
             if idx & a_mask == 0 { ang.im = -ang.im; }
             ang.re * psi.0 + ang.im * psi.1
         }
@@ -250,7 +307,10 @@ impl Op {
         #[inline(always)] fn _op(psi: &[C], idx: N, a_mask: N) -> C {
             I_POW_TABLE[count_bits(idx & a_mask) & 3] * psi[idx]
         }
-        simple_operator_definition!("S", a_mask, _op)
+        #[inline(always)] fn _inv(psi: &[C], idx: N, a_mask: N) -> C {
+            I_POW_TABLE[count_bits(idx & a_mask) & 3].conj() * psi[idx]
+        }
+        simple_operator_definition!("S", a_mask, _op, _inv)
     }
     /// *S* operator.
     ///
@@ -265,14 +325,19 @@ impl Op {
             (if count & 1 != 0 { ANGLE_TABLE[45] } else { I_POW_TABLE[0] })
                 * I_POW_TABLE[(count >> 1) & 3] * psi[idx]
         }
-        simple_operator_definition!("T", a_mask, _op)
+        #[inline(always)] fn _inv(psi: &[C], idx: N, a_mask: N) -> C {
+            let count = count_bits(idx & a_mask);
+            ((if count & 1 != 0 { ANGLE_TABLE[45] } else { I_POW_TABLE[0] })
+                * I_POW_TABLE[(count >> 1) & 3]).conj() * psi[idx]
+        }
+        simple_operator_definition!("T", a_mask, _op, _inv)
     }
     /// *Z* rotation operator.
     ///
     /// Performs *phase* radians rotation around Z axis on a Bloch sphere.
     pub fn rz(phase: R, a_mask: N) -> Self {
         #[inline(always)] fn _op(psi: &[C], idx: N, a_mask: N, mut ang: C) -> C {
-            let mut psi = psi[idx];
+            let psi = psi[idx];
             if idx & a_mask == 0 { ang.im = -ang.im; }
             ang * psi
         }
@@ -283,7 +348,7 @@ impl Op {
     /// Performs *phase* radians rotation around ZZ axis on 2-qubit Bloch spheres.
     pub fn rzz(phase: R, ab_mask: N) -> Self {
         #[inline(always)] fn _op(psi: &[C], idx: N, ab_mask: N, mut ang: C) -> C {
-            let mut psi = psi[idx];
+            let psi = psi[idx];
             if (idx & ab_mask).count_ones() & 1 == 0 { ang.im = -ang.im; }
             ang * psi
         }
@@ -313,7 +378,8 @@ impl Op {
                 jdx <<= 1;
             }
         }
-        angles.iter_mut().for_each(|(idx, val)| *val = C::from_polar(1.0, val.im));
+        angles.iter_mut().for_each(|(_, val)| *val = C::from_polar(1.0, val.im));
+        let angles_conj: BTreeMap<usize, C> = angles.iter().map(|(idx, ang)| (*idx, ang.conj())).collect();
 
         if angles.is_empty() {
             Self::id()
@@ -321,7 +387,7 @@ impl Op {
             Operator {
                 name: format!("Phase{:?}", angles_vec),
                 control: Arc::new(0),
-                func: Box::new(
+                func: SelfAndInv(Box::new(
                     move |psi, idx| {
                         let mut val = psi[idx];
                         for (jdx, ang) in &angles {
@@ -331,7 +397,17 @@ impl Op {
                         }
                         val
                     }
-                )
+                ), Box::new(
+                    move |psi, idx| {
+                        let mut val = psi[idx];
+                        for (jdx, ang) in &angles_conj {
+                            if idx & jdx != 0 {
+                                val *= ang;
+                            }
+                        }
+                        val
+                    }
+                ))
             }.into()
         }
     }
@@ -385,7 +461,18 @@ impl Op {
                 psi[idx]
             }
         }
-        simple_operator_definition!("sqrt_SWAP", ab_mask, _op)
+        #[inline(always)] fn _inv(psi: &[C], idx: N, ab_mask: N) -> C {
+            if (idx & ab_mask).count_ones() & 1 == 1 {
+                let psi = (psi[idx], psi[idx ^ ab_mask]);
+                0.5 * C {
+                    re: (psi.0.re + psi.0.im) + (psi.1.re - psi.1.im),
+                    im: (psi.0.im - psi.0.re) + (psi.1.im + psi.1.re)
+                }
+            } else {
+                psi[idx]
+            }
+        }
+        simple_operator_definition!("sqrt_SWAP", ab_mask, _op, _inv)
     }
     /// *iSWAP* gate.
     ///
@@ -404,6 +491,14 @@ impl Op {
             if (idx & ab_mask).count_ones() & 1 == 1 {
                 let psi = psi[idx ^ ab_mask];
                 C { re: -psi.im, im: psi.re }
+            } else {
+                psi[idx]
+            }
+        }
+        #[inline(always)] fn _inv(psi: &[C], idx: N, ab_mask: N) -> C {
+            if (idx & ab_mask).count_ones() & 1 == 1 {
+                let psi = psi[idx ^ ab_mask];
+                C { re: psi.im, im: -psi.re }
             } else {
                 psi[idx]
             }
@@ -437,8 +532,8 @@ impl Op {
         Operator {
             name: format!("sqrt_iSWAP{}", ab_mask),
             control: Arc::new(0),
-            func: Box::new(
-                move |psi, mut idx| {
+            func: SelfAndInv(Box::new(
+                move |psi, idx| {
                     if (idx & ab_mask).count_ones() & 1 == 1 {
                         let psi = (psi[idx], psi[idx ^ ab_mask]);
                         SQRT_1_2 * C { re: psi.0.re - psi.1.im, im: psi.0.im + psi.1.re }
@@ -446,7 +541,16 @@ impl Op {
                         psi[idx]
                     }
                 }
-            )
+            ), Box::new(
+                move |psi, idx| {
+                    if (idx & ab_mask).count_ones() & 1 == 1 {
+                        let psi = (psi[idx], psi[idx ^ ab_mask]);
+                        SQRT_1_2 * C { re: psi.0.re + psi.1.im, im: psi.0.im - psi.1.re }
+                    } else {
+                        psi[idx]
+                    }
+                }
+            ))
         }.into()
     }
 
@@ -469,12 +573,12 @@ impl Op {
             Operator {
                 name: format!("H{}", a_mask),
                 control: Arc::new(0),
-                func: Box::new(
+                func: SelfConj(Box::new(
                     move |psi, idx| {
                         let a = (idx & a_mask) != 0;
                         (if a { -psi[idx] } else { psi[idx] } + psi[idx ^ a_mask]) * SQRT_1_2
                     }
-                )
+                ))
             }
         }
         fn _op_2x2(a_mask: N, b_mask: N) -> Operator {
@@ -489,7 +593,7 @@ impl Op {
             Operator {
                 name: format!("H{}", ab_mask),
                 control: Arc::new(0),
-                func: Box::new(
+                func: SelfConj(Box::new(
                     move |psi, idx| {
                         let a = (idx & a_mask) != 0;
                         let b = (idx & b_mask) != 0;
@@ -498,7 +602,7 @@ impl Op {
                             if a { -psi[idx ^ b_mask] } else { psi[idx ^ b_mask] }  +
                             psi[idx ^ ab_mask]                                      ) * 0.5
                     }
-                )
+                ))
             }
         }
 
@@ -575,21 +679,29 @@ impl Op {
             Operator {
                 name: format!("Diag[{:?}, {:?}]", u[0], u[3]),
                 control: Arc::new(0),
-                func: Box::new(
+                func: SelfAndInv(Box::new(
                     move |psi, idx|
                         u[if (idx & a_mask) != 0 { 3 } else { 0 }] * psi[idx]
-                )
+                ), Box::new(
+                    move |psi, idx|
+                        u[if (idx & a_mask) != 0 { 3 } else { 0 }].conj() * psi[idx]
+                ))
             }
         } else {
             Operator {
                 name: format!("Unit{:?}", u),
                 control: Arc::new(0),
-                func: Box::new(
+                func: SelfAndInv(Box::new(
                     move |psi, idx| {
                         let udx = if (idx & a_mask) != 0 { (3, 2) } else { (0, 1) };
                         u[udx.0] * psi[idx] + u[udx.1] * psi[idx ^ a_mask]
                     }
-                )
+                ), Box::new(
+                    move |psi, idx| {
+                        let udx = if (idx & a_mask) != 0 { (3, 1) } else { (0, 2) };
+                        u[udx.0].conj() * psi[idx] + u[udx.1].conj() * psi[idx ^ a_mask]
+                    }
+                ))
             }
         }.into()
     }
@@ -599,26 +711,46 @@ impl Op {
         assert_eq!(a_mask & b_mask, 0);
         assert!(is_unitary_m2(&u));
 
+        let mut u_conj: M2 = [C_ZERO; 16];
+        u_conj[0b0000] = u[0b0000].conj();
+        u_conj[0b0001] = u[0b0100].conj();
+        u_conj[0b0010] = u[0b1000].conj();
+        u_conj[0b0011] = u[0b1100].conj();
+        u_conj[0b1000] = u[0b0010].conj();
+        u_conj[0b1001] = u[0b0110].conj();
+        u_conj[0b1010] = u[0b1010].conj();
+        u_conj[0b1011] = u[0b1110].conj();
+        u_conj[0b1100] = u[0b0011].conj();
+        u_conj[0b1101] = u[0b0111].conj();
+        u_conj[0b1110] = u[0b1011].conj();
+        u_conj[0b1111] = u[0b1111].conj();
         let ab_mask = a_mask | b_mask;
 
         if is_diagonal_m2(&u) {
             Operator {
                 name: format!("Diag[{:?}, {:?}, {:?}, {:?}]", u[0b0000], u[0b0101], u[0b1010], u[0b1111]),
                 control: Arc::new(0),
-                func: Box::new(
+                func: SelfAndInv(Box::new(
                     move |psi, idx| {
                         let udx =
                             if (idx & a_mask) != 0 { 0b0101 } else { 0b0000 }
                             | if (idx & b_mask) != 0 { 0b1010 } else { 0b0000 };
                         u[udx] * psi[idx]
                     }
-                )
+                ), Box::new(
+                    move |psi, idx| {
+                        let udx =
+                            if (idx & a_mask) != 0 { 0b0101 } else { 0b0000 }
+                                | if (idx & b_mask) != 0 { 0b1010 } else { 0b0000 };
+                        u_conj[udx] * psi[idx]
+                    }
+                ))
             }
         } else {
             Operator {
                 name: format!("Unit{:?}", u),
                 control: Arc::new(0),
-                func: Box::new(
+                func: SelfAndInv(Box::new(
                     move |psi, idx| {
                         let udx =
                             if (idx & a_mask) != 0 { 0b0101 } else { 0b0000 } |
@@ -626,7 +758,15 @@ impl Op {
                         (u[udx ^ 0] * psi[idx] + u[udx ^ 1] * psi[idx ^ a_mask]) +
                         (u[udx ^ 2] * psi[idx ^ b_mask] + u[udx ^ 3] * psi[idx ^ ab_mask])
                     }
-                )
+                ), Box::new(
+                    move |psi, idx| {
+                        let udx =
+                            if (idx & a_mask) != 0 { 0b0101 } else { 0b0000 } |
+                                if (idx & b_mask) != 0 { 0b1010 } else { 0b0000 };
+                        (u_conj[udx ^ 0] * psi[idx] + u_conj[udx ^ 1] * psi[idx ^ a_mask]) +
+                            (u_conj[udx ^ 2] * psi[idx ^ b_mask] + u_conj[udx ^ 3] * psi[idx ^ ab_mask])
+                    }
+                ))
             }
         }.into()
     }
@@ -726,7 +866,7 @@ impl Default for Op {
 impl Mul for Op {
     type Output = Self;
 
-    fn mul(mut self, mut rhs: Self) -> Self {
+    fn mul(mut self, rhs: Self) -> Self {
         self.mul_assign(rhs);
         self
     }
@@ -735,7 +875,7 @@ impl Mul for Op {
 impl Mul<Operator> for Op {
     type Output = Self;
 
-    fn mul(mut self, mut rhs: Operator) -> Self {
+    fn mul(mut self, rhs: Operator) -> Self {
         self.mul_assign(rhs);
         self
     }
@@ -744,7 +884,7 @@ impl Mul<Operator> for Op {
 impl<'a> Mul<Op> for &'a mut Op {
     type Output = Self;
 
-    fn mul(self, mut rhs: Op) -> Self::Output {
+    fn mul(self, rhs: Op) -> Self::Output {
         self.mul_assign(rhs);
         self
     }
@@ -757,7 +897,7 @@ impl MulAssign for Op {
 }
 
 impl MulAssign<Operator> for Op {
-    fn mul_assign(&mut self, mut rhs: Operator) {
+    fn mul_assign(&mut self, rhs: Operator) {
         self.0.push_back(rhs);
     }
 }

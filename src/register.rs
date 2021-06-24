@@ -1,7 +1,6 @@
 use {
     std::{
         cmp::Ordering,
-        iter::*,
         fmt,
         mem::take,
         ops::{
@@ -179,6 +178,7 @@ impl QReg {
                 let psi = Arc::new(self_psi);
                 let c_mask = *control.clone();
                 let par_iter = (0..len).into_par_iter();
+                let func = func.get_func();
 
                 self_psi = if c_mask != 0 {
                     par_iter
@@ -271,7 +271,7 @@ impl QReg {
 
             let n_sum = n.par_iter().sum::<R>();
 
-            let mut n = (0..self.psi.len())
+            let n = (0..self.psi.len())
                 .into_par_iter()
                 .map(|idx| {
                     let x = (c * p[idx] + c_sqrt * (n[idx] - n_sum * p[idx])).round() as Z;
