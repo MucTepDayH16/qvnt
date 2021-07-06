@@ -6,7 +6,7 @@ use {
 const DEFAULT_NUM_THREADS: usize = 1;
 static mut GLOBAL_POOL: (bool, MaybeUninit<ThreadPool>) = (false, MaybeUninit::uninit());
 
-pub fn qvnt_num_threads(num_threads: usize) {
+pub fn num_threads(num_threads: usize) {
     unsafe {
         GLOBAL_POOL.0 = true;
         GLOBAL_POOL.1 = MaybeUninit::new(ThreadPoolBuilder::new().num_threads(num_threads).build().unwrap());

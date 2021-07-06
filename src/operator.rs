@@ -10,13 +10,13 @@ use {
 
     crate::math::*,
 };
-use crate::operator::OpAtomic::{SelfConj, SelfAndInv};
+use crate::operator::OpAtomic::{SelfConj, Common};
 
 type BoxedFunc = Box<dyn Fn(&Vec<C>, N) -> C + Send + Sync>;
 
 pub enum OpAtomic {
     SelfConj(BoxedFunc),
-    SelfAndInv(BoxedFunc, BoxedFunc)
+    Common(BoxedFunc, BoxedFunc)
 }
 
 impl OpAtomic {
@@ -24,13 +24,13 @@ impl OpAtomic {
         use OpAtomic::*;
         match self {
             SelfConj(f) => f,
-            SelfAndInv(f, ..) => f,
+            Common(f, ..) => f,
         }
     }
 
     pub fn inv(&mut self) {
         use OpAtomic::*;
-        if let SelfAndInv(s, i) = self {
+        if let Common(s, i) = self {
             std::mem::swap(s, i);
         }
     }
@@ -38,7 +38,7 @@ impl OpAtomic {
 
 pub(crate) struct Operator {
     pub(crate) name: String,
-    pub(crate) control: Arc<usize>,
+    pub(crate) control: N,
     pub(crate) func: OpAtomic,
 }
 
@@ -56,7 +56,7 @@ impl Operator {
 
 impl fmt::Debug for Operator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let c_mask = *self.control;
+        let c_mask = self.control;
         let mut s = String::new();
         if c_mask != 0 {
             s += &format!("C{}_", c_mask);
@@ -82,7 +82,7 @@ macro_rules! simple_operator_definition {
         } else {
             Operator {
                 name: format!("{}{}", $name, $mask),
-                control: Arc::new(0),
+                control: 0,
                 func: SelfConj(Box::new(move |psi, idx| $op(psi, idx, $mask)))
             }.into()
         }
@@ -93,8 +93,8 @@ macro_rules! simple_operator_definition {
         } else {
             Operator {
                 name: format!("{}{}", $name, $mask),
-                control: Arc::new(0),
-                func: SelfAndInv(
+                control: 0,
+                func: Common(
                     Box::new(move |psi, idx| $op(psi, idx, $mask)),
                     Box::new(move |psi, idx| $inv(psi, idx, $mask))
                 )
@@ -114,8 +114,8 @@ macro_rules! rotate_operator_definition {
                 if count_bits(real_mask) == $dim {
                     ops *= Operator {
                         name: format!("{}{}({})", $name, real_mask, $phase),
-                        control: Arc::new(0),
-                        func: SelfAndInv(
+                        control: 0,
+                        func: Common(
                             Box::new(move |psi, idx| $operation(psi, idx, real_mask, ang)),
                             Box::new(move |psi, idx| $operation(psi, idx, real_mask, ang.conj()))
                         )
@@ -192,7 +192,7 @@ impl Op {
     /// ```
     pub fn c(mut self, c_mask: N) -> Self {
         self.0.iter_mut().for_each(move |op|
-            op.control = Arc::new(*op.control | c_mask)
+            op.control |= c_mask
         );
         self
     }
@@ -244,7 +244,7 @@ impl Op {
         } else {
             Operator {
                 name: format!("{}{}", "Y", a_mask),
-                control: Arc::new(0),
+                control: 0,
                 func: SelfConj(Box::new(move |psi, idx| -> C {
                     i * if count_bits(idx & a_mask) & 1 == 1 {
                         -psi[idx ^ a_mask]
@@ -386,8 +386,8 @@ impl Op {
         } else {
             Operator {
                 name: format!("Phase{:?}", angles_vec),
-                control: Arc::new(0),
-                func: SelfAndInv(Box::new(
+                control: 0,
+                func: Common(Box::new(
                     move |psi, idx| {
                         let mut val = psi[idx];
                         for (jdx, ang) in &angles {
@@ -531,8 +531,8 @@ impl Op {
 
         Operator {
             name: format!("sqrt_iSWAP{}", ab_mask),
-            control: Arc::new(0),
-            func: SelfAndInv(Box::new(
+            control: 0,
+            func: Common(Box::new(
                 move |psi, idx| {
                     if (idx & ab_mask).count_ones() & 1 == 1 {
                         let psi = (psi[idx], psi[idx ^ ab_mask]);
@@ -572,7 +572,7 @@ impl Op {
 
             Operator {
                 name: format!("H{}", a_mask),
-                control: Arc::new(0),
+                control: 0,
                 func: SelfConj(Box::new(
                     move |psi, idx| {
                         let a = (idx & a_mask) != 0;
@@ -592,7 +592,7 @@ impl Op {
 
             Operator {
                 name: format!("H{}", ab_mask),
-                control: Arc::new(0),
+                control: 0,
                 func: SelfConj(Box::new(
                     move |psi, idx| {
                         let a = (idx & a_mask) != 0;
@@ -678,8 +678,8 @@ impl Op {
         if is_diagonal_m1(&u) {
             Operator {
                 name: format!("Diag[{:?}, {:?}]", u[0], u[3]),
-                control: Arc::new(0),
-                func: SelfAndInv(Box::new(
+                control: 0,
+                func: Common(Box::new(
                     move |psi, idx|
                         u[if (idx & a_mask) != 0 { 3 } else { 0 }] * psi[idx]
                 ), Box::new(
@@ -690,8 +690,8 @@ impl Op {
         } else {
             Operator {
                 name: format!("Unit{:?}", u),
-                control: Arc::new(0),
-                func: SelfAndInv(Box::new(
+                control: 0,
+                func: Common(Box::new(
                     move |psi, idx| {
                         let udx = if (idx & a_mask) != 0 { (3, 2) } else { (0, 1) };
                         u[udx.0] * psi[idx] + u[udx.1] * psi[idx ^ a_mask]
@@ -729,8 +729,8 @@ impl Op {
         if is_diagonal_m2(&u) {
             Operator {
                 name: format!("Diag[{:?}, {:?}, {:?}, {:?}]", u[0b0000], u[0b0101], u[0b1010], u[0b1111]),
-                control: Arc::new(0),
-                func: SelfAndInv(Box::new(
+                control: 0,
+                func: Common(Box::new(
                     move |psi, idx| {
                         let udx =
                             if (idx & a_mask) != 0 { 0b0101 } else { 0b0000 }
@@ -749,8 +749,8 @@ impl Op {
         } else {
             Operator {
                 name: format!("Unit{:?}", u),
-                control: Arc::new(0),
-                func: SelfAndInv(Box::new(
+                control: 0,
+                func: Common(Box::new(
                     move |psi, idx| {
                         let udx =
                             if (idx & a_mask) != 0 { 0b0101 } else { 0b0000 } |

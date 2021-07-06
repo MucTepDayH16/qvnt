@@ -174,9 +174,9 @@ impl QReg {
         let mut self_psi = take(&mut self.psi);
 
         self.psi = crate::threads::global_install(move || {
-            for Operator { name: _, control, func } in &ops.0 {
+            for Operator { name: _, control: c_mask, func } in &ops.0 {
                 let psi = Arc::new(self_psi);
-                let c_mask = *control.clone();
+                let c_mask = *c_mask;
                 let par_iter = (0..len).into_par_iter();
                 let func = func.get_func();
 
