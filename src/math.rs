@@ -5,6 +5,7 @@ pub use {
 
 pub const C_ONE: C = C{ re: 1., im: 0. };
 pub const C_ZERO: C = C{ re: 0., im: 0. };
+pub const C_IMAG: C = C{ re: 0., im: 1. };
 
 pub const I_POW_TABLE: [C; 4] = [
     C{ re: 1., im: 0. },
@@ -65,6 +66,18 @@ pub const ANGLE_TABLE: [C; 46] = [
 #[inline]
 pub fn count_bits(n: N) -> N {
     n.count_ones() as N
+}
+
+#[inline]
+pub fn rotate(mut z: C, q: N) -> C {
+    if q & 0b10 != 0 {
+        z = -z;
+    }
+    if q & 0b01 != 0 {
+        z.im = -z.im;
+        std::mem::swap(&mut z.re, &mut z.im);
+    }
+    z
 }
 
 #[inline]

@@ -6,7 +6,7 @@ mod math;
 mod bits_iter;
 
 pub mod prelude {
-    pub use super::operator::Op;
+    pub use super::operator::{MultiOp, Op, op};
     pub use super::register::{VReg, QReg};
 
     pub mod consts {

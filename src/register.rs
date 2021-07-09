@@ -169,32 +169,9 @@ impl QReg {
         }
     }
 
-    pub fn apply(&mut self, ops: &Op) {
-        let len = self.psi.len();
-        let mut self_psi = take(&mut self.psi);
-
-        self.psi = crate::threads::global_install(move || {
-            for Operator { name: _, control: c_mask, func } in &ops.0 {
-                let psi = Arc::new(self_psi);
-                let c_mask = *c_mask;
-                let par_iter = (0..len).into_par_iter();
-                let func = func.get_func();
-
-                self_psi = if c_mask != 0 {
-                    par_iter
-                        .map_init(|| (c_mask, psi.clone()),
-                                  |(c_mask, psi), idx| if !idx & *c_mask == 0 { func(psi, idx) } else { psi[idx] })
-                        .collect()
-                } else {
-                    par_iter
-                        .map_init(|| psi.clone(),
-                                  |psi, idx| func(psi, idx))
-                        .collect()
-                };
-            }
-
-            self_psi
-        });
+    pub fn apply(&mut self, ops: &MultiOp) {
+        use crate::operator::applicable::Applicable;
+        self.psi = ops.apply(take(&mut self.psi));
     }
 
     fn normalize(&mut self) -> &mut Self {
