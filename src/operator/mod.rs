@@ -26,7 +26,7 @@ pub mod Op {
 
 pub mod op {
     use super::{multi::*, single::*};
-    use crate::math::{C, N, R};
+    use crate::math::{C, N, R, FRAC_PI_2};
 
     /// Identity operator.
     ///
@@ -139,9 +139,9 @@ pub mod op {
     /// use qvnt::prelude::*;
     /// use std::f64::consts::PI;
     /// //  Take a third root of *Z* gate.
-    /// let z_pow_a = Op::phi(vec![(PI / 3., 0b1)]);
+    /// let z_pow_a = op::phi(vec![(PI / 3., 0b1)]);
     /// //  Equivalent to Op::z(0b1).
-    /// let z = Op::phi(vec![(PI, 0b1)]);
+    /// let z = op::phi(vec![(PI, 0b1)]);
     /// ```
     #[inline(always)]
     pub fn phi(phases: Vec<(R, N)>) -> MultiOp {
@@ -170,7 +170,7 @@ pub mod op {
     ///
     /// //  sqrt(SWAP) gate's matrix representation:
     /// assert_eq!(
-    ///     op::sqrt_swap(0b11).matrix_t::<4>(),
+    ///     op::sqrt_swap(0b11).matrix(2),
     ///     [   [_1, _0,              _0,              _0],
     ///         [_0, 0.5 * (_1 + _i), 0.5 * (_1 - _i), _0],
     ///         [_0, 0.5 * (_1 - _i), 0.5 * (_1 + _i), _0],
@@ -209,7 +209,7 @@ pub mod op {
     ///
     /// //  sqrt(iSWAP) gate's matrix representation:
     /// assert_eq!(
-    ///     op::sqrt_i_swap(0b11).matrix_t::<4>(),
+    ///     op::sqrt_i_swap(0b11).matrix(2),
     ///     [   [_1, _0,            _0,            _0],
     ///         [_0, SQRT_1_2 * _1, SQRT_1_2 * _i, _0],
     ///         [_0, SQRT_1_2 * _i, SQRT_1_2 * _1, _0],
@@ -239,14 +239,14 @@ pub mod op {
     /// First universal operator. Equivalent to *RZ* and U3(0,0,lam).
     #[inline(always)]
     pub fn u1(lam: R, a_mask: N) -> MultiOp {
-        todo!()
+        rz(lam, a_mask)
     }
     /// *U2(phi,lam)* gate.
     ///
     /// Second universal operator. Equivalent to U3(PI/2, phi, lam)
     #[inline(always)]
     pub fn u2(phi: R, lam: R, a_mask: N) -> MultiOp {
-        todo!()
+        rz(lam, a_mask) * ry(FRAC_PI_2, a_mask) * rz(phi, a_mask)
     }
     /// *U3(the,phi,lam)* gate.
     ///
@@ -264,7 +264,7 @@ pub mod op {
     /// Z^a = i U3(0,0,PI*a)
     #[inline(always)]
     pub fn u3(the: R, phi: R, lam: R, a_mask: N) -> MultiOp {
-        todo!()
+        rz(lam, a_mask) * ry(the, a_mask) * rz(phi, a_mask)
     }
 
     /// Discrete Fourier transform for the quantum state's amplitudes.
