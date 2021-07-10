@@ -3,7 +3,7 @@ use crate::math::{C, R, N};
 pub trait Applicable {
     fn apply(&self, _: Vec<C>) -> Vec<C>;
 
-    #[cfg(test)]
+    //#[cfg(any(test,doc))]
     fn matrix(&self, size: N) -> Vec<Vec<C>> {
         const Z: C = C{ re: 0.0, im: 0.0 };
         const O: C = C{ re: 1.0, im: 0.0 };
