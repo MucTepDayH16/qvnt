@@ -169,8 +169,7 @@ impl QReg {
         }
     }
 
-    pub fn apply(&mut self, ops: &MultiOp) {
-        use crate::operator::applicable::Applicable;
+    pub fn apply(&mut self, ops: &impl crate::operator::applicable::Applicable) {
         self.psi = ops.apply(take(&mut self.psi));
     }
 
