@@ -57,6 +57,6 @@ pub (crate) mod h1;
 pub (crate) mod h2;
 
 pub (crate) mod swap;
-//pub (crate) mod iswap;
-//pub (crate) mod sqrt_swap;
-//pub (crate) mod sqrt_iswap;
+pub (crate) mod i_swap;
+pub (crate) mod sqrt_swap;
+pub (crate) mod sqrt_i_swap;
