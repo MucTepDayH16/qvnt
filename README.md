@@ -1,20 +1,20 @@
 # QVNT
 
-![minimum supported rust version](https://img.shields.io/badge/rustc-1.52+-red.svg)
-[![Crate](http://meritbadge.herokuapp.com/qvnt)](https://crates.io/crates/qvnt)
+![minimum supported rust version](https://img.shields.io/badge/rustc-1.40+-red.svg)
+[![Crate](https://img.shields.io/crates/v/qvnt.svg)](https://crates.io/crates/qvnt)
 [![docs.rs](https://docs.rs/qvnt/badge.svg)](https://docs.rs/qvnt/)
 
-Advansed quantum computation simulator, written in *Rust*
+Advanced quantum computation simulator, written in *Rust*
 
 
 ___
 ## Features
-1. Ability to simulate up to 64 qubits, which is a limit for 64-bits machines.
-   But usual machine (with 4Gb RAM) only allowed to run 26 qubits, which is enough for study cases;
-2. A set of necessary 1- or 2-qubits operations, including general 1x1 and 2x2 unitary matrix, to build your own quantum circuits;
-3. Existed quantum operations are tested and debugged to be safe in use;
-4. Accelerated circuit execution using multithreaded *Rayon* library;
-5. Complex quantum registers manipulations: tensor product of two registers and aliases for qubit to *humanify* interaction with register.
+1. Ability to simulate up to 64 qubits.
+   Common machine with 4-16 Gb of RAM is able to simulate 26-28 qubits, which is enough for several study cases;
+2. Required set of 1- or 2-qubits operations to build your own quantum circuits;
+3. Quantum operations are tested and debugged to be safe in use;
+4. Circuit execution is accelerated using multithreading *Rayon* library;
+5. Complex quantum registers manipulations: tensor product of two registers and aliases for qubit to simplify interaction with register.
 
 ___
 ## Usage
@@ -47,18 +47,24 @@ ___
 * 1-qubit rotation operators;
 * 2-qubits rotation operators, *aka* Ising coupling gates;
 * *SWAP*, *iSWAP* operators and square rooted ones;
-* Quantum Fourier Transform;
-* Universal *U3* operator.
+* Quantum Fourier and Hadamard Transform;
+* Universal *U1*, *U2* and *U3* operators;
 
-Also, __ALL__ these operators could be turned into controlled ones, using ```.c(...)``` syntax:
+__ALL__ operators have inverse versions, accessing by ```.dgr()``` method:
 ```rust
-let usual_op = Op::x(0b001);
+let usual_op = op::s(0b1);
+//  Inverse S operator
+let inverse_op = op::s(0b1).dgr();
+```
+
+Also, __ALL__ these operators could be turned into controlled ones, using ```.c(...)``` method:
+```rust
+let usual_op = op::x(0b001);
 //  NOT gate, controlled by 2 qubits, aka CCNOT gate, aka Toffoli gate
-let controlled_op = Op::x(0b001).c(0b110);
+let controlled_op = op::x(0b001).c(0b110);
 ```
 
 ___
 ## In work
 1. Optimizing and vectorizing operations.
-2. Adding inverse operators for implemented ones.
-3. Writing documentation for all functions.
+3. Writing documentation for all modules.
