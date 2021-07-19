@@ -14,50 +14,27 @@ use {
     rand::prelude::*,
     rand_distr,
     rayon::prelude::*,
-
+    
     crate::{
         math::*,
         operator::*,
     }
 };
+use crate::math::C_ZERO;
 
-pub struct VReg(N, Vec<N>);
-
-impl fmt::Debug for VReg {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:032x}", self.0)
-    }
-}
-
-impl Index<N> for VReg {
-    type Output = N;
-
-    #[inline]
-    fn index(&self, idx: N) -> &Self::Output {
-        &self.1[idx]
-    }
-}
-
-impl Index<RangeFull> for VReg {
-    type Output = N;
-
-    #[inline]
-    fn index(&self, _: RangeFull) -> &Self::Output {
-        &self.0
-    }
-}
+use super::VReg;
 
 const MIN_QREG_LEN: usize = 8;
 
 #[derive(Default, Clone)]
-pub struct QReg {
+pub struct Reg {
     pub(crate) psi: Vec<C>,
     q_num: N,
     q_mask: N,
     alias: Vec<u8>,
 }
 
-impl QReg {
+impl Reg {
     pub fn new(q_num: usize) -> Self {
         let q_size = 1_usize << q_num;
 
@@ -281,26 +258,26 @@ impl QReg {
     }
 }
 
-impl fmt::Debug for QReg {
+impl fmt::Debug for Reg {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.psi[0..8].fmt(f)
     }
 }
 
-impl fmt::Display for QReg {
+impl fmt::Display for Reg {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self.alias.as_slice())
     }
 }
 
-impl Mul for QReg {
+impl Mul for Reg {
     type Output = Self;
     fn mul(self, other: Self) -> Self {
         self.tensor_prod(other)
     }
 }
 
-impl MulAssign for QReg {
+impl MulAssign for Reg {
     fn mul_assign(&mut self, rhs: Self) {
         *self = take(self).tensor_prod(rhs);
     }
