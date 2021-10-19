@@ -78,24 +78,37 @@ impl Reg {
         }
     }
 
-    pub fn get_vreg_by_char(&self, c: char) -> Option<VReg> {
-        let c = c as u8;
-        let mut res = VReg(0, Vec::with_capacity(self.q_num));
-        let mut idx = 1;
-
-        for &a in &self.alias {
-            if a == c {
-                res.0 |= idx;
-                res.1.push(idx);
-            }
-            idx <<= 1;
-        }
-
-        if res.0 != 0 {
-            Some(res)
+    // TODO: add tests for combine
+    pub (crate) fn combine(q: (&Self, &Self), c: M1) -> Option<Self> {
+        if q.0.q_num == q.1.q_num {
+            let mut q_reg = Self::new(q.0.q_num + 1);
+            let q_mask = q.0.q_mask;
+            //  let mid = 1 << q.0.q_num;
+            //  q_reg.psi[..mid].clone_from_slice(&q.0.psi);
+            //  q_reg.psi[mid..].clone_from_slice(&q.1.psi);
+            q_reg.psi.par_iter_mut()
+                .enumerate()
+                .for_each(|(idx, v)| {
+                    let q = (q.0.psi[q_mask & idx], q.1.psi[q_mask & idx]);
+                    if !q_mask & idx == 0 {
+                        *v = c[0b00] * q.0 + c[0b01] * q.1;
+                    } else {
+                        *v = c[0b10] * q.0 + c[0b11] * q.1;
+                    }
+                });
+            Some(q_reg)
         } else {
             None
         }
+    }
+
+    // TODO: add tests for linear_composition
+    pub (crate) fn linear_composition(&mut self, psi: &[C], c: (C, C)) {
+        assert_eq!(self.psi.len(), psi.len());
+
+        self.psi.par_iter_mut()
+            .zip(psi.par_iter())
+            .for_each(|q| *q.0 = q.0.mul(c.0) + q.1.mul(c.1));
     }
 
     fn tensor_prod(mut self, mut other: Self) -> Self {
