@@ -19,11 +19,6 @@ pub (crate) mod multi;
 
 pub use multi::MultiOp;
 
-#[deprecated]
-pub mod Op {
-    pub use super::op::*;
-}
-
 pub mod op {
     use super::{multi::*, single::*};
     use crate::math::{C, N, R, FRAC_PI_2};
