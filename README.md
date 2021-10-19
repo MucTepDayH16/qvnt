@@ -11,7 +11,7 @@ ___
 ## Features
 1. Ability to simulate up to 64 qubits.
    Common machine with 4-16 Gb of RAM is able to simulate 26-28 qubits, which is enough for several study cases;
-2. Required set of 1- or 2-qubits operations to build your own quantum circuits;
+2. Set of 1- or 2-qubits operations to build your own quantum circuits;
 3. Quantum operations are tested and debugged to be safe in use;
 4. Circuit execution is accelerated using multithreading *Rayon* library;
 5. Complex quantum registers manipulations: tensor product of two registers and aliases for qubit to simplify interaction with register.
@@ -27,7 +27,7 @@ let mut q_reg = QReg::new(10).alias_char('x');
 //  let q_reg = QReg::new(10).alias_char('x').init_state(0b0011100000);
 
 //  get virtual register 'x', to interact with specified qubits
-let x = q_reg.get_vreg_by_char('x').unwrap();
+let x = q_reg.get_vreg();
 
 //  create qft operation, acting on first 5 qubits in q_reg
 let op = Op::qft(x[0] | x[1] | x[2] | x[3] | x[4]);
