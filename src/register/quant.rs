@@ -140,24 +140,30 @@ impl Reg {
     }
 
     fn normalize(&mut self) -> &mut Self {
+        let norm = 1. / self.get_absolute().sqrt();
         let mut self_psi = take(&mut self.psi);
         self.psi = crate::threads::global_install(move || {
-            let norm = 1. / self_psi.par_iter().map(|v| v.norm_sqr()).sum::<R>().sqrt();
-            self_psi.par_iter_mut().for_each_with(norm, |n, v| *v *= *n);
+            self_psi.par_iter_mut().for_each(|v| *v *= norm);
             self_psi
         });
         self
     }
 
-    pub fn get_polar(&mut self) -> Vec<(R, R)> {
+    pub fn get_polar(&self) -> Vec<(R, R)> {
         crate::threads::global_install(|| {
             self.psi.par_iter().map(|z| z.to_polar()).collect()
         })
     }
 
-    pub fn get_probabilities(&self) -> Vec::<R> {
+    pub fn get_probabilities(&self) -> Vec<R> {
         crate::threads::global_install(|| {
-            self.psi.par_iter().map(|z| z.norm_sqr()).collect()
+            let abs = self.get_absolute();
+            self.psi.par_iter().map(|z| z.norm_sqr() / abs).collect()
+        })
+    }
+    pub fn get_absolute(&self) -> R {
+        crate::threads::global_install(|| {
+            self.psi.par_iter().map(|z| z.norm_sqr()).sum()
         })
     }
 
@@ -177,8 +183,6 @@ impl Reg {
                     }
             ).collect()
         );
-
-        self.normalize();
     }
     pub fn measure_mask(&mut self, mask: N) -> N {
         let mask = mask & self.q_mask;
