@@ -42,38 +42,18 @@ fn tensor() {
 }
 
 #[test]
-fn aliases_concat() {
-    let alias1 = String::from("wat");
-    let reg1 = QReg::new(3)
-        .init_state(0)
-        .set_alias_str(alias1);
-
-    let alias2 = String::from("aka");
-    let reg2 = QReg::new(3)
-        .init_state(0)
-        .set_alias_str(alias2);
-
-    let alias = String::from("wataka");
-    let reg = QReg::new(6)
-        .init_state(0)
-        .set_alias_str(alias);
-
-    assert_eq!(format!("{}", reg), format!("{}", reg1 * reg2));
-}
-
-#[test]
 fn virtual_regs() {
     let mut reg = QReg::new(0);
 
     //  qreg    x[3];
-    reg *= QReg::new(3).set_alias_char('x');
+    reg *= QReg::new(3);
     //  qreg    a[2];
-    reg *= QReg::new(2).set_alias_char('y');
+    reg *= QReg::new(2);
 
     let r = reg.get_vreg();
     let m = reg.get_vreg_by_mask(0b01101).unwrap();
-    let x = reg.get_vreg_by_char('x').unwrap();
-    let y = reg.get_vreg_by_char('y').unwrap();
+    let x = reg.get_vreg_by_mask(0b00111).unwrap();
+    let y = reg.get_vreg_by_mask(0b11000).unwrap();
 
     assert_eq!(r[0],    0b00001);
     assert_eq!(r[1],    0b00010);

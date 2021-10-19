@@ -25,7 +25,6 @@ pub struct Reg {
     pub(crate) psi: Vec<C>,
     q_num: N,
     q_mask: N,
-    alias: Vec<u8>,
 }
 
 impl Reg {
@@ -39,7 +38,6 @@ impl Reg {
         Self {
             psi, q_num,
             q_mask: q_size.wrapping_add(!0_usize),
-            alias: Vec::new()
         }
     }
 
@@ -50,18 +48,6 @@ impl Reg {
             self_psi
         });
         self.psi[self.q_mask & i_state] = C_ONE;
-        self
-    }
-
-    pub fn set_alias_str(mut self, alias: String) -> Self {
-        self.alias = Vec::from(alias);
-        self.alias.resize(self.q_num, '_' as u8);
-        self
-    }
-
-    pub fn set_alias_char(mut self, alias: char) -> Self {
-        self.alias.resize(0, alias as u8);
-        self.alias.resize(self.q_num as N, alias as u8);
         self
     }
 
@@ -113,9 +99,6 @@ impl Reg {
     }
 
     fn tensor_prod(mut self, mut other: Self) -> Self {
-        let mut alias = self.alias;
-        alias.append( &mut other.alias );
-
         let shift = (0 as u8, self.q_num as u8);
         let mask = (self.q_mask, other.q_mask);
 
@@ -136,7 +119,6 @@ impl Reg {
         Self {
             psi, q_num,
             q_mask: q_size.wrapping_add(!0_usize),
-            alias,
         }
     }
 
@@ -255,12 +237,6 @@ impl Reg {
 impl fmt::Debug for Reg {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.psi[0..8].fmt(f)
-    }
-}
-
-impl fmt::Display for Reg {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self.alias.as_slice())
     }
 }
 
