@@ -1,6 +1,17 @@
 use crate::{register::*, operator::*};
 
 #[test]
+fn ops() {
+    let pend_ops =
+        op::id() *
+            op::h(0b001).c(0b010) *
+            op::x(0b011).c(0b100) *
+            op::phi(vec![(5.0, 0b001)]);
+
+    assert_eq!(pend_ops.len(), 3);
+}
+
+#[test]
 fn quantum_reg() {
     let mut reg = QReg::new(4).init_state(0b1100);
     let mask = 0b0110;
@@ -13,8 +24,8 @@ fn quantum_reg() {
 
     reg.apply(&operator);
 
-    println!("{:?}", operator);
-    println!("{:?}", reg);
+    assert_eq!(format!("{:?}", operator), "[H3, H12, C8_H3, C2_SWAP9]");
+    assert_eq!(format!("{:?}", reg), "[Complex { re: 0.25, im: 0.0 }, Complex { re: 0.25, im: 0.0 }, Complex { re: 0.25, im: 0.0 }, Complex { re: 0.0, im: 0.0 }, Complex { re: -0.25, im: 0.0 }, Complex { re: -0.25, im: 0.0 }, Complex { re: -0.25, im: 0.0 }, Complex { re: 0.0, im: 0.0 }]");
 
     operator.clear();
     assert_eq!(operator.len(), 0);
@@ -23,10 +34,12 @@ fn quantum_reg() {
 
 #[test]
 fn tensor() {
+    const EPS: f64 = 1e-9;
+
+    let pend_ops = op::h(0b01);
+
     let mut reg1 = QReg::new(2).init_state(0b01);
     let mut reg2 = QReg::new(1).init_state(0b1);
-
-    let mut pend_ops = op::h(0b01);
 
     reg1.apply(&pend_ops);
     reg2.apply(&pend_ops);
@@ -34,10 +47,22 @@ fn tensor() {
     let test_prob = (reg1 * reg2).get_probabilities();
     let true_prob = vec![0.25, 0.25, 0., 0., 0.25, 0.25, 0., 0.];
 
-    let eps = 1e-9;
     assert!(
         test_prob.into_iter().zip(true_prob.into_iter())
-            .all(|(a, b)| (a - b).abs() < eps)
+            .all(|(a, b)| (a - b).abs() < EPS)
+    );
+
+    let mut reg3 = QReg::new(3).init_state(0b101);
+    let pend_ops = op::h(0b101);
+
+    reg3.apply(&pend_ops);
+
+    let test_prob = reg3.get_probabilities();
+    let true_prob = vec![0.25, 0.25, 0., 0., 0.25, 0.25, 0., 0.];
+
+    assert!(
+        test_prob.into_iter().zip(true_prob.into_iter())
+                 .all(|(a, b)| (a - b).abs() < EPS)
     );
 }
 

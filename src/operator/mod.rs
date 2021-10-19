@@ -283,14 +283,3 @@ pub mod op {
             * rxx(crate::math::FRAC_PI_6, 0b101)
     }
 }
-
-#[cfg(test)] #[test]
-fn ops() {
-    let pend_ops =
-        op::id() *
-            op::h(0b001).c(0b010) *
-            op::x(0b011).c(0b100) *
-            op::phi(vec![(5.0, 0b001)]);
-
-    assert_eq!(pend_ops.len(), 3);
-}
