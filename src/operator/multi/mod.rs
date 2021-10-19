@@ -5,10 +5,7 @@ use {
     },
 
     crate::{
-        operator::{
-            atomic::*,
-            single::*,
-        },
+        operator::single::*,
         math::{C, R, N},
     },
 };

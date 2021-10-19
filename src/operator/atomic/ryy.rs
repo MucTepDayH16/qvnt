@@ -10,7 +10,7 @@ rotate_op_impl!{ab_mask}
 impl AtomicOp for Op {
     fn atomic_op(&self, psi: &[C], idx: N) -> C {
         let mut phase = self.phase;
-        let mut psi = (psi[idx], psi[idx ^ self.ab_mask]);
+        let psi = (psi[idx], psi[idx ^ self.ab_mask]);
         if (idx & self.ab_mask).count_ones() & 1 == 0 { phase.im = -phase.im; }
         C { re: psi.0.re * phase.re + psi.1.im * phase.im,
             im: psi.0.im * phase.re - psi.1.re * phase.im }

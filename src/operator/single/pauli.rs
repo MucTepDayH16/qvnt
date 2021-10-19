@@ -1,5 +1,7 @@
-use crate::operator::{atomic, single::*};
-use crate::math::{C, R, N};
+use crate::{
+    operator::{atomic, single::*},
+    math::{C, R, N},
+};
 
 #[inline(always)]
 pub (crate) fn x(a_mask: N) -> SingleOp {

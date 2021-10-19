@@ -6,8 +6,6 @@ use {
         ops::{
             Mul,
             MulAssign,
-            Index,
-            RangeFull,
         },
         sync::Arc,
     },
@@ -15,12 +13,8 @@ use {
     rand_distr,
     rayon::prelude::*,
     
-    crate::{
-        math::*,
-        operator::*,
-    }
+    crate::math::*,
 };
-use crate::math::C_ZERO;
 
 use super::VReg;
 
@@ -35,7 +29,7 @@ pub struct Reg {
 }
 
 impl Reg {
-    pub fn new(q_num: usize) -> Self {
+    pub fn new(q_num: N) -> Self {
         let q_size = 1_usize << q_num;
 
         let mut psi = Vec::new();

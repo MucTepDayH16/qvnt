@@ -1,5 +1,4 @@
 use super::*;
-use crate::math::rotate;
 
 pub (crate) struct Op {
     ab_mask: N,

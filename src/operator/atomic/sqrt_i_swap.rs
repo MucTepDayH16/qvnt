@@ -1,5 +1,5 @@
 use super::*;
-use crate::math::{rotate, SQRT_2};
+use crate::math::SQRT_2;
 
 const SQRT_1_2: R = SQRT_2 * 0.5;
 

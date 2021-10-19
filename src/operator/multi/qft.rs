@@ -1,5 +1,4 @@
 use super::*;
-use crate::operator::atomic;
 use crate::math::{C, R, N};
 
 pub fn qft(a_mask: N) -> MultiOp {

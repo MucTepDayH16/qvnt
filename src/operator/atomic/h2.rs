@@ -1,7 +1,5 @@
 use super::*;
 
-const SQRT_1_2: R = crate::math::SQRT_2 * 0.5;
-
 pub (crate) struct Op {
     a_mask: N,
     b_mask: N,
