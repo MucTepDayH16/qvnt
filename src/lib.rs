@@ -1,3 +1,6 @@
+#[allow(unused_imports)]
+#[allow(non_upper_case_globals)]
+
 #[cfg(test)]
 mod tests;
 

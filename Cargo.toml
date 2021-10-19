@@ -1,6 +1,6 @@
 [package]
 name        = "qvnt"
-version     = "0.3.0"
+version     = "0.3.1"
 authors     = ["Denis Drozhzhin <denisdrozhzhin1999@gmail.com>"]
 edition     = "2018"
 repository  = "https://github.com/MucTepDayH16/qvnt/"
