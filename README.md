@@ -1,5 +1,6 @@
 # QVNT
 
+[![Rust](https://github.com/MucTepDayH16/qvnt/actions/workflows/rust.yml/badge.svg)](https://github.com/MucTepDayH16/qvnt/actions/workflows/rust.yml)
 ![minimum supported rust version](https://img.shields.io/badge/rustc-1.40+-red.svg)
 [![Crate](https://img.shields.io/crates/v/qvnt.svg)](https://crates.io/crates/qvnt)
 [![docs.rs](https://docs.rs/qvnt/badge.svg)](https://docs.rs/qvnt/)
