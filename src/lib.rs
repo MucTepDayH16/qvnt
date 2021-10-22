@@ -27,3 +27,4 @@ pub use crate::threads::num_threads;
 pub mod operator;
 pub mod register;
 pub mod threads;
+pub mod qasm;
