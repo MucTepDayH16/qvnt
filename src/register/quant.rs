@@ -2,7 +2,7 @@ use {
     std::{
         cmp::Ordering,
         fmt,
-        mem::take,
+        mem::{replace, take},
         ops::{
             Mul,
             MulAssign,
@@ -20,7 +20,7 @@ use super::VReg;
 
 const MIN_QREG_LEN: usize = 8;
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct Reg {
     pub(crate) psi: Vec<C>,
     q_num: N,
@@ -251,6 +251,12 @@ impl Reg {
     }
 }
 
+impl Default for Reg {
+    fn default() -> Self {
+        Self::new(0)
+    }
+}
+
 impl fmt::Debug for Reg {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.psi[0..8].fmt(f)
@@ -266,6 +272,6 @@ impl Mul for Reg {
 
 impl MulAssign for Reg {
     fn mul_assign(&mut self, rhs: Self) {
-        *self = take(self).tensor_prod(rhs);
+        *self = replace(self, Self{ psi: vec![], q_num: 0, q_mask: 0 }).tensor_prod(rhs);
     }
 }
