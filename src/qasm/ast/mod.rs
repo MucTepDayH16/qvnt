@@ -1,3 +1,4 @@
+use std::slice::Iter;
 use {
     std::{
         fs::File,
@@ -36,6 +37,10 @@ impl Ast {
 
         let source = process(&source, &std::env::current_dir().unwrap());
         Self::from_source(source)
+    }
+
+    pub (crate) fn iter(&self) -> Iter<AstNode> {
+        self.ast.iter()
     }
 }
 

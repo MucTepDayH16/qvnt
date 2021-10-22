@@ -61,6 +61,12 @@ impl Default for MultiOp {
     }
 }
 
+impl PartialEq for MultiOp {
+    fn eq(&self, other: &Self) -> bool {
+        format!("{:?}", self) == format!("{:?}", other)
+    }
+}
+
 impl Mul for MultiOp {
     type Output = Self;
 

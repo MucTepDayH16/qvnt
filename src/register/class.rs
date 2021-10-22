@@ -10,7 +10,7 @@ use {
     },
 };
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Reg {
     value: N,
     q_num: N,
@@ -24,8 +24,26 @@ impl Reg {
         Self{ value: 0, q_num, q_mask }
     }
 
+    pub (crate) fn reset(&mut self, i_state: N) {
+        self.value = i_state & self.q_mask;
+    }
+
     pub fn init_state(self, i_state: N) -> Self {
         Self{ value: i_state & self.q_mask, ..self }
+    }
+
+    pub fn set(&mut self, bit: bool, mask: N) {
+        if bit {
+            self.value |= mask;
+        } else {
+            self.value &= !mask;
+        }
+    }
+
+    pub fn xor(&mut self, bit: bool, mask: N) {
+        if bit {
+            self.value ^= mask;
+        }
     }
 
     fn tensor_prod(self, other: Self) -> Self {
