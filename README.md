@@ -22,15 +22,15 @@ ___
 use qvnt::prelude::*;
 
 //  create quantum register, called 'x', with 10 qubits
-let mut q_reg = QReg::new(10).alias_char('x');
+let mut q_reg = QReg::new(10);
 //  or with initial state, where 3 qubits are already in state |1>
-//  let q_reg = QReg::new(10).alias_char('x').init_state(0b0011100000);
+let mut q_reg = QReg::new(10).init_state(0b0011100000);
 
 //  get virtual register 'x', to interact with specified qubits
 let x = q_reg.get_vreg();
 
 //  create qft operation, acting on first 5 qubits in q_reg
-let op = Op::qft(x[0] | x[1] | x[2] | x[3] | x[4]);
+let op = op::qft(x[0] | x[1] | x[2] | x[3] | x[4]);
 
 //  apply operation
 q_reg.apply(&op);
@@ -52,6 +52,8 @@ ___
 
 __ALL__ operators have inverse versions, accessing by ```.dgr()``` method:
 ```rust
+use qvnt::prelude::*;
+
 let usual_op = op::s(0b1);
 //  Inverse S operator
 let inverse_op = op::s(0b1).dgr();
@@ -59,6 +61,8 @@ let inverse_op = op::s(0b1).dgr();
 
 Also, __ALL__ these operators could be turned into controlled ones, using ```.c(...)``` method:
 ```rust
+use qvnt::prelude::*;
+
 let usual_op = op::x(0b001);
 //  NOT gate, controlled by 2 qubits, aka CCNOT gate, aka Toffoli gate
 let controlled_op = op::x(0b001).c(0b110);
@@ -66,5 +70,5 @@ let controlled_op = op::x(0b001).c(0b110);
 
 ___
 ## In work
-1. Optimizing and vectorizing operations.
-3. Writing documentation for all modules.
+1. Implementing vectorized operations;
+3. Writing documentation for all modules;
