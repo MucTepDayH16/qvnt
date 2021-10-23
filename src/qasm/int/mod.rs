@@ -145,7 +145,7 @@ impl Int {
                 if mask != 0 {
                     crate::bits_iter::BitsIter::from(mask)
                         .nth(*idx as N)
-                        .ok_or(Error::OutOfBounds(alias.clone(), *idx as N))
+                        .ok_or(Error::IdxOutOfRange(alias.clone(), *idx as N))
                 } else {
                     Err(Error::NoQReg(alias.clone()))
                 }
@@ -167,7 +167,7 @@ impl Int {
                 if mask != 0 {
                     crate::bits_iter::BitsIter::from(mask)
                         .nth(*idx as N)
-                        .ok_or(Error::OutOfBounds(alias.clone(), *idx as N))
+                        .ok_or(Error::IdxOutOfRange(alias.clone(), *idx as N))
                 } else {
                     Err(Error::NoCReg(alias.clone()))
                 }
@@ -227,7 +227,7 @@ mod tests {
         assert_eq!(int.get_q_idx(&Argument::Register("a".to_string())), Ok(1));
         assert_eq!(int.get_q_idx(&Argument::Qubit("b".to_string(), 1)), Ok(4));
         assert_eq!(int.get_q_idx(&Argument::Qubit("b".to_string(), 2)),
-                   Err(Error::OutOfBounds( "b".to_string(), 2 )));
+                   Err(Error::IdxOutOfRange( "b".to_string(), 2 )));
         assert_eq!(int.get_q_idx(&Argument::Register( "c".to_string() )),
                    Err(Error::NoQReg( "c".to_string() )));
         assert_eq!(int.get_c_idx(&Argument::Register( "c".to_string() )), Ok(7));
@@ -248,18 +248,5 @@ mod tests {
                    Ok(op::swap(0b110)));
         assert_eq!(gates::process("swap".to_string(), vec![0b001], vec![]),
                    Err(Error::WrongRegNumber("swap".to_string(), 1)));
-    }
-
-    #[test]
-    fn circuit() {
-        let ast = Ast::from_file(&"./src/qasm/examples/test.qasm".to_string()).unwrap();
-        let mut int = Int::new(&ast).unwrap();
-
-        for _ in 0..100 {
-            int.reset().finish();
-            assert!(
-                int.get_class() == CReg::new(2).init_state(0) ||
-                    int.get_class() == CReg::new(2).init_state(3));
-        }
     }
 }
