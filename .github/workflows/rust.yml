@@ -16,6 +16,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - uses: snickerbockers/submodules-init@v4
     - name: Build
       run: cargo build --package qvnt --release --verbose
     - name: Run tests
