@@ -12,6 +12,7 @@ use {
 
 pub (crate) use super::applicable::Applicable;
 
+#[derive(Clone)]
 pub struct MultiOp(VecDeque<SingleOp>);
 
 impl MultiOp {
@@ -41,23 +42,25 @@ impl std::fmt::Debug for MultiOp {
 impl Applicable for MultiOp {
     #[inline(always)]
     fn apply(&self, psi: Vec<C>) -> Vec<C> {
-        let iter = self.0.iter();
-        crate::threads::global_install(
-            move || iter.fold(psi, |psi, op| op.apply(psi))
-        )
+        self.0.iter().fold(psi, |psi, op| op.apply(psi))
     }
 }
 
 impl From<SingleOp> for MultiOp {
-    #[inline(always)]
     fn from(single: SingleOp) -> Self {
-        Self(vec![single].into())
+        Self(if single.func.name() != "Id" {vec![single]} else {vec![]}.into())
     }
 }
 
 impl Default for MultiOp {
     fn default() -> Self {
         Self(VecDeque::new())
+    }
+}
+
+impl PartialEq for MultiOp {
+    fn eq(&self, other: &Self) -> bool {
+        format!("{:?}", self) == format!("{:?}", other)
     }
 }
 
@@ -74,16 +77,7 @@ impl Mul<SingleOp> for MultiOp {
     type Output = Self;
 
     fn mul(mut self, rhs: SingleOp) -> Self {
-        self.mul_assign(rhs);
-        self
-    }
-}
-
-impl<'a> Mul<MultiOp> for &'a mut MultiOp {
-    type Output = Self;
-
-    fn mul(self, rhs: MultiOp) -> Self::Output {
-        self.mul_assign(rhs);
+        self.mul_assign(Self::from(rhs));
         self
     }
 }
@@ -95,14 +89,23 @@ impl MulAssign for MultiOp {
 }
 
 impl MulAssign<SingleOp> for MultiOp {
+    #[inline]
     fn mul_assign(&mut self, rhs: SingleOp) {
-        self.0.push_back(rhs);
+        self.mul_assign(Self::from(rhs));
     }
 }
 
 impl<'a> MulAssign<MultiOp> for &'a mut MultiOp {
+    #[inline]
     fn mul_assign(&mut self, mut rhs: MultiOp) {
         self.0.append(&mut rhs.0);
+    }
+}
+
+impl<'a> MulAssign<SingleOp> for &'a mut MultiOp {
+    #[inline]
+    fn mul_assign(&mut self, rhs: SingleOp) {
+        self.mul_assign(MultiOp::from(rhs))
     }
 }
 

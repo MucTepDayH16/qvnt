@@ -12,7 +12,7 @@ use {
     rand::prelude::*,
     rand_distr,
     rayon::prelude::*,
-    
+
     crate::math::*,
 };
 
@@ -32,7 +32,7 @@ impl Reg {
         let q_size = 1_usize << q_num;
 
         let mut psi = Vec::new();
-        psi.resize(q_size.max(MIN_QREG_LEN), C_ZERO);
+        psi = vec![C_ZERO; q_size.max(MIN_QREG_LEN)];
         psi[0] = C_ONE;
 
         Self {
@@ -41,13 +41,13 @@ impl Reg {
         }
     }
 
-    pub fn init_state(mut self, i_state: N) -> Self {
-        let mut self_psi = take(&mut self.psi);
-        self.psi = crate::threads::global_install(move || {
-            self_psi.par_iter_mut().for_each(|val| *val = C_ZERO);
-            self_psi
-        });
+    pub (crate) fn reset(&mut self, i_state: N) {
+        self.psi = vec![C_ZERO; self.psi.len()];
         self.psi[self.q_mask & i_state] = C_ONE;
+    }
+
+    pub fn init_state(mut self, i_state: N) -> Self {
+        self.reset(i_state);
         self
     }
 
@@ -120,12 +120,15 @@ impl Reg {
 
         let q_num = self.q_num + other.q_num;
         let q_size = 1_usize << q_num;
-        let psi = crate::threads::global_install(|| {
-            (0..q_size)
+        let psi: Vec<C> = crate::threads::global_install(|| {
+            (0..q_size.max(MIN_QREG_LEN))
                 .into_par_iter()
                 .map(
-                    move |idx|
+                    move |idx| if idx < q_size {
                         self_psi[(idx >> shift.0) & mask.0] * other_psi[(idx >> shift.1) & mask.1]
+                    } else {
+                        C_ZERO
+                    }
                 ).collect()
         });
 
@@ -135,8 +138,11 @@ impl Reg {
         }
     }
 
-    pub fn apply(&mut self, ops: &impl crate::operator::applicable::Applicable) {
-        self.psi = ops.apply(take(&mut self.psi));
+    pub fn apply<Op>(&mut self, op: &Op)
+        where Op: crate::operator::applicable::Applicable + Sync {
+        self.psi = crate::threads::global_install(|| {
+            op.apply(take(&mut self.psi))
+        });
     }
 
     fn normalize(&mut self) -> &mut Self {
@@ -259,7 +265,7 @@ impl Default for Reg {
 
 impl fmt::Debug for Reg {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.psi[0..8].fmt(f)
+        self.psi[..MIN_QREG_LEN].fmt(f)
     }
 }
 

@@ -6,19 +6,20 @@ pub (crate) use super::applicable::Applicable;
 
 type Ptr<T> = std::sync::Arc<T>;
 
-pub (crate) struct SingleOp {
+#[derive(Clone)]
+pub struct SingleOp {
     pub (crate) ctrl: N,
     pub (crate) func: Ptr<dyn AtomicOp>,
 }
 
 impl SingleOp {
-    pub fn from_atomic_unchecked<A>(atomic: A) -> Self
+    pub (crate) fn from_atomic_unchecked<A>(atomic: A) -> Self
         where A: 'static + AtomicOp {
         let func = Ptr::new(atomic);
         SingleOp{ ctrl: 0, func }
     }
 
-    pub fn from_atomic<A>(atomic: A) -> Option<Self>
+    pub (crate) fn from_atomic<A>(atomic: A) -> Option<Self>
         where A: 'static + AtomicOp {
         if atomic.is_valid() {
             Some(Self::from_atomic_unchecked(atomic))
@@ -50,28 +51,21 @@ impl SingleOp {
 
 impl Applicable for SingleOp {
     fn apply(&self, psi: Vec<C>) -> Vec<C> {
-        if self.func.name() == "Id" {
-            return psi;
-        }
-
-        use rayon::prelude::*;
+        use rayon::iter::*;
 
         let len = psi.len();
         let psi = Ptr::new(psi);
-        let SingleOp { ctrl, func } = self;
 
-        if *ctrl != 0 {
+        if self.ctrl != 0 {
             (0..len).into_par_iter()
-                    .map_init(
-                        || (psi.clone(), func.clone()),
-                        |(psi, func), idx| if !idx & *ctrl == 0 {func.atomic_op(psi, idx)} else {psi[idx]})
-                    .collect()
+                    .map(
+                        |idx| if !idx & self.ctrl == 0 {self.func.atomic_op(&psi, idx)} else {psi[idx]}
+                    ).collect()
         } else {
             (0..len).into_par_iter()
-                    .map_init(
-                        || (psi.clone(), func.clone()),
-                        |(psi, func), idx| func.atomic_op(psi, idx))
-                    .collect()
+                    .map(
+                        |idx| self.func.atomic_op(&psi, idx)
+                    ).collect()
         }
     }
 }
