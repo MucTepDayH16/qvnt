@@ -97,8 +97,16 @@ impl Int {
                     .map(|reg| reg.unwrap())
                     .collect();
 
+                fn parse_arg(arg: &str) -> Option<R> {
+                    arg .chars()
+                        .filter(|c| !c.is_whitespace())
+                        .collect::<String>()
+                        .to_string()
+                        .parse::<R>().ok()
+                }
+
                 let args = args.into_iter()
-                    .map(|arg| (arg, arg.parse::<R>().ok()))
+                    .map(|arg| (arg, parse_arg(arg)))
                     .collect::<Vec<(&String, Option<R>)>>();
                 if let Some(err) = args.iter().find(|arg| arg.1.is_none()) {
                     return Err(Error::UnevaluatedArgument(err.0.clone()));
@@ -206,6 +214,9 @@ impl Int {
 
     pub fn get_class(&self) -> CReg {
         self.c_reg.0.clone()
+    }
+    pub fn get_probabilities(&self) -> Vec<R> {
+        self.q_reg.0.get_probabilities()
     }
 }
 

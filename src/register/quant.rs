@@ -165,7 +165,7 @@ impl Reg {
     pub fn get_probabilities(&self) -> Vec<R> {
         crate::threads::global_install(|| {
             let abs = self.get_absolute();
-            self.psi.par_iter().map(|z| z.norm_sqr() / abs).collect()
+            self.psi[..(1_usize << self.q_num)].par_iter().map(|z| z.norm_sqr() / abs).collect()
         })
     }
     pub fn get_absolute(&self) -> R {

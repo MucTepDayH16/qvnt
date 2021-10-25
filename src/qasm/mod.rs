@@ -17,8 +17,9 @@ mod tests {
         for _ in 0..100 {
             int.reset().finish();
             assert!(
-                int.get_class() == CReg::new(2).init_state(0) ||
-                    int.get_class() == CReg::new(2).init_state(3));
+                int.get_class() == CReg::new(2).init_state(1) ||
+                    int.get_class() == CReg::new(2).init_state(2)
+            );
         }
     }
 }
