@@ -2,6 +2,8 @@ use criterion::*;
 use qvnt::prelude::*;
 
 fn perf_test(q_num: usize, t_num: usize) {
+    qvnt::num_threads(t_num);
+
     let mut reg = QReg::new(q_num).init_state(0);
     reg.apply(&(op::qft(0b0111) * op::qft(0b1110)));
 

@@ -31,8 +31,7 @@ impl Reg {
     pub fn new(q_num: N) -> Self {
         let q_size = 1_usize << q_num;
 
-        let mut psi = Vec::new();
-        psi = vec![C_ZERO; q_size.max(MIN_QREG_LEN)];
+        let mut psi = vec![C_ZERO; q_size.max(MIN_QREG_LEN)];
         psi[0] = C_ONE;
 
         Self {
