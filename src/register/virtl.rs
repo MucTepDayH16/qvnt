@@ -1,5 +1,7 @@
-use crate::math::{N, R, C};
-use std::ops::{Index, RangeFull};
+use {
+    crate::math::{C, N, R},
+    std::ops::{Index, RangeFull},
+};
 
 pub struct Reg(pub (crate) N, pub (crate) Vec<N>);
 

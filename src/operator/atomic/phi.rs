@@ -1,5 +1,6 @@
-use super::*;
 use std::collections::BTreeMap;
+
+use super::*;
 
 pub struct Op {
     phases: BTreeMap<N, C>,
@@ -12,7 +13,7 @@ impl Op {
             let mut jdx = 1;
             while jdx <= *idx {
                 if jdx & *idx != 0 {
-                    phases.entry(jdx).or_insert(C::new(0.0, 0.0)).im += *val;
+                    phases.entry(jdx).or_insert(crate::math::C_ZERO).im += *val;
                 }
                 jdx <<= 1;
             }

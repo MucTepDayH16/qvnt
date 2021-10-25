@@ -1,14 +1,15 @@
-pub (crate) mod applicable;
-
-pub (crate) mod atomic;
-pub (crate) mod single;
-pub (crate) mod multi;
-
 pub use multi::MultiOp;
 
+pub(crate) mod applicable;
+
+pub(in crate::operator) mod atomic;
+pub(in crate::operator) mod single;
+pub(in crate::operator) mod multi;
+
 pub mod op {
+    use crate::math::{C, FRAC_PI_2, N, R};
+
     use super::{multi::*, single::*};
-    use crate::math::{C, N, R, FRAC_PI_2};
 
     /// Identity operator.
     ///
@@ -119,7 +120,8 @@ pub mod op {
     ///
     /// ```rust
     /// use qvnt::prelude::*;
-    /// use std::f64::consts::PI;
+    /// use consts::PI;
+    ///
     /// //  Take a third root of *Z* gate.
     /// let z_pow_a = op::phi(vec![(PI / 3., 0b1)]);
     /// //  Equivalent to Op::z(0b1).
@@ -148,7 +150,7 @@ pub mod op {
     ///
     /// ```rust
     /// use qvnt::prelude::*;
-    /// use consts::*;
+    /// use consts::{_0, _1, _i};
     ///
     /// //  sqrt(SWAP) gate's matrix representation:
     /// assert_eq!(
@@ -187,7 +189,7 @@ pub mod op {
     ///
     /// ```rust
     /// use qvnt::prelude::*;
-    /// use consts::*;
+    /// use consts::{_0, _1, _i, SQRT_1_2};
     ///
     /// //  sqrt(iSWAP) gate's matrix representation:
     /// assert_eq!(

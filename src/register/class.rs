@@ -1,12 +1,9 @@
 use {
+    crate::math::{C, N, R},
     std::{
         fmt,
         mem::take,
         ops::{Mul, MulAssign},
-    },
-
-    crate::{
-        math::{C, R, N},
     },
 };
 
@@ -29,7 +26,7 @@ impl Reg {
     }
 
     fn tensor_prod(self, other: Self) -> Self {
-        let shift = (0 as u8, self.q_num as u8);
+        let shift = (0u8, self.q_num as u8);
         Self::new(self.q_num + other.q_num)
             .init_state((self.value << shift.0) | (other.value << shift.1))
     }

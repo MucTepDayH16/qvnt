@@ -1,4 +1,8 @@
 use {
+    crate::math::*,
+    rand::prelude::*,
+    rand_distr,
+    rayon::prelude::*,
     std::{
         cmp::Ordering,
         fmt,
@@ -9,14 +13,7 @@ use {
         },
         sync::Arc,
     },
-    rand::prelude::*,
-    rand_distr,
-    rayon::prelude::*,
-
-    crate::math::*,
 };
-
-use super::VReg;
 
 const MIN_QREG_LEN: usize = 8;
 
@@ -40,7 +37,7 @@ impl Reg {
         }
     }
 
-    pub (crate) fn reset(&mut self, i_state: N) {
+    pub(crate) fn reset(&mut self, i_state: N) {
         self.psi = vec![C_ZERO; self.psi.len()];
         self.psi[self.q_mask & i_state] = C_ONE;
     }
@@ -50,41 +47,25 @@ impl Reg {
         self
     }
 
-    pub fn get_vreg(&self) -> VReg {
-        let mut res = VReg(self.q_mask, Vec::with_capacity(self.q_num));
-
-        for idx in 0..self.q_num {
-            res.1.push(1 << idx);
-        }
-
-        res
+    pub fn get_vreg(&self) -> super::VReg {
+        let bi = bits_iter::BitsIter::from(self.q_mask);
+        super::VReg(self.q_mask, bi.collect())
     }
 
-    pub fn get_vreg_by_mask(&self, mask: N) -> Option<VReg> {
-        if mask == 0 {
+    pub fn get_vreg_by_mask(&self, mask: N) -> Option<super::VReg> {
+        if mask & self.q_mask == 0 {
             None
         } else {
-            let mut vec = Vec::with_capacity(mask.count_ones() as usize);
-
-            for idx in 0..self.q_num {
-                let jdx = 1 << idx;
-                if jdx & mask != 0 {
-                    vec.push(jdx);
-                }
-            }
-
-            Some(VReg(mask, vec))
+            let bi = bits_iter::BitsIter::from(mask & self.q_mask);
+            Some(super::VReg(mask, bi.collect()))
         }
     }
 
     // TODO: add tests for combine
-    pub (crate) fn combine(q: (&Self, &Self), c: M1) -> Option<Self> {
+    pub(crate) fn combine(q: (&Self, &Self), c: M1) -> Option<Self> {
         if q.0.q_num == q.1.q_num {
             let mut q_reg = Self::new(q.0.q_num + 1);
             let q_mask = q.0.q_mask;
-            //  let mid = 1 << q.0.q_num;
-            //  q_reg.psi[..mid].clone_from_slice(&q.0.psi);
-            //  q_reg.psi[mid..].clone_from_slice(&q.1.psi);
             q_reg.psi.par_iter_mut()
                 .enumerate()
                 .for_each(|(idx, v)| {
@@ -111,7 +92,7 @@ impl Reg {
     }
 
     fn tensor_prod(mut self, mut other: Self) -> Self {
-        let shift = (0 as u8, self.q_num as u8);
+        let shift = (0u8, self.q_num as u8);
         let mask = (self.q_mask, other.q_mask);
 
         let self_psi = Arc::new(take(&mut self.psi));
@@ -225,8 +206,7 @@ impl Reg {
             let n = (0..self.psi.len())
                 .into_par_iter()
                 .map(|idx| {
-                    let x = (c * p[idx] + c_sqrt * (n[idx] - n_sum * p[idx])).round() as Z;
-                    if x > 0 { x as N } else { 0 }
+                    ((c * p[idx] + c_sqrt * (n[idx] - n_sum * p[idx])).round() as Z).max(0) as N
                 })
                 .collect::<Vec<N>>();
 
@@ -236,16 +216,21 @@ impl Reg {
         });
         match delta.cmp(&0) {
             Ordering::Less => {
-                for idx in 0..(delta.abs() as N) {
-                    n[idx] += 1;
-                }
+                let delta = delta.abs() as N;
+                let delta = (delta >> self.q_num, delta % self.q_mask);
+                n.par_iter_mut().for_each(|n| {
+                    *n += delta.0;
+                });
+                n.par_iter_mut().zip((0..delta.1).into_par_iter()).for_each(|(n, _)| {
+                    *n += 1;
+                });
             },
             Ordering::Greater => {
                 let mut delta = delta as N;
                 for idx in 0.. {
                     if delta == 0 { break; }
-                    if n[idx] <= 0 { continue; }
-                    n[idx] -= 1;
+                    if n[idx & self.psi.len()] == 0 { continue; }
+                    n[idx & self.psi.len()] -= 1;
                     delta -= 1;
                 }
             },

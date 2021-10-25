@@ -1,6 +1,6 @@
 use super::*;
 
-const SQRT_1_2: R = crate::math::SQRT_2 * 0.5;
+const SQRT_1_2: R = crate::math::FRAC_1_SQRT_2;
 
 pub (crate) struct Op {
     a_mask: N,
@@ -38,7 +38,7 @@ impl AtomicOp for Op {
 fn tests() {
     use crate::operator::single::*;
 
-    const SQRT_1_2: C = C{ re: crate::math::SQRT_2 * 0.5, im: 0.0 };
+    const SQRT_1_2: C = C { re: crate::math::FRAC_1_SQRT_2, im: 0.0 };
 
     let op = SingleOp::from_atomic(Op::new(0b1)).unwrap();
     assert_eq!(op.name(), "H1");
