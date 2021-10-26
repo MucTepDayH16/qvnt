@@ -10,6 +10,7 @@ license     = "MIT OR Apache-2.0"
 
 [dependencies]
 criterion   = "0.3"
+lazy_static = "1.4"
 num-complex = "0.4"
 float-cmp   = "0.8"
 rand        = "0.8"

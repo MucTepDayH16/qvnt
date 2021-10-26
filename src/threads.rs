@@ -1,28 +1,34 @@
 use {
-    std::mem::MaybeUninit,
+    std::{
+        sync::RwLock,
+        mem::MaybeUninit
+    },
+    lazy_static::*,
     rayon::*,
 };
 
 const DEFAULT_NUM_THREADS: usize = 1;
-static mut GLOBAL_POOL: (usize, MaybeUninit<ThreadPool>) =
-    (0, MaybeUninit::uninit());
+lazy_static! {
+    static ref GLOBAL_POOL: RwLock<(usize, Option<ThreadPool>)> = {
+        RwLock::new((0, None))
+    };
+}
 
 pub fn num_threads(num_threads: usize) {
-    unsafe {
-        if GLOBAL_POOL.0 != num_threads {
-            GLOBAL_POOL.0 = num_threads;
-            GLOBAL_POOL.1 = MaybeUninit::new(ThreadPoolBuilder::new()
+    if GLOBAL_POOL.read().unwrap().0 != num_threads {
+        GLOBAL_POOL.write().unwrap().0 = num_threads;
+        GLOBAL_POOL.write().unwrap().1 =
+            Some(ThreadPoolBuilder::new()
                 .num_threads(num_threads)
-                .build().unwrap());
-        }
+                .build()
+                .unwrap()
+            );
     }
 }
 
 pub(crate) fn global_install<OP: FnOnce() -> R + Send, R: Send>(op: OP) -> R {
-    unsafe {
-        if GLOBAL_POOL.0 == 0 {
-            num_threads(DEFAULT_NUM_THREADS);
-        }
-        &*GLOBAL_POOL.1.as_ptr()
-    }.install(op)
+    if GLOBAL_POOL.read().unwrap().0 == 0 {
+        num_threads(DEFAULT_NUM_THREADS);
+    }
+    GLOBAL_POOL.read().unwrap().1.as_ref().unwrap().install(op)
 }
