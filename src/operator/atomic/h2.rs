@@ -13,6 +13,8 @@ impl Op {
     }
 }
 
+into_single_op_impl!{ab_mask}
+
 impl AtomicOp for Op {
     fn atomic_op(&self, psi: &[C], idx: N) -> C {
         let mut psi = (psi[idx],
@@ -45,7 +47,7 @@ fn tests() {
 
     const O_5: C = C{ re: 0.5, im: 0.0 };
 
-    let op = SingleOp::from_atomic(Op::new(0b01, 0b10)).unwrap();
+    let op: SingleOp = Op::new(0b01, 0b10).into();
     assert_eq!(op.name(), "H3");
     assert_eq!(op.matrix(2),
                [   [O_5, O_5, O_5, O_5],

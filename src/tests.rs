@@ -1,11 +1,11 @@
-use crate::{register::*, operator::*};
+use crate::{register::*, operator::{op, applicable::Applicable}};
 
 #[test]
 fn ops() {
     let pend_ops =
         op::id() *
-            op::h(0b001).c(0b010) *
-            op::x(0b011).c(0b100) *
+            op::h(0b001).c(0b010).unwrap() *
+            op::x(0b011).c(0b100).unwrap() *
             op::phi(vec![(5.0, 0b001)]);
 
     assert_eq!(pend_ops.len(), 3);
@@ -18,8 +18,8 @@ fn quantum_reg() {
 
     let mut operator =
         op::h(0b1111)
-        * op::h(0b0011).c(0b1000)
-        * op::swap(0b1001).c(0b0010)
+        * op::h(0b0011).c(0b1000).unwrap()
+        * op::swap(0b1001).c(0b0010).unwrap()
         ;
 
     reg.apply(&operator);

@@ -23,6 +23,13 @@ impl Op {
     }
 }
 
+impl Into<SingleOp> for Op {
+    fn into(self) -> SingleOp {
+        let act = self.phases.iter().fold(0, |act, (i, _)| act | *i);
+        SingleOp { act, ctrl: 0, func: Ptr::new(self) }
+    }
+}
+
 impl AtomicOp for Op {
     fn atomic_op(&self, psi: &[C], idx: N) -> C {
         let mut psi = psi[idx];

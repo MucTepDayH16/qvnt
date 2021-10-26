@@ -26,14 +26,6 @@ impl MultiOp {
     pub fn clear(&mut self) {
         self.0.clear()
     }
-
-    pub fn c(self, c: N) -> Self {
-        Self(self.0.into_iter().map(|op| op.ctrl(c)).collect())
-    }
-
-    pub fn dgr(self) -> Self {
-        Self(self.0.into_iter().map(|op| op.dgr()).rev().collect())
-    }
 }
 
 impl std::fmt::Debug for MultiOp {
@@ -43,9 +35,28 @@ impl std::fmt::Debug for MultiOp {
 }
 
 impl Applicable for MultiOp {
-    #[inline(always)]
     fn apply(&self, psi: Vec<C>) -> Vec<C> {
-        self.0.iter().fold(psi, |psi, op| op.apply(psi))
+        self.0.iter()
+            .fold(psi, |psi, op| op.apply(psi))
+    }
+
+    fn act_on(&self) -> N {
+        self.0.iter()
+            .fold(0, |act, op| act | op.act)
+    }
+
+    fn dgr(self) -> Self {
+        Self(self.0.into_iter().map(|op| op.dgr()).rev().collect())
+    }
+
+    fn c(mut self, c_mask: N) -> Option<Self> {
+        for op in &mut self.0 {
+            *op = match op.clone().c(c_mask) {
+                Some(x) => x,
+                None => return None,
+            };
+        }
+        Some(self)
     }
 }
 

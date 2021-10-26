@@ -1,10 +1,10 @@
 pub use multi::MultiOp;
 
-pub(crate) mod applicable;
+pub (crate) mod applicable;
 
-pub(in crate::operator) mod atomic;
-pub(in crate::operator) mod single;
-pub(in crate::operator) mod multi;
+pub (in crate::operator) mod atomic;
+pub (in crate::operator) mod single;
+pub (in crate::operator) mod multi;
 
 pub mod op {
     use crate::math::{C, FRAC_PI_2, N, R};
@@ -276,11 +276,11 @@ pub mod op {
     pub(crate) fn bench_circuit() -> MultiOp {
         MultiOp::default()
             * h(0b111)
-            * h(0b100).c(0b001)
-            * x(0b001).c(0b110)
+            * h(0b100).c(0b001).unwrap()
+            * x(0b001).c(0b110).unwrap()
             * rx(1.2, 0b100)
-            * phi(vec![ (1.0, 0b010) ]).c(0b001)
-            * h(0b001).c(0b100)
+            * phi(vec![ (1.0, 0b010) ]).c(0b001).unwrap()
+            * h(0b001).c(0b100).unwrap()
             * z(0b010)
             * rxx(crate::math::FRAC_PI_6, 0b101)
     }

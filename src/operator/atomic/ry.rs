@@ -1,11 +1,6 @@
 use super::*;
 
-pub (crate) struct Op {
-    a_mask: N,
-    phase: C,
-}
-
-rotate_op_impl!{a_mask}
+op_impl!{r a_mask}
 
 impl AtomicOp for Op {
     fn atomic_op(&self, psi: &[C], idx: N) -> C {
@@ -38,7 +33,7 @@ fn tests() {
     let cos = C{ re: (0.5 * ANGLE).cos(), im: 0.0 };
     let sin = C{ re: (0.5 * ANGLE).sin(), im: 0.0 };
 
-    let op = SingleOp::from_atomic(Op::new(0b1, ANGLE)).unwrap();
+    let op: SingleOp = Op::new(0b1, ANGLE).into();
     assert_eq!(op.name(), "RY1[1.23456]");
     assert_eq!(op.matrix(1),
                [   [cos, -sin],

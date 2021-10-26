@@ -24,7 +24,7 @@ pub fn qft(a_mask: N) -> MultiOp {
                 res.push_back(
                     crate::operator::single::pauli::phi(
                         ((i + 1)..count).map(|j| (crate::math::PI * 0.5f64.powi((j - i) as i32), vec[j])).collect())
-                        .ctrl(vec[i])
+                        .c(vec[i]).unwrap()
                 );
             }
 

@@ -5,20 +5,20 @@ use crate::{
 
 #[inline(always)]
 pub (crate) fn swap(ab_mask: N) -> Option<SingleOp> {
-    SingleOp::from_atomic(atomic::swap::Op::new(ab_mask))
+    single_op_checked!(atomic::swap::Op::new(ab_mask))
 }
 
 #[inline(always)]
 pub (crate) fn sqrt_swap(ab_mask: N) -> Option<SingleOp> {
-    SingleOp::from_atomic(atomic::sqrt_swap::Op::new(ab_mask))
+    single_op_checked!(atomic::sqrt_swap::Op::new(ab_mask))
 }
 
 #[inline(always)]
 pub (crate) fn i_swap(ab_mask: N) -> Option<SingleOp> {
-    SingleOp::from_atomic(atomic::i_swap::Op::new(ab_mask))
+    single_op_checked!(atomic::i_swap::Op::new(ab_mask))
 }
 
 #[inline(always)]
 pub (crate) fn sqrt_i_swap(ab_mask: N) -> Option<SingleOp> {
-    SingleOp::from_atomic(atomic::sqrt_i_swap::Op::new(ab_mask))
+    single_op_checked!(atomic::sqrt_i_swap::Op::new(ab_mask))
 }

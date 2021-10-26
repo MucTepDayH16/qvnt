@@ -1,16 +1,6 @@
 use super::*;
 
-pub (crate) struct Op {
-    ab_mask: N,
-    dagger: bool
-}
-
-impl Op {
-    #[inline(always)]
-    pub fn new(ab_mask: N) -> Self {
-        Self{ ab_mask, dagger: false }
-    }
-}
+op_impl!{d ab_mask}
 
 impl AtomicOp for Op {
     fn atomic_op(&self, psi: &[C], idx: N) -> C {
@@ -49,7 +39,7 @@ fn tests() {
     const I: C = C{ re: 1.0, im: 0.0 };
     const sqrt_i: C = C{ re: 0.5, im: 0.5 };
 
-    let op = SingleOp::from_atomic(Op::new(0b11)).unwrap();
+    let op: SingleOp = Op::new(0b11).into();
     assert_eq!(op.name(), "sqrt[SWAP3]");
     assert_eq!(op.matrix(2),
                [   [I,  O,              O,              O],

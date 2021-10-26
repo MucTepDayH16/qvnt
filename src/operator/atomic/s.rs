@@ -1,16 +1,6 @@
 use super::*;
 
-pub (crate) struct Op {
-    a_mask: N,
-    dagger: bool,
-}
-
-impl Op {
-    #[inline(always)]
-    pub fn new(a_mask: N) -> Self {
-        Self{ a_mask, dagger: false }
-    }
-}
+op_impl!{d a_mask}
 
 impl AtomicOp for Op {
     fn atomic_op(&self, psi: &[C], idx: N) -> C {
@@ -36,7 +26,8 @@ fn tests() {
     const I: C = C{ re: 1.0, im: 0.0 };
     const i: C = C{ re: 0.0, im: 1.0 };
 
-    let op = SingleOp::from_atomic(Op::new(0b1)).unwrap().dgr();
+    let op: SingleOp = Op::new(0b1).into();
+    let op = op.dgr();
     assert_eq!(op.name(), "S1");
     assert_eq!(op.matrix(1),
                [   [I, O],

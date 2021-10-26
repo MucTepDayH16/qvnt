@@ -1,7 +1,14 @@
+use std::borrow::Borrow;
 use crate::math::{C, R, N};
 
-pub trait Applicable {
-    fn apply(&self, _: Vec<C>) -> Vec<C>;
+pub trait Applicable: Sized {
+    fn apply(&self, psi: Vec<C>) -> Vec<C>;
+
+    fn act_on(&self) -> N;
+
+    fn dgr(self) -> Self;
+
+    fn c(self, c_mask: N) -> Option<Self>;
 
     fn matrix(&self, size: N) -> Vec<Vec<C>> {
         const O: C = C{ re: 0.0, im: 0.0 };

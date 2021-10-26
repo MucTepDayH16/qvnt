@@ -65,7 +65,13 @@ use qvnt::prelude::*;
 
 let usual_op = op::x(0b001);
 //  NOT gate, controlled by 2 qubits, aka CCNOT gate, aka Toffoli gate
-let controlled_op = op::x(0b001).c(0b110);
+let controlled_op = op::x(0b001).c(0b110).unwrap();
+```
+Controlled operation has to be unwrapped, since it could be None if its mask overlaps with the mask of operator.
+For example, this code will *panic*:
+```rust,should_panic,panics
+use qvnt::prelude::*;
+let _ = op::x(0b001).c(0b001).unwrap();
 ```
 
 ___

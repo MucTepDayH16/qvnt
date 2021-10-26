@@ -13,6 +13,8 @@ impl Op {
     }
 }
 
+into_single_op_impl!{a_mask}
+
 impl AtomicOp for Op {
     fn atomic_op(&self, psi: &[C], idx: N) -> C {
         let mut i_pow = self.i_pow;
@@ -37,13 +39,13 @@ fn tests() {
     const I: C = C{ re: 1.0, im: 0.0 };
     const i: C = C{ re: 0.0, im: 1.0 };
 
-    let op = SingleOp::from_atomic(Op::new(0b1)).unwrap();
+    let op: SingleOp = Op::new(0b1).into();
     assert_eq!(op.name(), "Y1");
     assert_eq!(op.matrix(1),
                [   [O, -i],
                    [i, O]   ]);
 
-    let op = SingleOp::from_atomic(Op::new(0b11)).unwrap();
+    let op: SingleOp = Op::new(0b11).into();
     assert_eq!(op.name(), "Y3");
     assert_eq!(op.matrix(2),
                [   [O,  O,  O,  -I  ],

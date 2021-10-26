@@ -4,48 +4,35 @@ use crate::{
 };
 pub (crate) use super::applicable::Applicable;
 
+macro_rules! single_op_checked {
+    ($op:expr) => {
+        match $op {
+            op if op.is_valid() => Some(op.into()),
+            _ => None,
+        }
+    }
+}
+
+pub (crate) mod pauli;
+pub (crate) mod rotate;
+pub (crate) mod swap;
+
 type Ptr<T> = std::sync::Arc<T>;
 
 #[derive(Clone)]
 pub struct SingleOp {
+    pub (crate) act: N,
     pub (crate) ctrl: N,
     pub (crate) func: Ptr<dyn AtomicOp>,
 }
 
 impl SingleOp {
-    pub (crate) fn from_atomic_unchecked<A>(atomic: A) -> Self
-        where A: 'static + AtomicOp {
-        let func = Ptr::new(atomic);
-        SingleOp{ ctrl: 0, func }
-    }
-
-    pub (crate) fn from_atomic<A>(atomic: A) -> Option<Self>
-        where A: 'static + AtomicOp {
-        if atomic.is_valid() {
-            Some(Self::from_atomic_unchecked(atomic))
-        } else {
-            None
-        }
-    }
-
     pub fn name(&self) -> String {
         let mut name = self.func.name();
         if self.ctrl != 0 {
             name = format!("C{}_", self.ctrl) + &name;
         }
         name
-    }
-
-    #[inline(always)]
-    pub fn ctrl(mut self, c: N) -> Self {
-        self.ctrl |= c;
-        self
-    }
-
-    #[inline(always)]
-    pub fn dgr(mut self) -> Self {
-        self.func = self.func.dgr();
-        self
     }
 }
 
@@ -68,6 +55,27 @@ impl Applicable for SingleOp {
                     ).collect()
         }
     }
+
+    #[inline]
+    fn act_on(&self) -> N {
+        self.act
+    }
+
+    #[inline]
+    fn dgr(self) -> Self {
+        Self { func: self.func.dgr(), ..self }
+    }
+
+    #[inline(always)]
+    fn c(mut self, c: N) -> Option<Self> {
+        if self.act & c != 0 {
+            None
+        } else {
+            self.act |= c;
+            self.ctrl |= c;
+            Some(self)
+        }
+    }
 }
 
 impl std::fmt::Debug for SingleOp {
@@ -80,12 +88,18 @@ impl std::fmt::Debug for SingleOp {
 mod tests {
     use super::*;
 
-    #[test] fn from_atomic() {
-        assert!(SingleOp::from_atomic(h2::Op::new(0b01, 0b10)).is_some());
-        assert!(SingleOp::from_atomic(h2::Op::new(0b01, 0b01)).is_none());
+    #[test]
+    fn unwrap_op() {
+        assert!(rotate::ryy(0b001, 1.35).is_none());
+        assert!(rotate::ryy(0b101, 1.35).unwrap().c(0b001).is_none());
+        let _ = rotate
+            ::ryy(0b101, 1.35).unwrap()
+            .c(0b010).unwrap();
+
+        assert!(swap::swap(0b001).is_none());
+        assert!(swap::swap(0b101).unwrap().c(0b100).is_none());
+        let _ = swap
+            ::swap(0b101).unwrap()
+            .c(0b010).unwrap();
     }
 }
-
-pub (crate) mod pauli;
-pub (crate) mod rotate;
-pub (crate) mod swap;

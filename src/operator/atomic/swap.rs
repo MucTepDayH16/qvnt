@@ -1,10 +1,6 @@
 use super::*;
 
-pub (crate) struct Op {
-    ab_mask: N,
-}
-
-simple_op_impl!{ab_mask}
+op_impl!{s ab_mask}
 
 impl AtomicOp for Op {
     fn atomic_op(&self, psi: &[C], idx: N) -> C {
@@ -35,7 +31,7 @@ fn tests() {
     const O: C = C{ re: 0.0, im: 0.0 };
     const I: C = C{ re: 1.0, im: 0.0 };
 
-    let op = SingleOp::from_atomic(Op::new(0b11)).unwrap();
+    let op: SingleOp = Op::new(0b11).into();
     assert_eq!(op.name(), "SWAP3");
     assert_eq!(op.matrix(2),
                [   [I, O, O, O],
