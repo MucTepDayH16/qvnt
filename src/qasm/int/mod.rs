@@ -16,12 +16,21 @@ use {
 mod gates;
 mod error;
 mod macros;
+mod parse;
+
 use error::{Error, Result};
 use macros::ProcessMacro;
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 enum MeasureOp {
     Set, Xor
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub (crate) enum Sep {
+    Nop,
+    Measure(usize, usize),
+    IfBranch(usize, usize),
 }
 
 impl Default for MeasureOp {
@@ -30,16 +39,12 @@ impl Default for MeasureOp {
     }
 }
 
-fn parse_arg(arg: &str) -> Option<R> {
-    arg .trim().parse::<R>().ok()
-}
-
 #[derive(Debug, Default)]
 pub struct Int {
     m_op: MeasureOp,
     q_reg: (QReg, Vec<String>),
     c_reg: (CReg, Vec<String>),
-    q_ops: (MultiOp, VecDeque<(MultiOp, N, N)>),
+    q_ops: (MultiOp, VecDeque<(MultiOp, Sep)>),
     macros: BTreeMap<String, ProcessMacro>
 }
 
@@ -54,9 +59,21 @@ impl Int {
 
     pub fn finish(&mut self) -> &mut Self {
         let ops = std::mem::take(&mut self.q_ops.1);
-        for (op, q, c) in ops.iter() {
-            self.q_reg.0.apply(op);
-            self.measure(*q, *c);
+        for (op, sep) in ops.iter() {
+            match sep {
+                Sep::Nop => {
+                    self.q_reg.0.apply(op);
+                }
+                Sep::Measure(q, c) => {
+                    self.q_reg.0.apply(op);
+                    self.measure(*q, *c);
+                },
+                Sep::IfBranch(c, v) => {
+                    if self.c_reg.0.get_value(*c) == *v {
+                        self.q_reg.0.apply(op);
+                    }
+                },
+            }
         }
         self.q_reg.0.apply(&self.q_ops.0);
         self.q_ops.1 = ops;
@@ -69,7 +86,7 @@ impl Int {
         self
     }
 
-    fn process_nodes<'a, I: Iterator<Item=&'a AstNode>>(mut self, mut nodes: I) -> Result<Self> {
+    fn process_nodes<'a, I: Iterator<Item=&'a AstNode>>(self, mut nodes: I) -> Result<Self> {
         nodes.try_fold(self, |this, node| {
             this.process_node(node)
         })
@@ -91,12 +108,11 @@ impl Int {
                     ));
                 }
 
-                self.q_ops.1.push_back((self.q_ops.0, q_arg, c_arg));
-                self.q_ops.0 = MultiOp::default();
+                self.branch_with_id(Sep::Measure(q_arg, c_arg));
             },
             AstNode::ApplyGate(name, regs, args) => {
                 if let Some(macros) = self.macros.get(name) {
-                    let nodes = macros.apply(regs, args)?;
+                    let nodes = macros.apply(name, regs, args)?;
                     self = self.process_nodes(nodes.iter())?;
                 } else {
                     let name = name.to_lowercase();
@@ -112,7 +128,7 @@ impl Int {
                                    .collect();
 
                     let args = args.into_iter()
-                                   .map(|arg| (arg, parse_arg(arg)))
+                                   .map(|arg| (arg, parse::parse(arg)))
                                    .collect::<Vec<(&String, Option<R>)>>();
                     if let Some(err) = args.iter().find(|arg| arg.1.is_none()) {
                         return Err(Error::UnevaluatedArgument(err.0.clone()));
@@ -134,7 +150,20 @@ impl Int {
 
                 self.macros.insert(name.clone(), macros);
             },
-            AstNode::If(_, _, _) => todo!(),
+            AstNode::If(a, b, c) => {
+                let c = c.as_ref();
+                match c {
+                    AstNode::ApplyGate(_, _, _) => {
+                        self.branch(Sep::Nop);
+
+                        self = self.process_node(c)?;
+
+                        let c =self.get_c_idx(&Argument::Register(a.clone()))?;
+                        self.branch(Sep::IfBranch(c, *b as N));
+                    },
+                    _ => return Err(Error::DisallowedNodeInMIf(c.clone())),
+                }
+            },
         }
 
         Ok(self)
@@ -214,6 +243,7 @@ impl Int {
         self.c_reg.0 *= CReg::new(q_num);
         self.c_reg.1.resize(self.c_reg.1.len() + q_num, alias.clone());
     }
+
     fn measure(&mut self, q_arg: N, c_arg: N) {
         let mask = self.q_reg.0.measure_mask(q_arg);
 
@@ -225,6 +255,18 @@ impl Int {
                 .zip(BitsIter::from(c_arg))
                 .for_each(|(q, c)| self.c_reg.0.xor(mask & q != 0, c)),
         };
+    }
+
+    fn branch(&mut self, sep: Sep) {
+        let ops = std::mem::take(&mut self.q_ops.0);
+        if !ops.is_empty() {
+            self.q_ops.1.push_back((ops, sep));
+        }
+    }
+
+    fn branch_with_id(&mut self, sep: Sep) {
+        let ops = std::mem::take(&mut self.q_ops.0);
+        self.q_ops.1.push_back((ops, sep));
     }
 
     pub fn get_class(&self) -> CReg {
@@ -274,5 +316,33 @@ mod tests {
                    Ok(op::swap(0b110)));
         assert_eq!(gates::process("swap".to_string(), vec![0b001], vec![]),
                    Err(Error::WrongRegNumber("swap".to_string(), 1)));
+    }
+
+    #[test]
+    fn operation_tree() {
+        let ast = Ast::from_source(
+            "OPENQASM 2.0;\
+            qreg q[2];\
+            creg c[2];\
+  \
+            gate foo(x, y) a, b {\
+                rx(x) a;\
+            }\
+\
+            h q[0];\
+            cx q[0], q[1];\
+            foo(3.141592653589793, 0) q[0], q[1];\
+\
+            measure q -> c;\
+\
+            if (c==1) h q[0];\
+            if (c==2) h q[1];\
+            if (c==3) h q[0], q[1];\
+\
+            measure q -> c;"
+        ).unwrap();
+        let mut int = Int::new(&ast).unwrap();
+
+        println!("{:#?}", int.q_ops);
     }
 }

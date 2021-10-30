@@ -1,15 +1,29 @@
 use {
-    std::collections::BTreeMap,
+    std::{
+        collections::BTreeMap,
+        fmt,
+    },
     qasm::{Argument, AstNode},
 };
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 pub enum Error {
     DisallowedNodeInMacro(AstNode),
-    UnmatchedRegInput(usize, usize),
-    UnmatchedArgInput(usize, usize),
-    UnknownReg(Argument),
+    UnknownReg(String),
     UnknownArg(String),
+}
+
+impl fmt::Debug for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::DisallowedNodeInMacro(node) =>
+                write!(f, "Such operation ({node:?}) isn't allowed in Gate definition", node=node),
+            Error::UnknownReg(reg) =>
+                write!(f, "No such register ({reg:?}) in this scope", reg=reg),
+            Error::UnknownArg(arg) =>
+                write!(f, "No such argument ({arg:?}) in this scope", arg=arg),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -34,12 +48,12 @@ impl ProcessMacro {
             AstNode::ApplyGate(_, a_regs, a_args) => {
                 match a_regs.iter().find(
                     |reg| !regs.contains(&argument_name(reg))) {
-                    Some(reg) => return Err(Error::UnknownReg(reg.clone())),
+                    Some(reg) => return Err(Error::UnknownReg(argument_name(reg))),
                     None => {},
                 };
 
                 match a_args.iter().find(
-                    |arg| super::parse_arg(arg).is_none() && !args.contains(arg)) {
+                    |arg| super::parse::parse(arg).is_none() && !args.contains(arg)) {
                     Some(arg) => return Err(Error::UnknownArg(arg.clone())),
                     None => {},
                 }
@@ -62,18 +76,17 @@ impl ProcessMacro {
         Ok(Self{ regs, args, nodes, })
     }
 
-    pub (crate) fn apply(&self, regs: &Vec<Argument>, args: &Vec<String>) -> Result<Vec<AstNode>> {
+    pub (crate) fn apply(&self, name: &String, regs: &Vec<Argument>, args: &Vec<String>) -> super::Result<Vec<AstNode>> {
         if regs.len() != self.regs.len() {
-            return Err(Error::UnmatchedRegInput(regs.len(), self.regs.len()));
+            return Err(super::Error::WrongRegNumber(name.clone(), regs.len()));
         }
         if args.len() != self.args.len() {
-            return Err(Error::UnmatchedArgInput(args.len(), self.args.len()));
+            return Err(super::Error::WrongArgNumber(name.clone(), args.len()));
         }
 
-        self.nodes.iter().try_fold(
-            Vec::<AstNode>::new(),
-            |mut vec, node| {
-                let node = if let AstNode::ApplyGate(name, regs1, args1) = node {
+        let nodes = self.nodes.iter().map(
+            |node| {
+                if let AstNode::ApplyGate(name, regs1, args1) = node {
                     let regs1 = regs1.iter()
                         .map(|reg| {
                             let idx = self.regs[&argument_name(reg)];
@@ -82,7 +95,7 @@ impl ProcessMacro {
 
                     let args1 = args1.iter()
                         .map(|arg| {
-                            if super::parse_arg(arg).is_some() {
+                            if super::parse::parse(arg).is_some() {
                                 arg.clone()
                             } else {
                                 let idx = self.args[arg];
@@ -97,11 +110,9 @@ impl ProcessMacro {
                     )
                 } else {
                     unreachable!()
-                };
-
-                vec.push(node);
-                Ok(vec)
+                }
             }
-        )
+        ).collect();
+        Ok(nodes)
     }
 }

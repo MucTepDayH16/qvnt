@@ -1,7 +1,7 @@
 use {
-    std::{
-        fmt,
-    },
+    std::fmt,
+
+    qasm::AstNode,
 };
 
 #[derive(PartialEq, Clone)]
@@ -15,6 +15,7 @@ pub enum Error {
     WrongArgNumber(String, usize),
     UnmatchedRegSize(usize, usize),
     MacroError(super::macros::Error),
+    DisallowedNodeInMIf(AstNode),
 }
 
 impl From<super::macros::Error> for Error {
@@ -41,9 +42,11 @@ impl fmt::Debug for Error {
             Error::WrongArgNumber(name, num) =>
                 write!(f, "Gate \"{name}\" cannot take [{num}] arguments", name=name, num=num),
             Error::UnmatchedRegSize(q_num, c_num) =>
-                write!(f, "Cannot measure [{q_num}] quantum registers into [{c_num}] classical registres", q_num=q_num, c_num=c_num),
+                write!(f, "Cannot measure [{q_num}] quantum registers into [{c_num}] classical registers", q_num=q_num, c_num=c_num),
             Error::MacroError(err) =>
-                write!(f, "{:?}", err)
+                write!(f, "{err:?}", err=err),
+            Error::DisallowedNodeInMIf(node) =>
+                write!(f, "Such operation ({node:?}) isn't allowed in If block", node=node)
         }
     }
 }

@@ -24,6 +24,19 @@ impl Reg {
         Self{ value: 0, q_num, q_mask }
     }
 
+    pub (crate) fn get_value(&self, mask: N) -> N {
+        crate::bits_iter::BitsIter::from(mask)
+            .enumerate()
+            .fold(0,
+                  |mask, (idx, val)|
+                      if self.value & val != 0 {
+                          mask | (1usize << idx)
+                      } else {
+                          mask
+                      }
+            )
+    }
+
     pub (crate) fn reset(&mut self, i_state: N) {
         self.value = i_state & self.q_mask;
     }

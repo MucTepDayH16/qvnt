@@ -14,12 +14,13 @@ mod tests {
         let ast = Ast::from_file(&"./src/qasm/examples/test.qasm".to_string()).unwrap();
         let mut int = Int::new(&ast).unwrap();
 
-        for _ in 0..100 {
+        let mut hist = vec![0; 4];
+
+        for _ in 0..1000 {
             int.reset().finish();
-            assert!(
-                int.get_class() == CReg::new(2).init_state(1) ||
-                    int.get_class() == CReg::new(2).init_state(2)
-            );
+            hist[int.get_class().get_value(0b11)] += 1;
         }
+
+        println!("{:?}", hist);
     }
 }

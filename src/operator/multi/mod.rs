@@ -15,6 +15,10 @@ pub (crate) use super::applicable::Applicable;
 pub struct MultiOp(VecDeque<SingleOp>);
 
 impl MultiOp {
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     pub fn len(&self) -> N {
         self.0.len()
     }
