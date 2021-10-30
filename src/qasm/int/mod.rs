@@ -1,6 +1,6 @@
 use {
     std::{
-        collections::VecDeque,
+        collections::{VecDeque, BTreeMap},
     },
     qasm::{Argument, AstNode},
 
@@ -15,7 +15,9 @@ use {
 
 mod gates;
 mod error;
+mod macros;
 use error::{Error, Result};
+use macros::ProcessMacro;
 
 #[derive(Debug)]
 enum MeasureOp {
@@ -28,20 +30,22 @@ impl Default for MeasureOp {
     }
 }
 
+fn parse_arg(arg: &str) -> Option<R> {
+    arg .trim().parse::<R>().ok()
+}
+
 #[derive(Debug, Default)]
 pub struct Int {
     m_op: MeasureOp,
     q_reg: (QReg, Vec<String>),
     c_reg: (CReg, Vec<String>),
-    q_ops: (MultiOp, VecDeque<(MultiOp, N, N)>)
+    q_ops: (MultiOp, VecDeque<(MultiOp, N, N)>),
+    macros: BTreeMap<String, ProcessMacro>
 }
 
 impl Int {
     pub fn new(ast: &Ast) -> Result<Self> {
-        ast.iter().try_fold(
-            Self::default(),
-            |acc, node| acc.process_node(node)
-        )
+        Self::default().process_nodes(ast.iter())
     }
 
     pub fn xor(self) -> Self {
@@ -65,6 +69,12 @@ impl Int {
         self
     }
 
+    fn process_nodes<'a, I: Iterator<Item=&'a AstNode>>(mut self, mut nodes: I) -> Result<Self> {
+        nodes.try_fold(self, |this, node| {
+            this.process_node(node)
+        })
+    }
+
     fn process_node(mut self, node: &AstNode) -> Result<Self> {
         match node {
             AstNode::QReg(alias, size) => self.add_q_reg(alias, *size as N),
@@ -85,40 +95,45 @@ impl Int {
                 self.q_ops.0 = MultiOp::default();
             },
             AstNode::ApplyGate(name, regs, args) => {
-                let name = name.to_lowercase();
+                if let Some(macros) = self.macros.get(name) {
+                    let nodes = macros.apply(regs, args)?;
+                    self = self.process_nodes(nodes.iter())?;
+                } else {
+                    let name = name.to_lowercase();
 
-                let regs = regs.into_iter()
-                    .map(|reg| self.get_q_idx(reg))
-                    .collect::<Vec<Result<N>>>();
-                if let Some(err) = regs.iter().find(|reg| reg.is_err()) {
-                    return Err(err.clone().unwrap_err());
+                    let regs = regs.into_iter()
+                                   .map(|reg| self.get_q_idx(reg))
+                                   .collect::<Vec<Result<N>>>();
+                    if let Some(err) = regs.iter().find(|reg| reg.is_err()) {
+                        return Err(err.clone().unwrap_err());
+                    }
+                    let regs = regs.into_iter()
+                                   .map(|reg| reg.unwrap())
+                                   .collect();
+
+                    let args = args.into_iter()
+                                   .map(|arg| (arg, parse_arg(arg)))
+                                   .collect::<Vec<(&String, Option<R>)>>();
+                    if let Some(err) = args.iter().find(|arg| arg.1.is_none()) {
+                        return Err(Error::UnevaluatedArgument(err.0.clone()));
+                    }
+                    let args = args.into_iter()
+                                   .map(|arg| arg.1.unwrap())
+                                   .collect();
+
+                    self.q_ops.0 *= gates::process(name, regs, args)?;
                 }
-                let regs = regs.into_iter()
-                    .map(|reg| reg.unwrap())
-                    .collect();
-
-                fn parse_arg(arg: &str) -> Option<R> {
-                    arg .chars()
-                        .filter(|c| !c.is_whitespace())
-                        .collect::<String>()
-                        .to_string()
-                        .parse::<R>().ok()
-                }
-
-                let args = args.into_iter()
-                    .map(|arg| (arg, parse_arg(arg)))
-                    .collect::<Vec<(&String, Option<R>)>>();
-                if let Some(err) = args.iter().find(|arg| arg.1.is_none()) {
-                    return Err(Error::UnevaluatedArgument(err.0.clone()));
-                }
-                let args = args.into_iter()
-                    .map(|arg| arg.1.unwrap())
-                    .collect();
-
-                self.q_ops.0 *= gates::process(name, regs, args)?;
             },
             AstNode::Opaque(_, _, _) => todo!(),
-            AstNode::Gate(_, _, _, _) => todo!(),
+            AstNode::Gate(name, regs, args, nodes) => {
+                let macros = macros::ProcessMacro::new(
+                    regs.clone(),
+                    args.clone(),
+                    nodes.clone()
+                )?;
+
+                self.macros.insert(name.clone(), macros);
+            },
             AstNode::If(_, _, _) => todo!(),
         }
 

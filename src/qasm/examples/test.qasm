@@ -6,8 +6,12 @@ OPENQASM 2.0;
 qreg q[2];
 creg c[2];
 
+gate f(x) a {
+    rx(x) a;
+}
+
 h q[0];
 cx q[0], q[1];
-rx(3.141592653589793) q[0];
+f(3.141592653589793) q[0];
 
 measure q -> c;

@@ -13,7 +13,14 @@ pub enum Error {
     UnevaluatedArgument(String),
     WrongRegNumber(String, usize),
     WrongArgNumber(String, usize),
-    UnmatchedRegSize(usize, usize)
+    UnmatchedRegSize(usize, usize),
+    MacroError(super::macros::Error),
+}
+
+impl From<super::macros::Error> for Error {
+    fn from(err: super::macros::Error) -> Self {
+        Error::MacroError(err)
+    }
 }
 
 impl fmt::Debug for Error {
@@ -35,6 +42,8 @@ impl fmt::Debug for Error {
                 write!(f, "Gate \"{name}\" cannot take [{num}] arguments", name=name, num=num),
             Error::UnmatchedRegSize(q_num, c_num) =>
                 write!(f, "Cannot measure [{q_num}] quantum registers into [{c_num}] classical registres", q_num=q_num, c_num=c_num),
+            Error::MacroError(err) =>
+                write!(f, "{:?}", err)
         }
     }
 }
