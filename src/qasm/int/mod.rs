@@ -305,20 +305,6 @@ mod tests {
     }
 
     #[test]
-    fn process_gate() {
-        assert_eq!(gates::process("x".to_string(), vec![0b001, 0b100], vec![]),
-                   Ok(op::x(0b101)));
-        assert_eq!(gates::process("y".to_string(), vec![0b11], vec![]),
-                   Ok(op::y(0b11)));
-        assert_eq!(gates::process("ch".to_string(), vec![0b100, 0b010, 0b001], vec![]),
-                   Ok(op::h(0b011).c(0b100)));
-        assert_eq!(gates::process("swap".to_string(), vec![0b100, 0b010], vec![]),
-                   Ok(op::swap(0b110)));
-        assert_eq!(gates::process("swap".to_string(), vec![0b001], vec![]),
-                   Err(Error::WrongRegNumber("swap".to_string(), 1)));
-    }
-
-    #[test]
     fn operation_tree() {
         let ast = Ast::from_source(
             "OPENQASM 2.0;\

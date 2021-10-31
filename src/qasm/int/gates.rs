@@ -87,6 +87,7 @@ pub(crate) fn process(name: String, regs: Vec<N>, args: Vec<R>) -> Result<MultiO
         "t"             => gate!(any t regs , args),
 
         "h"             => gate!(any h regs , args),
+        "qft"           => gate!(any qft regs , args),
 
         "rx"            => gate!(r(1) rx regs , args),
         "ry"            => gate!(r(1) ry regs , args),
@@ -190,6 +191,27 @@ mod tests {
         assert_eq!(
             Ok(op::u3(1.0, 2.0, 3.0, 0b001)),
             process("u3".to_string(), vec![0b001], vec![1.0, 2.0, 3.0])
+        );
+
+        assert_eq!(
+            process("x".to_string(), vec![0b001, 0b100], vec![]),
+            Ok(op::x(0b101))
+        );
+        assert_eq!(
+            process("y".to_string(), vec![0b11], vec![]),
+            Ok(op::y(0b11))
+        );
+        assert_eq!(
+            process("ch".to_string(), vec![0b100, 0b010, 0b001], vec![]),
+            Ok(op::h(0b011).c(0b100))
+        );
+        assert_eq!(
+            process("swap".to_string(), vec![0b100, 0b010], vec![]),
+            Ok(op::swap(0b110))
+        );
+        assert_eq!(
+            process("swap".to_string(), vec![0b001], vec![]),
+            Err(Error::WrongRegNumber("swap".to_string(), 1))
         );
     }
 }
