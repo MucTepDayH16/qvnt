@@ -309,6 +309,10 @@ impl Int {
         self.c_reg.0.clone()
     }
 
+    pub fn get_polar_wavefunction(&self) -> Vec<(R, R)> {
+        self.q_reg.0.get_polar()
+    }
+
     pub fn get_probabilities(&self) -> Vec<R> {
         self.q_reg.0.get_probabilities()
     }

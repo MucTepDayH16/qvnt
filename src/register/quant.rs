@@ -158,7 +158,7 @@ impl Reg {
 
     pub fn get_polar(&self) -> Vec<(R, R)> {
         crate::threads::global_install(|| {
-            self.psi.par_iter().map(|z| z.to_polar()).collect()
+            self.psi[..(1_usize << self.q_num)].par_iter().map(|z| z.to_polar()).collect()
         })
     }
 
