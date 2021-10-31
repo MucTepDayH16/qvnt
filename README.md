@@ -95,3 +95,7 @@ ___
 1. Implementing vectorized operations;
 2. Developpement of *QASM* Interpreter;
 3. Writing documentation for all modules;
+
+___
+## License
+Licensed under [MIT License](LICENSE.md)
