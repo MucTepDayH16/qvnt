@@ -86,88 +86,129 @@ impl Int {
         self
     }
 
+
     fn process_nodes<'a, I: Iterator<Item=&'a AstNode>>(self, mut nodes: I) -> Result<Self> {
         nodes.try_fold(self, |this, node| {
             this.process_node(node)
         })
     }
 
-    fn process_node(mut self, node: &AstNode) -> Result<Self> {
+    fn process_node(self, node: &AstNode) -> Result<Self> {
         match node {
-            AstNode::QReg(alias, size) => self.add_q_reg(alias, *size as N),
-            AstNode::CReg(alias, size) => self.add_c_reg(alias, *size as N),
-            AstNode::Barrier(_) => todo!(),
-            AstNode::Reset(_) => todo!(),
-            AstNode::Measure(q_arg, c_arg) => {
-                let q_arg = self.get_q_idx(q_arg)?;
-                let c_arg = self.get_c_idx(c_arg)?;
-                if q_arg.count_ones() != c_arg.count_ones() {
-                    return Err(Error::UnmatchedRegSize(
-                        q_arg.count_ones() as N,
-                        c_arg.count_ones() as N
-                    ));
-                }
-
-                self.branch_with_id(Sep::Measure(q_arg, c_arg));
-            },
-            AstNode::ApplyGate(name, regs, args) => {
-                if let Some(macros) = self.macros.get(name) {
-                    let nodes = macros.apply(name, regs, args)?;
-                    self = self.process_nodes(nodes.iter())?;
-                } else {
-                    let name = name.to_lowercase();
-
-                    let regs = regs.into_iter()
-                                   .map(|reg| self.get_q_idx(reg))
-                                   .collect::<Vec<Result<N>>>();
-                    if let Some(err) = regs.iter().find(|reg| reg.is_err()) {
-                        return Err(err.clone().unwrap_err());
-                    }
-                    let regs = regs.into_iter()
-                                   .map(|reg| reg.unwrap())
-                                   .collect();
-
-                    let args = args.into_iter()
-                                   .map(|arg| (arg, parse::parse(arg)))
-                                   .collect::<Vec<(&String, Option<R>)>>();
-                    if let Some(err) = args.iter().find(|arg| arg.1.is_none()) {
-                        return Err(Error::UnevaluatedArgument(err.0.clone()));
-                    }
-                    let args = args.into_iter()
-                                   .map(|arg| arg.1.unwrap())
-                                   .collect();
-
-                    self.q_ops.0 *= gates::process(name, regs, args)?;
-                }
-            },
-            AstNode::Opaque(_, _, _) => todo!(),
-            AstNode::Gate(name, regs, args, nodes) => {
-                let macros = macros::ProcessMacro::new(
-                    regs.clone(),
-                    args.clone(),
-                    nodes.clone()
-                )?;
-
-                self.macros.insert(name.clone(), macros);
-            },
-            AstNode::If(a, b, c) => {
-                let c = c.as_ref();
-                match c {
-                    AstNode::ApplyGate(_, _, _) => {
-                        self.branch(Sep::Nop);
-
-                        self = self.process_node(c)?;
-
-                        let c =self.get_c_idx(&Argument::Register(a.clone()))?;
-                        self.branch(Sep::IfBranch(c, *b as N));
-                    },
-                    _ => return Err(Error::DisallowedNodeInMIf(c.clone())),
-                }
-            },
+            AstNode::QReg(alias, size) =>
+                self.process_qreg(alias.clone(), *size as N),
+            AstNode::CReg(alias, size) =>
+                self.process_creg(alias.clone(), *size as N),
+            AstNode::Barrier(_) =>
+                self.process_barrier(),
+            AstNode::Reset(_) =>
+                self.process_reset(),
+            AstNode::Measure(q_arg, c_arg) =>
+                self.process_measure(q_arg, c_arg),
+            AstNode::ApplyGate(name, regs, args) =>
+                self.process_apply_gate(name, regs, args),
+            AstNode::Opaque(_, _, _) =>
+                self.process_opaque(),
+            AstNode::Gate(name, regs, args, nodes) =>
+                self.process_gate(name.clone(), regs, args, nodes),
+            AstNode::If(lhs, rhs, if_block) =>
+                self.process_if(lhs.clone(), *rhs as N, if_block),
         }
+    }
+
+    fn process_qreg(mut self, alias: String, q_num: N) -> Result<Self> {
+        self.q_reg.0 *= QReg::new(q_num);
+        self.q_reg.1.resize(self.q_reg.1.len() + q_num, alias);
 
         Ok(self)
     }
+
+    fn process_creg(mut self, alias: String, q_num: N) -> Result<Self> {
+        self.c_reg.0 *= CReg::new(q_num);
+        self.c_reg.1.resize(self.c_reg.1.len() + q_num, alias);
+
+        Ok(self)
+    }
+
+    fn process_barrier(self) -> Result<Self> {
+        todo!("AstNode::Barrier(_)")
+    }
+
+    fn process_reset(self) -> Result<Self> {
+        todo!("AstNode::Reset(_)")
+    }
+
+    fn process_measure(mut self, q_arg: &Argument, c_arg: &Argument) -> Result<Self> {
+        let q_arg = self.get_q_idx(q_arg)?;
+        let c_arg = self.get_c_idx(c_arg)?;
+        if q_arg.count_ones() != c_arg.count_ones() {
+            return Err(Error::UnmatchedRegSize(
+                q_arg.count_ones() as N,
+                c_arg.count_ones() as N
+            ));
+        }
+
+        self.branch_with_id(Sep::Measure(q_arg, c_arg));
+        Ok(self)
+    }
+
+    fn process_apply_gate(mut self, name: &String, regs: &Vec<Argument>, args: &Vec<String>) -> Result<Self> {
+        if let Some(macros) = self.macros.get(name) {
+            let nodes = macros.apply(name, regs, args)?;
+            self.process_nodes(nodes.iter())
+        } else {
+            let name = name.to_lowercase();
+
+            let regs = regs.into_iter()
+                .try_fold(vec![], |mut regs, reg| {
+                    regs.push(self.get_q_idx(reg)?);
+                    Result::Ok(regs)
+                })?;
+
+            let args = args.into_iter()
+                .try_fold(vec![], |mut args, arg| {
+                    match parse::eval(arg) {
+                        Some(arg) => { args.push(arg); Ok(args) },
+                        None => Err(Error::UnevaluatedArgument(arg.clone())),
+                    }
+                })?;
+
+            self.q_ops.0 *= gates::process(name, regs, args)?;
+            Ok(self)
+        }
+    }
+
+    fn process_opaque(self) -> Result<Self> {
+        todo!("AstNode::Opaque(_, _, _)")
+    }
+
+    fn process_gate(mut self, name: String, regs: &Vec<String>, args: &Vec<String>, nodes: &Vec<AstNode>) -> Result<Self> {
+        let macros = macros::ProcessMacro::new(
+            regs.clone(),
+            args.clone(),
+            nodes.clone()
+        )?;
+
+        self.macros.insert(name, macros);
+        Ok(self)
+    }
+
+    fn process_if(mut self, lhs: String, rhs: N, if_block: &Box<AstNode>) -> Result<Self> {
+        match if_block.as_ref() {
+            AstNode::ApplyGate(_, _, _) => {
+                self.branch(Sep::Nop);
+
+                self = self.process_node(if_block)?;
+
+                let val = self.get_c_idx(&Argument::Register(lhs))?;
+                self.branch(Sep::IfBranch(val, rhs));
+
+                Ok(self)
+            },
+            if_block => Err(Error::DisallowedNodeInMIf(if_block.clone())),
+        }
+    }
+
 
     fn get_idx_by_alias(&self, alias: &String) -> (N, N) {
         let q_mask = self.q_reg.1.iter()
@@ -190,7 +231,7 @@ impl Int {
         (q_mask, c_mask)
     }
 
-    pub (crate) fn get_q_idx(&self, arg: &Argument) -> Result<N> {
+    fn get_q_idx(&self, arg: &Argument) -> Result<N> {
         match arg {
             Argument::Qubit(alias, idx) => {
                 let mask = self.get_idx_by_alias(alias).0;
@@ -212,7 +253,8 @@ impl Int {
             },
         }
     }
-    pub (crate) fn get_c_idx(&self, arg: &Argument) -> Result<N> {
+
+    fn get_c_idx(&self, arg: &Argument) -> Result<N> {
         match arg {
             Argument::Qubit(alias, idx) => {
                 let mask = self.get_idx_by_alias(alias).1;
@@ -235,14 +277,6 @@ impl Int {
         }
     }
 
-    fn add_q_reg(&mut self, alias: &String, q_num: N) {
-        self.q_reg.0 *= QReg::new(q_num);
-        self.q_reg.1.resize(self.q_reg.1.len() + q_num, alias.clone());
-    }
-    fn add_c_reg(&mut self, alias: &String, q_num: N) {
-        self.c_reg.0 *= CReg::new(q_num);
-        self.c_reg.1.resize(self.c_reg.1.len() + q_num, alias.clone());
-    }
 
     fn measure(&mut self, q_arg: N, c_arg: N) {
         let mask = self.q_reg.0.measure_mask(q_arg);
@@ -257,6 +291,7 @@ impl Int {
         };
     }
 
+
     fn branch(&mut self, sep: Sep) {
         let ops = std::mem::take(&mut self.q_ops.0);
         if !ops.is_empty() {
@@ -269,9 +304,11 @@ impl Int {
         self.q_ops.1.push_back((ops, sep));
     }
 
+
     pub fn get_class(&self) -> CReg {
         self.c_reg.0.clone()
     }
+
     pub fn get_probabilities(&self) -> Vec<R> {
         self.q_reg.0.get_probabilities()
     }

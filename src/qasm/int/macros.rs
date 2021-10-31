@@ -53,7 +53,7 @@ impl ProcessMacro {
                 };
 
                 match a_args.iter().find(
-                    |arg| super::parse::parse(arg).is_none() && !args.contains(arg)) {
+                    |arg| super::parse::eval(arg).is_none() && !args.contains(arg)) {
                     Some(arg) => return Err(Error::UnknownArg(arg.clone())),
                     None => {},
                 }
@@ -95,7 +95,7 @@ impl ProcessMacro {
 
                     let args1 = args1.iter()
                         .map(|arg| {
-                            if super::parse::parse(arg).is_some() {
+                            if let Some(_) = super::parse::eval(arg) {
                                 arg.clone()
                             } else {
                                 let idx = self.args[arg];
