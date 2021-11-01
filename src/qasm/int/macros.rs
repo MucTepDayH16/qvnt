@@ -6,25 +6,29 @@ use {
     qasm::{Argument, AstNode},
 };
 
-#[derive(PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Error {
     DisallowedNodeInMacro(AstNode),
     UnknownReg(String),
     UnknownArg(String),
 }
 
-impl fmt::Debug for Error {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::DisallowedNodeInMacro(node) =>
-                write!(f, "Such operation ({node:?}) isn't allowed in Gate definition", node=node),
+                write!(f, "such operation ({node:?}) isn't allowed in Gate definition", node=node),
             Error::UnknownReg(reg) =>
-                write!(f, "No such register ({reg:?}) in this scope", reg=reg),
+                write!(f, "no such register ({reg:?}) in this scope", reg=reg),
             Error::UnknownArg(arg) =>
-                write!(f, "No such argument ({arg:?}) in this scope", arg=arg),
+                write!(f, "no such argument ({arg:?}) in this scope", arg=arg),
         }
     }
 }
+
+impl std::error::Error for Error {}
+
+pub (crate) type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub (crate) struct ProcessMacro {
@@ -32,8 +36,6 @@ pub (crate) struct ProcessMacro {
     args: BTreeMap<String, usize>,
     nodes: Vec<AstNode>,
 }
-
-pub (crate) type Result<T> = std::result::Result<T, Error>;
 
 fn argument_name(reg: &Argument) -> String {
     match reg {

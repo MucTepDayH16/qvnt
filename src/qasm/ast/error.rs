@@ -3,7 +3,7 @@ use std::{
     path::PathBuf,
 };
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum Error {
     EmptySource,
     NoSuchFile(PathBuf),
@@ -11,19 +11,21 @@ pub enum Error {
     ParseError(qasm::Error),
 }
 
-impl fmt::Debug for Error {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::EmptySource =>
-                write!(f, "Given an empty source"),
+                write!(f, "given an empty source"),
             Error::NoSuchFile(file) =>
-                write!(f, "File \"{file:?}\" not found", file=file),
+                write!(f, "file \"{file:?}\" not found", file=file),
             Error::CannotRead(file) =>
-                write!(f, "File \"{file:?}\" is unreadable", file=file),
+                write!(f, "cannot read file \"{file:?}\"", file=file),
             Error::ParseError(err) =>
-                write!(f, "Parser error: {err:?}", err=err),
+                write!(f, "parser error: {err:?}", err=err),
         }
     }
 }
+
+impl std::error::Error for Error {}
 
 pub type Result<T> = std::result::Result<T, Error>;
