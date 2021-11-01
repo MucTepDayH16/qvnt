@@ -332,6 +332,21 @@ impl Int {
     pub fn get_probabilities(&self) -> Vec<R> {
         self.q_reg.0.get_probabilities()
     }
+
+    pub fn get_ops_tree(&self) -> String {
+        self.q_ops.1.iter().fold(
+            String::new(),
+            |s, op| s + &format!("{:?} <- {:?}\n", op.1, op.0)
+        ) + &format!("{:?}", self.q_ops.0)
+    }
+
+    pub fn get_q_alias(&self) -> String {
+        format!("{:?}", self.q_reg.1)
+    }
+
+    pub fn get_c_alias(&self) -> String {
+        format!("{:?}", self.c_reg.1)
+    }
 }
 
 #[cfg(test)]

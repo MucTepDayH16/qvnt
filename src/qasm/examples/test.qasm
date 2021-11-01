@@ -13,11 +13,3 @@ gate foo(x, y) a, b {
 h q[0];
 cx q[0], q[1];
 foo(3.141592653589793, 0) q[0], q[1];
-
-measure q -> c;
-
-if (c==1) h q[0];
-if (c==2) h q[1];
-if (c==3) h q[0], q[1];
-
-measure q -> c;
