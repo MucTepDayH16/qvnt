@@ -29,8 +29,9 @@ enum MeasureOp {
 #[derive(Clone, Debug, PartialEq)]
 pub (crate) enum Sep {
     Nop,
-    Measure(usize, usize),
-    IfBranch(usize, usize),
+    Measure(N, N),
+    IfBranch(N, N),
+    Reset(N),
 }
 
 impl Default for MeasureOp {
@@ -73,6 +74,10 @@ impl Int {
                         self.q_reg.0.apply(op);
                     }
                 },
+                Sep::Reset(q) => {
+                    self.q_reg.0.apply(op);
+                    self.q_reg.0.reset_by_mask(*q);
+                },
             }
         }
         self.q_reg.0.apply(&self.q_ops.0);
@@ -101,13 +106,13 @@ impl Int {
                 self.process_creg(alias.clone(), *size as N),
             AstNode::Barrier(_) =>
                 self.process_barrier(),
-            AstNode::Reset(_) =>
-                self.process_reset(),
+            AstNode::Reset(reg) =>
+                self.process_reset(reg),
             AstNode::Measure(q_arg, c_arg) =>
                 self.process_measure(q_arg, c_arg),
             AstNode::ApplyGate(name, regs, args) =>
                 self.process_apply_gate(name, regs, args),
-            AstNode::Opaque(_, _, _) =>
+            AstNode::Opaque(name, regs, args) =>
                 self.process_opaque(),
             AstNode::Gate(name, regs, args, nodes) =>
                 self.process_gate(name.clone(), regs, args, nodes),
@@ -131,11 +136,14 @@ impl Int {
     }
 
     fn process_barrier(self) -> Result<Self> {
-        todo!("AstNode::Barrier(_)")
+        //  Does not really affect interpreter flow
+        Ok(self)
     }
 
-    fn process_reset(self) -> Result<Self> {
-        todo!("AstNode::Reset(_)")
+    fn process_reset(mut self, q_reg: &Argument) -> Result<Self> {
+        let idx = self.get_q_idx(q_reg)?;
+        self.branch_with_id(Sep::Reset(idx));
+        Ok(self)
     }
 
     fn process_measure(mut self, q_arg: &Argument, c_arg: &Argument) -> Result<Self> {
@@ -179,7 +187,8 @@ impl Int {
     }
 
     fn process_opaque(self) -> Result<Self> {
-        todo!("AstNode::Opaque(_, _, _)")
+        //  TODO: To understand what opaque gate stands for
+        Ok(self)
     }
 
     fn process_gate(mut self, name: String, regs: &Vec<String>, args: &Vec<String>, nodes: &Vec<AstNode>) -> Result<Self> {

@@ -50,6 +50,16 @@ impl Reg {
         self.psi[self.q_mask & i_state] = C_ONE;
     }
 
+    pub (crate) fn reset_by_mask(&mut self, mask: N) {
+        let mut self_psi = take(&mut self.psi);
+        self.psi = crate::threads::global_install(move|| {
+            self_psi.par_iter_mut().enumerate()
+                .filter(|(idx, _)| idx & mask != 0)
+                .for_each(|(_, psi)| *psi = C_ZERO);
+            self_psi
+        })
+    }
+
     pub fn init_state(mut self, i_state: N) -> Self {
         self.reset(i_state);
         self
