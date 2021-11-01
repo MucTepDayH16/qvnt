@@ -51,10 +51,12 @@ pub struct Int {
 
 impl Int {
     pub fn new(ast: &Ast) -> Result<Self> {
-        Self::default().process_nodes(ast.iter())
+        let mut new = Self::default();
+        new.process_nodes(ast.iter())?;
+        Ok(new)
     }
 
-    pub fn add(mut self, ast: &Ast) -> Result<Self> {
+    pub fn add(&mut self, ast: &Ast) -> Result<&mut Self> {
         self.process_nodes(ast.iter())
     }
 
@@ -96,13 +98,13 @@ impl Int {
     }
 
 
-    fn process_nodes<'a, I: Iterator<Item=&'a AstNode>>(self, mut nodes: I) -> Result<Self> {
+    fn process_nodes<'a, I: Iterator<Item=&'a AstNode>>(&mut self, mut nodes: I) -> Result<&mut Self> {
         nodes.try_fold(self, |this, node| {
             this.process_node(node)
         })
     }
 
-    fn process_node(self, node: &AstNode) -> Result<Self> {
+    fn process_node(&mut self, node: &AstNode) -> Result<&mut Self> {
         match node {
             AstNode::QReg(alias, size) =>
                 self.process_qreg(alias.clone(), *size as N),
@@ -125,32 +127,32 @@ impl Int {
         }
     }
 
-    fn process_qreg(mut self, alias: String, q_num: N) -> Result<Self> {
+    fn process_qreg(&mut self, alias: String, q_num: N) -> Result<&mut Self> {
         self.q_reg.0 *= QReg::new(q_num);
         self.q_reg.1.resize(self.q_reg.1.len() + q_num, alias);
 
         Ok(self)
     }
 
-    fn process_creg(mut self, alias: String, q_num: N) -> Result<Self> {
+    fn process_creg(&mut self, alias: String, q_num: N) -> Result<&mut Self> {
         self.c_reg.0 *= CReg::new(q_num);
         self.c_reg.1.resize(self.c_reg.1.len() + q_num, alias);
 
         Ok(self)
     }
 
-    fn process_barrier(self) -> Result<Self> {
+    fn process_barrier(&mut self) -> Result<&mut Self> {
         //  Does not really affect qvnt-i flow
         Ok(self)
     }
 
-    fn process_reset(mut self, q_reg: &Argument) -> Result<Self> {
+    fn process_reset(&mut self, q_reg: &Argument) -> Result<&mut Self> {
         let idx = self.get_q_idx(q_reg)?;
         self.branch_with_id(Sep::Reset(idx));
         Ok(self)
     }
 
-    fn process_measure(mut self, q_arg: &Argument, c_arg: &Argument) -> Result<Self> {
+    fn process_measure(&mut self, q_arg: &Argument, c_arg: &Argument) -> Result<&mut Self> {
         let q_arg = self.get_q_idx(q_arg)?;
         let c_arg = self.get_c_idx(c_arg)?;
         if q_arg.count_ones() != c_arg.count_ones() {
@@ -164,7 +166,7 @@ impl Int {
         Ok(self)
     }
 
-    fn process_apply_gate(mut self, name: &String, regs: &Vec<Argument>, args: &Vec<String>) -> Result<Self> {
+    fn process_apply_gate(&mut self, name: &String, regs: &Vec<Argument>, args: &Vec<String>) -> Result<&mut Self> {
         if let Some(macros) = self.macros.get(name) {
             let nodes = macros.apply(name, regs, args)?;
             self.process_nodes(nodes.iter())
@@ -190,12 +192,12 @@ impl Int {
         }
     }
 
-    fn process_opaque(self) -> Result<Self> {
+    fn process_opaque(&mut self) -> Result<&mut Self> {
         //  TODO: To understand what opaque gate stands for
         Ok(self)
     }
 
-    fn process_gate(mut self, name: String, regs: &Vec<String>, args: &Vec<String>, nodes: &Vec<AstNode>) -> Result<Self> {
+    fn process_gate(&mut self, name: String, regs: &Vec<String>, args: &Vec<String>, nodes: &Vec<AstNode>) -> Result<&mut Self> {
         let macros = macros::ProcessMacro::new(
             regs.clone(),
             args.clone(),
@@ -206,14 +208,15 @@ impl Int {
         Ok(self)
     }
 
-    fn process_if(mut self, lhs: String, rhs: N, if_block: &Box<AstNode>) -> Result<Self> {
+    fn process_if(&mut self, lhs: String, rhs: N, if_block: &Box<AstNode>) -> Result<&mut Self> {
         match if_block.as_ref() {
             AstNode::ApplyGate(_, _, _) => {
                 self.branch(Sep::Nop);
 
-                self = self.process_node(if_block)?;
-
                 let val = self.get_c_idx(&Argument::Register(lhs))?;
+
+                self.process_node(if_block)?;
+
                 self.branch(Sep::IfBranch(val, rhs));
 
                 Ok(self)

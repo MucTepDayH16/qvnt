@@ -1,10 +1,5 @@
-use std::error::Error;
-use std::io::Write;
 use {
-    std::{
-        io::{BufRead, Read, stdin, stdout},
-        path::PathBuf,
-    },
+    std::path::PathBuf,
     clap::{Arg, App, SubCommand},
     qvnt::prelude::*,
 };
@@ -12,20 +7,39 @@ use {
 const VERSION: &str = "0.3.2";
 const SIGN: &str = "|i>\t";
 
-fn loop_fn(mut int: Int, buf: &String) -> Result<Int, String> {
+macro_rules! scanln {
+    () => {{
+        use std::io::{BufRead, Read, stdin};
+
+        let mut buf = String::new();
+        stdin().lock().read_line(&mut buf).map(|_| buf)
+    }};
+}
+
+fn loop_fn(int: &mut Int, buf: &String) -> Result<(), Box<dyn std::error::Error>> {
     match buf.chars().next() {
         Some(':') => {
-            let mut buf = buf.chars();
-            buf.next();
-            let buf = buf
-                .filter(|c| c.is_alphanumeric())
-                .collect::<String>();
-            match &buf[..] {
-                "class" => println!("{}", int.get_class().get_value(!0usize)),
-                "polar" => println!("{:?}", int.get_polar_wavefunction()),
-                "prob" => println!("{:?}", int.get_probabilities()),
-                "quit" | "q" => std::process::exit(0),
-                "finish" | "f" => int.reset().finish(),
+            let buf = &buf[1..]
+                .split_whitespace()
+                .collect::<Vec<&str>>();
+            let len = buf.len();
+
+            match buf.get(0) {
+                Some(&"class") =>
+                    println!("{}", int.get_class().get_value(!0usize)),
+                Some(&"polar") =>
+                    println!("{:?}", int.get_polar_wavefunction()),
+                Some(&"prob") =>
+                    println!("{:?}", int.get_probabilities()),
+                Some(&"exit" | &"quit" | &"q") =>
+                    std::process::exit(
+                        buf.get(1)
+                            .and_then(|s| s.parse::<i32>().ok())
+                            .unwrap_or(0)
+                    ),
+                Some(&"finish" | &"f") => {
+                    int.reset().finish();
+                },
                 _ => println!("Unknown command!"),
             }
         },
@@ -33,13 +47,13 @@ fn loop_fn(mut int: Int, buf: &String) -> Result<Int, String> {
             let buf = "OPENQASM 2.0; ".to_string() + &buf;
             let ast = Ast::from_source(buf)
                 .map_err(|err| err.to_string())?;
-            int = int.add(&ast)
+            int.add(&ast)
                 .map_err(|err| err.to_string())?;
-            int.reset().finish();
+            //  int.reset().finish();
         },
     }
 
-    Ok(int)
+    Ok(())
 }
 
 fn main() {
@@ -59,14 +73,11 @@ fn main() {
     let mut history = vec![];
 
     loop {
-        let mut buf = String::new();
-        stdin().lock().read_line(&mut buf).unwrap();
-
-        match loop_fn(int.clone(), &buf) {
-            Ok(next) => int = next,
-            Err(err) => eprintln!("{}", err),
+        let cmd = scanln!().expect("read line error");
+        if let Err(err) = loop_fn(&mut int, &cmd) {
+            eprintln!("{}", err);
         }
 
-        history.push(buf.clone());
+        history.push(cmd);
     }
 }
