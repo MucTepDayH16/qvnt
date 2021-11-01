@@ -12,6 +12,7 @@ use {
 
 pub (crate) use super::applicable::Applicable;
 
+#[derive(Clone)]
 pub struct MultiOp(VecDeque<SingleOp>);
 
 impl MultiOp {

@@ -12,6 +12,7 @@ mod bits_iter;
 pub mod prelude {
     pub use super::operator::{applicable::Applicable, MultiOp, op};
     pub use super::register::{VReg, QReg};
+    pub use super::qasm::{Int, Ast};
 
     pub mod consts {
         pub const _1: crate::types::C = crate::types::C{ re: 1.0, im: 0.0 };

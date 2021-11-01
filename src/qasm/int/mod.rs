@@ -40,7 +40,7 @@ impl Default for MeasureOp {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Int {
     m_op: MeasureOp,
     q_reg: (QReg, Vec<String>),
@@ -52,6 +52,10 @@ pub struct Int {
 impl Int {
     pub fn new(ast: &Ast) -> Result<Self> {
         Self::default().process_nodes(ast.iter())
+    }
+
+    pub fn add(mut self, ast: &Ast) -> Result<Self> {
+        self.process_nodes(ast.iter())
     }
 
     pub fn xor(self) -> Self {
@@ -112,7 +116,7 @@ impl Int {
                 self.process_measure(q_arg, c_arg),
             AstNode::ApplyGate(name, regs, args) =>
                 self.process_apply_gate(name, regs, args),
-            AstNode::Opaque(name, regs, args) =>
+            AstNode::Opaque(_, _, _) =>
                 self.process_opaque(),
             AstNode::Gate(name, regs, args, nodes) =>
                 self.process_gate(name.clone(), regs, args, nodes),
@@ -136,7 +140,7 @@ impl Int {
     }
 
     fn process_barrier(self) -> Result<Self> {
-        //  Does not really affect interpreter flow
+        //  Does not really affect qvnt-i flow
         Ok(self)
     }
 

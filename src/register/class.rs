@@ -24,8 +24,8 @@ impl Reg {
         Self{ value: 0, q_num, q_mask }
     }
 
-    pub (crate) fn get_value(&self, mask: N) -> N {
-        crate::bits_iter::BitsIter::from(mask)
+    pub fn get_value(&self, mask: N) -> N {
+        crate::bits_iter::BitsIter::from(mask & self.q_mask)
             .enumerate()
             .fold(0,
                   |mask, (idx, val)|

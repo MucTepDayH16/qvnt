@@ -30,7 +30,7 @@ impl std::error::Error for Error {}
 
 pub (crate) type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub (crate) struct ProcessMacro {
     regs: BTreeMap<String, usize>,
     args: BTreeMap<String, usize>,

@@ -6,6 +6,7 @@ pub (crate) use super::applicable::Applicable;
 
 type Ptr<T> = std::sync::Arc<T>;
 
+#[derive(Clone)]
 pub (crate) struct SingleOp {
     pub (crate) ctrl: N,
     pub (crate) func: Ptr<dyn AtomicOp>,
