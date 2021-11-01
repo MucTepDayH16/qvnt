@@ -1,3 +1,5 @@
+#![cfg(feature = "interpreter")]
+
 use {
     std::path::PathBuf,
     clap::{Arg, App, SubCommand},
@@ -102,7 +104,7 @@ fn main() {
             Ok(line) => {
                 interact.add_history_entry(&line);
                 if let Err(err) = loop_fn(&mut int, &mut int_stack, &line) {
-                    eprintln!("{}", err);
+                    eprintln!("{}\n", err);
                 }
             },
             Err(ReadlineError::Interrupted) => {

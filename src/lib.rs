@@ -12,6 +12,8 @@ mod bits_iter;
 pub mod prelude {
     pub use super::operator::{applicable::Applicable, MultiOp, op};
     pub use super::register::{VReg, QReg};
+
+    #[cfg(feature = "interpreter")]
     pub use super::qasm::{Int, Ast};
 
     pub mod consts {
@@ -28,4 +30,6 @@ pub use crate::threads::num_threads;
 pub mod operator;
 pub mod register;
 pub mod threads;
+
+#[cfg(feature = "interpreter")]
 pub mod qasm;
