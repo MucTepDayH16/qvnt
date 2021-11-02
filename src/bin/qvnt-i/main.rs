@@ -27,7 +27,12 @@ fn main() {
                     .value_name("FILE")
                     .help("Specify QASM file path")
                     .takes_value(true)
-            ).get_matches();
+            ).arg(
+				Arg::with_name("debug")
+					.short("d")
+					.long("dbg")
+					.help("Set debug format for errors")
+			).get_matches();
 
     let mut int = match cli.value_of("input") {
         Some(input) => {
@@ -38,6 +43,8 @@ fn main() {
         None => Int::default(),
     };
     let mut int_stack = vec![];
+	
+	let dbg = cli.is_present("debug");
 
     print!("{}", PROLOGUE);
     let mut interact = Editor::<()>::new();
@@ -47,7 +54,11 @@ fn main() {
             Ok(line) => {
                 interact.add_history_entry(&line);
                 if let Err(err) = loop_fn(&mut int, &mut int_stack, &line) {
-                    eprintln!("{}\n", err);
+					if dbg {
+						eprintln!("{:?}\n", err);
+					} else {
+						eprintln!("{}\n", err);
+					}
                 }
             },
             Err(ReadlineError::Interrupted) => {
