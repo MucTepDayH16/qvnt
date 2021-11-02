@@ -68,9 +68,9 @@ mod cmd {
 				"class" =>
 					println!("{}\n", int.get_class().get_value(!0usize)),
 				"polar" =>
-					println!("{:.2?}\n", int.get_polar_wavefunction()),
+					println!("{:.4?}\n", int.get_polar_wavefunction()),
 				"prob" =>
-					println!("{:.2?}\n", int.get_probabilities()),
+					println!("{:.4?}\n", int.get_probabilities()),
 				"ops" =>
 					println!("{}\n", int.get_ops_tree()),
 				"finish" | "f" => {
