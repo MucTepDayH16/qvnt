@@ -2,7 +2,7 @@
 
 use {
     std::path::PathBuf,
-    clap::{Arg, App, SubCommand},
+    clap::{Arg, App},
     rustyline::{error::ReadlineError, Editor},
     qvnt::prelude::*,
 };
@@ -61,6 +61,7 @@ fn main() {
     let mut interact = Editor::<()>::new();
     let _ = interact.load_history(".history");
 	let mut block = (false, String::new());
+	
     loop {
         match interact.readline(if block.0 {BLCK} else {SIGN}) {
             Ok(line) => {
@@ -99,6 +100,6 @@ fn main() {
         }
     }
 
-    interact.save_history(".history");
+    let _ = interact.save_history(".history");
     println!("{}", EPILOGUE);
 }

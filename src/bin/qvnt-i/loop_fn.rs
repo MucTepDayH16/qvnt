@@ -88,7 +88,7 @@ mod cmd {
 							let path = std::path::PathBuf::from(path);
 							let ast = Ast::from_file(&path)?;
 							let new = Int::new(&ast)?;
-							std::mem::replace(int, new);
+							let _ = std::mem::replace(int, new);
 						},
 						None => Err(Error::UnspecifiedPath)?,
 					}
