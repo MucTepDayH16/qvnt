@@ -1,7 +1,10 @@
 #![cfg(feature = "interpreter")]
 
 use {
-    std::path::PathBuf,
+    std::{
+        collections::BTreeMap,
+        path::PathBuf,
+    },
     clap::{Arg, App},
     rustyline::{error::ReadlineError, Editor},
     qvnt::prelude::*,
@@ -43,11 +46,11 @@ fn main() {
         }
         None => Int::default(),
     };
-    let mut int_stack = vec![];
+    let mut int_stack = BTreeMap::new();
 	
 	let dbg = cli.is_present("debug");
 	
-	fn process(int: &mut Int, int_stack: &mut Vec<Int>, line: &String, dbg: bool) {
+	fn process(int: &mut Int, int_stack: &mut BTreeMap<String, Int>, line: String, dbg: bool) {
 		if let Err(err) = loop_fn(int, int_stack, line) {
 			if dbg {
 				eprintln!("{:?}\n", err);
@@ -74,14 +77,14 @@ fn main() {
 					Some('}') if block.0 => {
 						block.1 += &line;
 						block.0 = false;
-						process(&mut int, &mut int_stack, &block.1, dbg);
-						block.1 = String::new();
+						process(&mut int, &mut int_stack, block.1, dbg);
+                        block.1 = String::new();
 					},
 					_ if block.0 => {
 						block.1 += &line;
 					},
 					_ => {
-						process(&mut int, &mut int_stack, &line, dbg);
+						process(&mut int, &mut int_stack, line, dbg);
 					},
 				}
             },
