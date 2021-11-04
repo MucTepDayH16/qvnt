@@ -22,6 +22,7 @@ qasm        = { version = "*", path = "./qasm-rust", optional = true }
 interpreter = ["clap", "qasm", "rustyline"]
 
 [[bin]]
-name = "qvnt-i"
-test = true
-bench = false
+name                = "qvnt-i"
+required-features   = ["interpreter"]
+test                = true
+bench               = false

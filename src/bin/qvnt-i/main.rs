@@ -1,5 +1,3 @@
-#![cfg(feature = "interpreter")]
-
 use {
     std::{
         collections::BTreeMap,
