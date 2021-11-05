@@ -1,9 +1,9 @@
-fn loop_fn<'a>(int: &mut Int, int_stack: &mut BTreeMap<String, Int>, line: String) -> Result<(), Box<dyn std::error::Error>> {
+fn loop_fn<'a>(int: &mut Int, int_set: &mut IntSet, line: String) -> Result<(), Box<dyn std::error::Error>> {
     println!();
     match line.chars().next() {
         Some(':') => {
             let line = line[1..].split_whitespace();
-			cmd::process(int, int_stack, line)?;
+			cmd::process(int, int_set, line)?;
         },
         _ => {
             let line = "OPENQASM 2.0; ".to_string() + &line;
@@ -47,7 +47,7 @@ mod cmd {
 	
 	impl std::error::Error for Error {}
 	
-	pub fn process<'a, I>(int: &mut Int, int_stack: &mut BTreeMap<String, Int>, mut line: I) -> Result<(), Box<dyn std::error::Error>>
+	pub fn process<'a, I>(int: &mut Int, int_set: &mut IntSet, mut line: I) -> Result<(), Box<dyn std::error::Error>>
 	where I: Iterator<Item=&'a str> + Clone {
 		while let Some(cmd) = line.next() {
 			match cmd {
@@ -55,14 +55,15 @@ mod cmd {
 					match line.next().and_then(|s| s.parse::<usize>().ok()) {
 						Some(num) =>
 							for _ in 0..num {
-								process(int, int_stack, line.clone())?;
+								process(int, int_set, line.clone())?;
 							},
 						None => Err(Error::UnspecifiedInt)?,
 					},
+				"tags" => println!("{:?}\n", int_set.map.keys().collect::<Vec<&(String, String)>>()),
 				"tag" =>
 					match line.next() {
 						Some(tag) =>
-							if let Some(_) = int_stack.insert(tag.to_string(), int.clone()) {
+							if let Some(_) = int_set.tag(tag, int.clone()) {
 								println!("replace tag \"{}\"\n", tag);
 							},
 						None => Err(Error::UnspecifiedTag)?,
@@ -70,7 +71,7 @@ mod cmd {
 				"goto" =>
 					match line.next() {
 						Some(tag) =>
-							if let Some(to_replace) = int_stack.get(tag) {
+							if let Some(to_replace) = int_set.goto(tag) {
 								*int = to_replace.clone();
 								println!("goto tag \"{}\"\n", tag);
 							} else {

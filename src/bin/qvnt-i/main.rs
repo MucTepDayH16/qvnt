@@ -1,6 +1,6 @@
 use {
     std::{
-        collections::BTreeMap,
+        collections::HashMap,
         path::PathBuf,
     },
     clap::{Arg, App},
@@ -9,6 +9,7 @@ use {
 };
 
 include!{ "loop_fn.rs" }
+include!{ "int_tree.rs" }
 
 const VERSION: &str = "0.3.2";
 const SIGN: &str = "|Q> ";
@@ -44,12 +45,12 @@ fn main() {
         }
         None => Int::default(),
     };
-    let mut int_stack = BTreeMap::new();
+    let mut int_set = IntSet::with_root("'");
 	
 	let dbg = cli.is_present("debug");
 	
-	fn process(int: &mut Int, int_stack: &mut BTreeMap<String, Int>, line: String, dbg: bool) {
-		if let Err(err) = loop_fn(int, int_stack, line) {
+	fn process(int: &mut Int, int_set: &mut IntSet, line: String, dbg: bool) {
+		if let Err(err) = loop_fn(int, int_set, line) {
 			if dbg {
 				eprintln!("{:?}\n", err);
 			} else {
@@ -75,14 +76,14 @@ fn main() {
 					Some('}') if block.0 => {
 						block.1 += &line;
 						block.0 = false;
-						process(&mut int, &mut int_stack, block.1, dbg);
+						process(&mut int, &mut int_set, block.1, dbg);
                         block.1 = String::new();
 					},
 					_ if block.0 => {
 						block.1 += &line;
 					},
 					_ => {
-						process(&mut int, &mut int_stack, line, dbg);
+						process(&mut int, &mut int_set, line, dbg);
 					},
 				}
             },
