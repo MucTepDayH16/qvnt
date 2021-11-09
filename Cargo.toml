@@ -19,10 +19,10 @@ clap        = { version = "2.33", optional = true }
 qasm        = { version = "*", path = "./qasm-rust", optional = true }
 
 [features]
-interpreter = ["clap", "qasm", "rustyline"]
+interpreter = ["qasm"]
 
 [[bin]]
 name                = "qvnt-i"
-required-features   = ["interpreter"]
+required-features   = ["interpreter", "clap", "rustyline"]
 test                = true
 bench               = false
