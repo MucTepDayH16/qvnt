@@ -1,22 +1,25 @@
 name: Rust
 
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+on: [push, pull_request]
 
 env:
-  CARGO_TERM_COLOR: always
+  CARGO_TERM_COLOR:
+    always
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
-
+    runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v2
-    - name: Build
-      run: cargo build --package qvnt --release --verbose
-    - name: Run tests
-      run: cargo test --package qvnt --release --verbose
+      - name: Checkout master
+        uses: actions/checkout@v2
+      - name: Init submodules
+        uses: snickerbockers/submodules-init@v4
+      - name: Set stable channel
+        run: rustup default stable
+      - name: Build crate
+        run: cargo build --release --package qvnt --verbose
+      - name: Test crate
+        run: cargo test --release --package qvnt --verbose
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
