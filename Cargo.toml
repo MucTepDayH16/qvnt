@@ -2,7 +2,7 @@
 name        = "qvnt"
 version     = "0.3.2"
 description = "Advanced quantum computation simulator."
-keywords    = ["quantum", "theoretical", ]
+keywords    = ["theoretical", "quantum-computing", "quantum-simulator", "quantum", "qubits", ]
 categories  = ["concurrency", "simulation", "mathematics", "science", ]
 
 authors     = ["Denis Drozhzhin <denisdrozhzhin1999@gmail.com>"]

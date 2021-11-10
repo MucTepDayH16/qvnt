@@ -1,4 +1,5 @@
-use crate::{register::*, operator::{op, applicable::Applicable}};
+// TODO: remove separated tests module
+use crate::prelude::*;
 
 #[test]
 fn ops() {

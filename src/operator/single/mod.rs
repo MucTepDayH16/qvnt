@@ -1,8 +1,4 @@
-use crate::{
-    operator::atomic::*,
-    math::{C, R, N},
-};
-pub (crate) use super::applicable::Applicable;
+use crate::{math::{C, R, N}, operator::atomic::*};
 
 macro_rules! single_op_checked {
     ($op:expr) => {
@@ -13,12 +9,37 @@ macro_rules! single_op_checked {
     }
 }
 
-pub (crate) mod pauli;
-pub (crate) mod rotate;
-pub (crate) mod swap;
+pub mod pauli;
+pub mod rotate;
+pub mod swap;
 
 type Ptr<T> = std::sync::Arc<T>;
 
+/// Single quantum operation.
+///
+/// This structure represents the unit of computation for quantum simulator.
+/// Since [`SingleOp`] does not have public constructor, it only can be acquired by indexing [`MultiOp`](super::MultiOp):
+///
+/// ```rust
+/// # use qvnt::prelude::*;
+/// let multi_op: MultiOp = op::x(0b1);
+/// // Since SingleOp does not implement "Copy" trait,
+/// // it only can be referenced of cloned
+/// let single_op: SingleOp = op::x(0b1)[0].clone();
+/// ```
+///
+/// As [`MultiOp`](super::MultiOp), it could be applied to [`QReg`](crate::prelude::QReg):
+///
+/// ```rust
+/// # use qvnt::prelude::*;
+/// let mut reg = QReg::new(1);
+///
+/// reg.apply(&op::x(0b1)[0]);
+/// ```
+///
+/// This is similar to reg.apply(&op::x(0b1)).
+/// Using index notation you could deconstruct complex gates (e.g. [`Quantum Fourier Transform`](super::qft()))
+/// into simple ones and apply them *insequentially*.
 #[derive(Clone)]
 pub struct SingleOp {
     pub (crate) act: N,
@@ -27,15 +48,40 @@ pub struct SingleOp {
 }
 
 impl SingleOp {
+    /// Return 'name' of quantum gate.
+    /// It is formatted as ```(C{control_mask}_)?{gate_name}{apply_mask}```, where:
+    /// * gate_name     - Similar to gate's name in [OpenQASM standard](https://en.wikipedia.org/wiki/OpenQASM);
+    /// * control_mask  - [mask] for controlled qubits.
+    /// If equals 0, ```C{control_mask}_``` will not be displayed;
+    /// * apply_mask    - [mask] for qubits affected by the given gate.
+    ///
+    /// ```rust
+    /// # use qvnt::prelude::*;
+    /// let single_op = &op::x(123)[0];
+    /// println!("{}", single_op.name());
+    /// // which is similar to this:
+    /// // println!("{:?}", single_op);
+    ///
+    /// let controlled_op = single_op.clone().c(4).unwrap();
+    /// println!("{:?}", controlled_op);
+    /// ```
+    ///
+    /// Output will be:
+    ///
+    /// ```ignore
+    /// X123
+    /// C4_X123
+    /// ```
     pub fn name(&self) -> String {
-        let mut name = self.func.name();
         if self.ctrl != 0 {
-            name = format!("C{}_", self.ctrl) + &name;
+            format!("C{}_", self.ctrl) + &self.func.name()
+        } else {
+            self.func.name()
         }
-        name
     }
 }
 
+pub (crate) use super::Applicable;
 impl Applicable for SingleOp {
     fn apply(&self, psi: Vec<C>) -> Vec<C> {
         use rayon::iter::*;
@@ -87,6 +133,17 @@ impl std::fmt::Debug for SingleOp {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn name() {
+        let single_op = pauli::x(123);
+        assert_eq!(single_op.name(), format!("X123"));
+        assert_eq!(format!("{:?}", single_op), format!("X123"));
+
+        let single_op = single_op.c(4).unwrap();
+        assert_eq!(single_op.name(), format!("C4_X123"));
+        assert_eq!(format!("{:?}", single_op), format!("C4_X123"));
+    }
 
     #[test]
     fn unwrap_op() {

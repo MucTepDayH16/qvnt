@@ -1,39 +1,85 @@
-use {
-    crate::{
-        math::{C, N, R},
-        operator::single::*,
-    },
-    std::{
-        collections::VecDeque,
-        ops::{Mul, MulAssign},
-    },
-};
+use crate::{math::{C, N, R}, operator::single::*};
+use std::{collections::VecDeque, ops::{Mul, MulAssign}};
 
-pub (crate) use super::applicable::Applicable;
-
+/// Quantum operation's queue.
+///
+/// [`MultiOp`] is an array of [`SingleOp`](super::SingleOp)s.
+/// It implements [`Deref`](std::ops::Deref) and [`DerefMut`](std::ops::DerefMut) traits
+/// with ```Target = VecDeque<SingleOp>``` to inherit all methods from [`VecDeque<SingleOp>`].
+///
+/// As a queue, [`MultiOp`]s are able to be concatenated:
+///
+/// ```rust
+/// # use qvnt::prelude::*;
+/// let mut first_op = op::x(0b01);
+/// let mut second_op = op::y(0b10);
+///
+/// first_op.append(&mut second_op);
+/// ```
+///
+/// This results to a new gate, which contains both *x* and *y* gates:
+///
+/// ```ignore
+/// (q0) |0> -- [X]
+/// (q1) |0> -- [Y]
+/// ```
+///
+/// [`append`](VecDeque::append()) and [`push_back`](VecDeque::push_back()) was used for it.
+/// However, QVNT implements [`Mul`](std::ops::Mul) and [`MulAssign`](std::ops::MulAssign) trait for [`MultiOp`]
+/// to *naturify* interactions with operations, since gates are just operators in quantum mechanics and
+/// could be multiplied to another operator.
+/// Let's rewrite previous example in precise way:
+///
+/// ```rust
+/// # use qvnt::prelude::*;
+/// let mut first_op = op::x(0b01);
+/// let second_op = op::y(0b10);
+///
+/// first_op = first_op * second_op;
+/// ```
+///
+/// Or more precise way:
+///
+/// ```rust
+/// # use qvnt::prelude::*;
+/// let mut first_op = op::x(0b01);
+/// let second_op = op::y(0b10);
+///
+/// first_op *= second_op;
+/// ```
+///
+/// Or the most precise way:
+///
+/// ```rust
+/// # use qvnt::prelude::*;
+/// let new_op = op::x(0b01) * op::y(0b10);
+/// ```
 #[derive(Clone)]
 pub struct MultiOp(VecDeque<SingleOp>);
 
-impl MultiOp {
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
+#[doc(hidden)]
+impl std::ops::Deref for MultiOp {
+    type Target = VecDeque<SingleOp>;
 
-    pub fn len(&self) -> N {
-        self.0.len()
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
+}
 
-    pub fn clear(&mut self) {
-        self.0.clear()
+#[doc(hidden)]
+impl std::ops::DerefMut for MultiOp {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
 impl std::fmt::Debug for MultiOp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
+        write!(f, "{:?}", self.0)
     }
 }
 
+pub (crate) use super::Applicable;
 impl Applicable for MultiOp {
     fn apply(&self, psi: Vec<C>) -> Vec<C> {
         self.0.iter()

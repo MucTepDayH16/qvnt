@@ -2,8 +2,6 @@
 #![allow(non_upper_case_globals)]
 #![allow(dead_code)]
 
-pub use threads::num_threads;
-
 #[doc = include_str ! ("../README.md")]
 #[cfg(doctest)]
 mod readme {}
@@ -15,12 +13,17 @@ mod math;
 
 pub mod operator;
 pub mod register;
+
+#[doc(hidden)]
 pub mod threads;
+#[doc(hidden)]
+pub use threads::num_threads;
 
 pub mod prelude {
     pub use crate::{
-        operator::{applicable::Applicable, MultiOp, op},
-        register::{CReg, QReg, VReg},
+        operator as op,
+        operator::{MultiOp, SingleOp, Applicable},
+        register::*,
     };
 
     pub mod consts {

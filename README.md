@@ -19,6 +19,13 @@
 ___
 ## Usage
 
+Add this lines to your *Cargo.toml* file to use __QVNT__ crate:
+
+```toml
+[dependencies]
+qvnt = "0.3.2"
+```
+
 Quantum register and operators are controlled by bitmasks.
 Each *bit* in it will act on a specific *qubit*.
 
