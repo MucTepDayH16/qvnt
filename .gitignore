@@ -3,5 +3,4 @@
 Cargo.lock
 *.xlsx
 
-.cargo
 .idea
