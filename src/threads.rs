@@ -26,7 +26,7 @@ pub fn num_threads(num_threads: usize) {
     }
 }
 
-pub(crate) fn global_install<OP: FnOnce() -> R + Send, R: Send>(op: OP) -> R {
+pub (crate) fn global_install<OP: FnOnce() -> R + Send, R: Send>(op: OP) -> R {
     if GLOBAL_POOL.read().unwrap().0 == 0 {
         num_threads(DEFAULT_NUM_THREADS);
     }

@@ -510,7 +510,7 @@ pub fn qft_swapped(a_mask: N) -> MultiOp {
 
 
 #[cfg(test)]
-pub(crate) fn bench_circuit() -> MultiOp {
+pub (crate) fn bench_circuit() -> MultiOp {
     MultiOp::default()
         * h(0b111)
         * h(0b100).c(0b001).unwrap()

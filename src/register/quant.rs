@@ -19,7 +19,7 @@ const MIN_QREG_LEN: usize = 8;
 
 #[derive(Clone)]
 pub struct Reg {
-    pub(crate) psi: Vec<C>,
+    pub (crate) psi: Vec<C>,
     q_num: N,
     q_mask: N,
 }
@@ -37,7 +37,7 @@ impl Reg {
         }
     }
 
-    pub(crate) fn reset(&mut self, i_state: N) {
+    pub (crate) fn reset(&mut self, i_state: N) {
         self.psi = vec![C_ZERO; self.psi.len()];
         self.psi[self.q_mask & i_state] = C_ONE;
     }
@@ -62,7 +62,7 @@ impl Reg {
     }
 
     // TODO: add tests for combine
-    pub(crate) fn combine(q: (&Self, &Self), c: M1) -> Option<Self> {
+    pub (crate) fn combine(q: (&Self, &Self), c: M1) -> Option<Self> {
         if q.0.q_num == q.1.q_num {
             let mut q_reg = Self::new(q.0.q_num + 1);
             let q_mask = q.0.q_mask;

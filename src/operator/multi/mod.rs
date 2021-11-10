@@ -171,3 +171,19 @@ impl<'a> MulAssign<SingleOp> for &'a mut MultiOp {
 
 pub (crate) mod h;
 pub (crate) mod qft;
+
+#[cfg(test)]
+mod tests {
+    use crate::prelude::*;
+
+    #[test]
+    fn ops() {
+        let pend_ops =
+            op::id() *
+                op::h(0b001).c(0b010).unwrap() *
+                op::x(0b011).c(0b100).unwrap() *
+                op::phi(vec![(5.0, 0b001)]);
+
+        assert_eq!(pend_ops.len(), 3);
+    }
+}
