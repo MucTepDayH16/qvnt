@@ -1,13 +1,7 @@
-use {
-    crate::math::{C, N, R},
-    std::{
-        fmt,
-        mem::take,
-        ops::{Mul, MulAssign},
-    },
-};
+use std::{fmt, ops::{Mul, MulAssign}};
+use crate::math::{C, R, N};
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Reg {
     value: N,
     q_num: N,
@@ -41,6 +35,6 @@ impl Mul for Reg {
 
 impl MulAssign for Reg {
     fn mul_assign(&mut self, rhs: Self) {
-        *self = take(self).tensor_prod(rhs);
+        *self = std::mem::take(self).tensor_prod(rhs);
     }
 }

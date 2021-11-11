@@ -1,4 +1,5 @@
 use crate::{math::{C, R, N}, operator::atomic::*};
+pub(crate) use super::Applicable;
 
 macro_rules! single_op_checked {
     ($op:expr) => {
@@ -6,7 +7,7 @@ macro_rules! single_op_checked {
             op if op.is_valid() => Some(op.into()),
             _ => None,
         }
-    }
+    };
 }
 
 pub mod pauli;
@@ -24,7 +25,7 @@ type Ptr<T> = std::sync::Arc<T>;
 /// # use qvnt::prelude::*;
 /// let multi_op: MultiOp = op::x(0b1);
 /// // Since SingleOp does not implement "Copy" trait,
-/// // it only can be referenced of cloned
+/// // it only can be referenced or cloned
 /// let single_op: SingleOp = op::x(0b1)[0].clone();
 /// ```
 ///
@@ -81,7 +82,6 @@ impl SingleOp {
     }
 }
 
-pub (crate) use super::Applicable;
 impl Applicable for SingleOp {
     fn apply(&self, psi: Vec<C>) -> Vec<C> {
         use rayon::iter::*;
@@ -92,7 +92,11 @@ impl Applicable for SingleOp {
         if self.ctrl != 0 {
             (0..len).into_par_iter()
                     .map(
-                        |idx| if !idx & self.ctrl == 0 {self.func.atomic_op(&psi, idx)} else {psi[idx]}
+                        |idx| if !idx & self.ctrl == 0 {
+                            self.func.atomic_op(&psi, idx)
+                        } else {
+                            psi[idx]
+                        }
                     ).collect()
         } else {
             (0..len).into_par_iter()
@@ -104,22 +108,26 @@ impl Applicable for SingleOp {
 
     #[inline]
     fn act_on(&self) -> N {
-        self.act
+        self.act | self.ctrl
     }
 
     #[inline]
     fn dgr(self) -> Self {
-        Self { func: self.func.dgr(), ..self }
+        Self {
+            func: self.func.dgr(),
+            ..self
+        }
     }
 
     #[inline(always)]
-    fn c(mut self, c: N) -> Option<Self> {
-        if self.act & c != 0 {
+    fn c(self, c: N) -> Option<Self> {
+        if self.act_on() & c != 0 {
             None
         } else {
-            self.act |= c;
-            self.ctrl |= c;
-            Some(self)
+            Some(Self {
+                ctrl: self.ctrl | c,
+                ..self
+            })
         }
     }
 }
@@ -149,14 +157,10 @@ mod tests {
     fn unwrap_op() {
         assert!(rotate::ryy(0b001, 1.35).is_none());
         assert!(rotate::ryy(0b101, 1.35).unwrap().c(0b001).is_none());
-        let _ = rotate
-            ::ryy(0b101, 1.35).unwrap()
-            .c(0b010).unwrap();
+        let _ = rotate::ryy(0b101, 1.35).unwrap().c(0b010).unwrap();
 
         assert!(swap::swap(0b001).is_none());
         assert!(swap::swap(0b101).unwrap().c(0b100).is_none());
-        let _ = swap
-            ::swap(0b101).unwrap()
-            .c(0b010).unwrap();
+        let _ = swap::swap(0b101).unwrap().c(0b010).unwrap();
     }
 }

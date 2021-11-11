@@ -1,5 +1,4 @@
 pub (in crate::math) use float_cmp::*;
-
 use super::types::*;
 
 const ULPS: i64 = 2;

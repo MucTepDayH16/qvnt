@@ -1,5 +1,4 @@
 pub use std::f64::consts::*;
-
 pub use self::{consts::*, types::*};
 
 pub mod approx_cmp;

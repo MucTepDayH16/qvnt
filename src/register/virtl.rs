@@ -1,8 +1,7 @@
-use {
-    crate::math::{C, N, R},
-    std::ops::{Index, RangeFull},
-};
+use std::ops::{Index, RangeFull};
+use crate::math::{C, R, N};
 
+#[derive(Clone, Default)]
 pub struct Reg(pub (crate) N, pub (crate) Vec<N>);
 
 impl std::fmt::Debug for Reg {

@@ -84,19 +84,15 @@
 //!
 //! will print equally distributed values from 0 to 255, which have bit 3 equal to zero and 8 bit equal to one.
 
-pub (crate) mod applicable;
-
-pub (in crate::operator) mod atomic;
-pub (in crate::operator) mod single;
-pub (in crate::operator) mod multi;
-
-pub use {
-    multi::MultiOp,
-    single::SingleOp,
-    applicable::Applicable,
-};
+pub use self::{applicable::Applicable, multi::MultiOp, single::SingleOp};
+use self::{multi::*, single::*};
 use crate::math::{C, R, N, FRAC_PI_2};
-use {multi::*, single::*};
+
+pub(crate) mod applicable;
+
+pub (self) mod atomic;
+pub (self) mod single;
+pub (self) mod multi;
 
 /// [`Identity`](id) gate.
 ///
@@ -326,12 +322,12 @@ pub fn rzz(phase: R, ab_mask: N) -> MultiOp {
 ///
 /// ```rust
 /// # use qvnt::prelude::*;
-/// # use consts::PI;
+/// use std::f64::consts::PI as π;
 ///
 /// //  Take a third root of *Z* gate.
-/// let z_pow_a = op::phi(vec![(PI / 3., 0b1)]);
+/// let z_pow_a = op::phi(vec![(π / 3., 0b1)]);
 /// //  Equivalent to Op::z(0b1).
-/// let z = op::phi(vec![(PI, 0b1)]);
+/// let z = op::phi(vec![(π, 0b1)]);
 /// ```
 ///
 /// Its matrix form depend on [`Vec`] size, but for ```vec![(a, 1)]```, which affect only 1 qubit, the matrix is:
@@ -499,6 +495,7 @@ pub fn u3(the: R, phi: R, lam: R, a_mask: N) -> MultiOp {
 pub fn qft(a_mask: N) -> MultiOp {
     qft::qft(a_mask)
 }
+
 /// Discrete Fourier transform with qubits' swap
 ///
 /// [`QFT`](qft()) is differ from real DFT by a bit order of amplitudes indices.
@@ -508,7 +505,6 @@ pub fn qft_swapped(a_mask: N) -> MultiOp {
     qft::qft_swapped(a_mask)
 }
 
-
 #[cfg(test)]
 pub (crate) fn bench_circuit() -> MultiOp {
     MultiOp::default()
@@ -516,7 +512,7 @@ pub (crate) fn bench_circuit() -> MultiOp {
         * h(0b100).c(0b001).unwrap()
         * x(0b001).c(0b110).unwrap()
         * rx(1.2, 0b100)
-        * phi(vec![ (1.0, 0b010) ]).c(0b001).unwrap()
+        * phi(vec![(1.0, 0b010)]).c(0b001).unwrap()
         * h(0b001).c(0b100).unwrap()
         * z(0b010)
         * rxx(crate::math::FRAC_PI_6, 0b101)

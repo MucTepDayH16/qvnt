@@ -8,51 +8,64 @@ pub (crate) trait AtomicOp: Send + Sync {
 
     fn name(&self) -> String;
 
-    fn is_valid(&self) -> bool { true }
+    fn is_valid(&self) -> bool {
+        true
+    }
 
     fn dgr(self: Ptr<Self>) -> Ptr<dyn AtomicOp>;
 }
 
 macro_rules! op_impl {
     (s $mask:ident) => {
-        pub (crate) struct Op {
+        pub(crate) struct Op {
             $mask: N,
         }
 
         impl Op {
             #[inline(always)]
             pub fn new($mask: N) -> Self {
-                Self{ $mask }
+                Self { $mask }
             }
         }
 
         impl Into<SingleOp> for Op {
             fn into(self) -> SingleOp {
-                SingleOp { act: self.$mask, ctrl: 0, func: Ptr::new(self) }
+                SingleOp {
+                    act: self.$mask,
+                    ctrl: 0,
+                    func: Ptr::new(self),
+                }
             }
         }
     };
     (d $mask:ident) => {
-        pub (crate) struct Op {
+        pub(crate) struct Op {
             $mask: N,
-            dagger: bool
+            dagger: bool,
         }
 
         impl Op {
             #[inline(always)]
             pub fn new($mask: N) -> Self {
-                Self{ $mask, dagger: false }
+                Self {
+                    $mask,
+                    dagger: false,
+                }
             }
         }
 
         impl Into<SingleOp> for Op {
             fn into(self) -> SingleOp {
-                SingleOp { act: self.$mask, ctrl: 0, func: Ptr::new(self) }
+                SingleOp {
+                    act: self.$mask,
+                    ctrl: 0,
+                    func: Ptr::new(self),
+                }
             }
         }
     };
     (r $mask:ident) => {
-        pub (crate) struct Op {
+        pub(crate) struct Op {
             $mask: N,
             phase: C,
         }
@@ -62,22 +75,30 @@ macro_rules! op_impl {
             pub fn new($mask: N, mut phase: R) -> Self {
                 phase *= 0.5;
                 let phase = C::new(phase.cos(), phase.sin());
-                Self{ $mask, phase }
+                Self { $mask, phase }
             }
         }
 
         impl Into<SingleOp> for Op {
             fn into(self) -> SingleOp {
-                SingleOp { act: self.$mask, ctrl: 0, func: Ptr::new(self) }
+                SingleOp {
+                    act: self.$mask,
+                    ctrl: 0,
+                    func: Ptr::new(self),
+                }
             }
         }
-    }
+    };
 }
 macro_rules! into_single_op_impl {
     ($mask:ident) => {
         impl Into<SingleOp> for Op {
             fn into(self) -> SingleOp {
-                SingleOp { act: self.$mask, ctrl: 0, func: Ptr::new(self) }
+                SingleOp {
+                    act: self.$mask,
+                    ctrl: 0,
+                    func: Ptr::new(self),
+                }
             }
         }
     };

@@ -1,19 +1,7 @@
-use {
-    crate::math::*,
-    rand::prelude::*,
-    rand_distr,
-    rayon::prelude::*,
-    std::{
-        cmp::Ordering,
-        fmt,
-        mem::{replace, take},
-        ops::{
-            Mul,
-            MulAssign,
-        },
-        sync::Arc,
-    },
-};
+use {rand::prelude::*, rand_distr};
+use rayon::prelude::*;
+use std::{fmt, ops::{Mul, MulAssign}};
+use crate::math::*;
 
 const MIN_QREG_LEN: usize = 8;
 
@@ -91,21 +79,18 @@ impl Reg {
             .for_each(|q| *q.0 = q.0.mul(c.0) + q.1.mul(c.1));
     }
 
-    fn tensor_prod(mut self, mut other: Self) -> Self {
+    fn tensor_prod(self, other: Self) -> Self {
         let shift = (0u8, self.q_num as u8);
         let mask = (self.q_mask, other.q_mask);
 
-        let self_psi = Arc::new(take(&mut self.psi));
-        let other_psi = Arc::new(take(&mut other.psi));
-
         let q_num = self.q_num + other.q_num;
         let q_size = 1_usize << q_num;
-        let psi: Vec<C> = crate::threads::global_install(|| {
+        let psi = crate::threads::global_install(|| {
             (0..q_size.max(MIN_QREG_LEN))
                 .into_par_iter()
                 .map(
                     move |idx| if idx < q_size {
-                        self_psi[(idx >> shift.0) & mask.0] * other_psi[(idx >> shift.1) & mask.1]
+                        self.psi[(idx >> shift.0) & mask.0] * other.psi[(idx >> shift.1) & mask.1]
                     } else {
                         C_ZERO
                     }
@@ -113,24 +98,21 @@ impl Reg {
         });
 
         Self {
-            psi, q_num,
-            q_mask: q_size.wrapping_add(!0_usize),
+            psi, q_num, q_mask: q_size.wrapping_add(!0_usize),
         }
     }
 
     pub fn apply<Op>(&mut self, op: &Op)
         where Op: crate::operator::applicable::Applicable + Sync {
-        self.psi = crate::threads::global_install(|| {
-            op.apply(take(&mut self.psi))
+        crate::threads::global_install(|| {
+            self.psi = op.apply(std::mem::take(&mut self.psi))
         });
     }
 
     fn normalize(&mut self) -> &mut Self {
         let norm = 1. / self.get_absolute().sqrt();
-        let mut self_psi = take(&mut self.psi);
-        self.psi = crate::threads::global_install(move || {
-            self_psi.par_iter_mut().for_each(|v| *v *= norm);
-            self_psi
+        crate::threads::global_install(|| {
+            self.psi.par_iter_mut().for_each(|v| *v *= norm);
         });
         self
     }
@@ -143,7 +125,7 @@ impl Reg {
 
     pub fn get_probabilities(&self) -> Vec<R> {
         crate::threads::global_install(|| {
-            let abs = self.get_absolute();
+            let abs = self.psi.par_iter().map(|z| z.norm_sqr()).sum::<R>();
             self.psi.par_iter().map(|z| z.norm_sqr() / abs).collect()
         })
     }
@@ -154,21 +136,16 @@ impl Reg {
     }
 
     fn collapse_mask(&mut self, idy: N, mask: N) {
-        let len = self.psi.len();
-        let psi = Arc::new(take(&mut self.psi));
-
-        self.psi = crate::threads::global_install(|| (0..len)
-            .into_par_iter()
-            .map_init(
-                || psi.clone(),
-                move |psi, idx|
-                    if (idx ^ idy) & mask != 0 {
-                        C_ZERO
-                    } else {
-                        psi[idx]
-                    }
-            ).collect()
-        );
+        crate::threads::global_install(|| {
+            self.psi.iter_mut()
+                .enumerate()
+                .for_each(
+                    |(idx, psi)| {
+                        if (idx ^ idy) & mask != 0 {
+                            *psi = C_ZERO;
+                        }
+                    });
+        });
     }
     pub fn measure_mask(&mut self, mask: N) -> N {
         let mask = mask & self.q_mask;
@@ -188,6 +165,8 @@ impl Reg {
     }
 
     pub fn sample_all(&self, count: N) -> Vec<N> {
+        use std::cmp::Ordering;
+
         let p = self.get_probabilities();
         let c = count as R;
         let c_sqrt = c.sqrt();
@@ -262,6 +241,6 @@ impl Mul for Reg {
 
 impl MulAssign for Reg {
     fn mul_assign(&mut self, rhs: Self) {
-        *self = replace(self, Self{ psi: vec![], q_num: 0, q_mask: 0 }).tensor_prod(rhs);
+        *self = std::mem::take(self).tensor_prod(rhs);
     }
 }

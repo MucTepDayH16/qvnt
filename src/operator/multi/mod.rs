@@ -1,5 +1,6 @@
-use crate::{math::{C, N, R}, operator::single::*};
 use std::{collections::VecDeque, ops::{Mul, MulAssign}};
+use crate::{math::{C, R, N}, operator::single::*};
+pub (crate) use super::Applicable;
 
 /// Quantum operation's queue.
 ///
@@ -79,30 +80,31 @@ impl std::fmt::Debug for MultiOp {
     }
 }
 
-pub (crate) use super::Applicable;
 impl Applicable for MultiOp {
     fn apply(&self, psi: Vec<C>) -> Vec<C> {
-        self.0.iter()
-            .fold(psi, |psi, op| op.apply(psi))
+        self.0.iter().fold(psi, |psi, op| op.apply(psi))
     }
 
     fn act_on(&self) -> N {
-        self.0.iter()
-            .fold(0, |act, op| act | op.act)
+        self.0.iter().fold(0, |act, op| act | op.act_on())
     }
 
     fn dgr(self) -> Self {
-        Self(self.0.into_iter().map(|op| op.dgr()).rev().collect())
+        let new = self.0.into_iter()
+            .map(|op| op.dgr())
+            .rev().collect();
+        Self(new)
     }
 
-    fn c(mut self, c_mask: N) -> Option<Self> {
-        for op in &mut self.0 {
-            *op = match op.clone().c(c_mask) {
-                Some(x) => x,
-                None => return None,
-            };
+    fn c(self, c_mask: N) -> Option<Self> {
+        if self.act_on() & c_mask != 0 {
+            None
+        } else {
+            let new = self.0.into_iter()
+                .map(|op| op.c(c_mask).unwrap())
+                .collect();
+            Some(Self(new))
         }
-        Some(self)
     }
 }
 
@@ -178,11 +180,10 @@ mod tests {
 
     #[test]
     fn ops() {
-        let pend_ops =
-            op::id() *
-                op::h(0b001).c(0b010).unwrap() *
-                op::x(0b011).c(0b100).unwrap() *
-                op::phi(vec![(5.0, 0b001)]);
+        let pend_ops = op::id()
+            * op::h(0b001).c(0b010).unwrap()
+            * op::x(0b011).c(0b100).unwrap()
+            * op::phi(vec![(5.0, 0b001)]);
 
         assert_eq!(pend_ops.len(), 3);
     }

@@ -1,4 +1,3 @@
-use std::borrow::Borrow;
 use crate::math::{C, R, N};
 
 pub trait Applicable: Sized {
@@ -11,8 +10,8 @@ pub trait Applicable: Sized {
     fn c(self, c_mask: N) -> Option<Self>;
 
     fn matrix(&self, size: N) -> Vec<Vec<C>> {
-        const O: C = C{ re: 0.0, im: 0.0 };
-        const I: C = C{ re: 1.0, im: 0.0 };
+        const O: C = C { re: 0.0, im: 0.0 };
+        const I: C = C { re: 1.0, im: 0.0 };
 
         let size = 1 << size;
 

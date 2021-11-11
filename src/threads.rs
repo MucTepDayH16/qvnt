@@ -1,34 +1,49 @@
-use {
-    std::{
-        sync::RwLock,
-        mem::MaybeUninit
-    },
-    lazy_static::*,
-    rayon::*,
-};
+use lazy_static::*;
+use rayon::*;
+use std::sync::RwLock;
 
 const DEFAULT_NUM_THREADS: usize = 1;
+
 lazy_static! {
-    static ref GLOBAL_POOL: RwLock<(usize, Option<ThreadPool>)> = {
-        RwLock::new((0, None))
+    static ref GLOBAL_POOL: RwLock<Option<(usize, ThreadPool)>> = {
+        RwLock::new(None)
     };
 }
 
+fn get_current_num_threads() -> Option<usize> {
+    GLOBAL_POOL
+        .read().unwrap()
+        .as_ref().map(|(th, _)| th)
+        .cloned()
+}
+
+fn global_install_unchecked<OP, R>(op: OP) -> R
+where OP: FnOnce() -> R + Send, R: Send {
+    GLOBAL_POOL
+        .read().unwrap()
+        .as_ref().map(|(_, tp)| tp.install(op))
+        .unwrap()
+}
+
 pub fn num_threads(num_threads: usize) {
-    if GLOBAL_POOL.read().unwrap().0 != num_threads {
-        GLOBAL_POOL.write().unwrap().0 = num_threads;
-        GLOBAL_POOL.write().unwrap().1 =
-            Some(ThreadPoolBuilder::new()
-                .num_threads(num_threads)
-                .build()
-                .unwrap()
-            );
+    match get_current_num_threads() {
+        Some(th) if th == num_threads => {},
+        _ => {
+            *GLOBAL_POOL.write().unwrap() = Some((
+                num_threads,
+                ThreadPoolBuilder::new()
+                    .num_threads(num_threads)
+                    .build()
+                    .unwrap()
+            ));
+        }
     }
 }
 
-pub (crate) fn global_install<OP: FnOnce() -> R + Send, R: Send>(op: OP) -> R {
-    if GLOBAL_POOL.read().unwrap().0 == 0 {
-        num_threads(DEFAULT_NUM_THREADS);
-    }
-    GLOBAL_POOL.read().unwrap().1.as_ref().unwrap().install(op)
+pub (crate) fn global_install<OP, R>(op: OP) -> R
+where OP: FnOnce() -> R + Send, R: Send {
+    let th = get_current_num_threads()
+        .unwrap_or(DEFAULT_NUM_THREADS);
+    num_threads(th);
+    global_install_unchecked(op)
 }
