@@ -110,11 +110,18 @@ impl Reg {
         }
     }
 
+    #[cfg(feature = "cpu")]
     pub fn apply<Op>(&mut self, op: &Op)
-        where Op: crate::operator::applicable::Applicable + Sync {
+    where Op: crate::operator::applicable::Applicable + Sync {
         crate::threads::global_install(|| {
             self.psi = op.apply(std::mem::take(&mut self.psi))
         });
+    }
+
+    #[cfg(not(feature = "cpu"))]
+    pub fn apply<Op>(&mut self, op: &Op)
+    where Op: crate::operator::applicable::Applicable {
+        self.psi = op.apply(std::mem::take(&mut self.psi))
     }
 
     fn normalize(&mut self) -> &mut Self {

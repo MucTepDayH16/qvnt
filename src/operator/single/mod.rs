@@ -14,7 +14,10 @@ pub mod pauli;
 pub mod rotate;
 pub mod swap;
 
+#[cfg(feature = "cpu")]
 type Ptr<T> = std::sync::Arc<T>;
+#[cfg(not(feature = "cpu"))]
+type Ptr<T> = std::rc::Rc<T>;
 
 /// Single quantum operation.
 ///

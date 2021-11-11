@@ -1,9 +1,26 @@
 use super::single::SingleOp;
 use crate::math::{C, R, N};
 
+#[cfg(feature = "cpu")]
 type Ptr<T> = std::sync::Arc<T>;
+#[cfg(not(feature = "cpu"))]
+type Ptr<T> = std::rc::Rc<T>;
 
+#[cfg(feature = "cpu")]
 pub (crate) trait AtomicOp: Send + Sync {
+    fn atomic_op(&self, psi: &[C], idx: N) -> C;
+
+    fn name(&self) -> String;
+
+    fn is_valid(&self) -> bool {
+        true
+    }
+
+    fn dgr(self: Ptr<Self>) -> Ptr<dyn AtomicOp>;
+}
+
+#[cfg(not(feature = "cpu"))]
+pub (crate) trait AtomicOp {
     fn atomic_op(&self, psi: &[C], idx: N) -> C;
 
     fn name(&self) -> String;
