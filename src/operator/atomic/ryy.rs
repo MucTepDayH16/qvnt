@@ -25,7 +25,7 @@ impl AtomicOp for Op {
 }
 
 #[cfg(test)] #[test]
-fn tests() {
+fn matrix_repr() {
     use crate::operator::single::*;
 
     const ANGLE: R = 1.23456;
@@ -37,8 +37,38 @@ fn tests() {
     let op: SingleOp = Op::new(0b11,ANGLE).into();
     assert_eq!(op.name(), "RYY3[1.23456]");
     assert_eq!(op.matrix(2),
-               [   [cos,    O,      O,      i_sin   ],
+               [
+                   [cos,    O,      O,      i_sin   ],
                    [O,      cos,    -i_sin, O       ],
                    [O,      -i_sin, cos,    O       ],
-                   [i_sin,  O,      O,      cos     ]   ]);
+                   [i_sin,  O,      O,      cos     ]
+               ]);
+
+    let op: SingleOp = Op::new(0b110, ANGLE).into();
+    assert_eq!(op.name(), "RYY6[1.23456]");
+    assert_eq!(op.matrix(3),
+               [
+                   [cos,    O,      O,      O,      O,      O,      i_sin,  O       ],
+                   [O,      cos,    O,      O,      O,      O,      O,      i_sin   ],
+                   [O,      O,      cos,    O,      -i_sin, O,      O,      O       ],
+                   [O,      O,      O,      cos,    O,      -i_sin, O,      O       ],
+                   [O,      O,      -i_sin, O,      cos,    O,      O,      O       ],
+                   [O,      O,      O,      -i_sin, O,      cos,    O,      O       ],
+                   [i_sin,  O,      O,      O,      O,      O,      cos,    O       ],
+                   [O,      i_sin,  O,      O,      O,      O,      O,      cos     ],
+               ]);
+
+    let op: SingleOp = Op::new(0b101, ANGLE).into();
+    assert_eq!(op.name(), "RYY5[1.23456]");
+    assert_eq!(op.matrix(3),
+               [
+                   [    cos,    O,      O,      O,      O,      i_sin,  O,      O       ],
+                   [    O,      cos,    O,      O,      -i_sin, O,      O,      O       ],
+                   [    O,      O,      cos,    O,      O,      O,      O,      i_sin   ],
+                   [    O,      O,      O,      cos,    O,      O,      -i_sin, O       ],
+                   [    O,      -i_sin, O,      O,      cos,    O,      O,      O       ],
+                   [    i_sin,  O,      O,      O,      O,      cos,    O,      O       ],
+                   [    O,      O,      O,      -i_sin, O,      O,      cos,    O       ],
+                   [    O,      O,      i_sin,  O,      O,      O,      O,      cos     ],
+               ]);
 }

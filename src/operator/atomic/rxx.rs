@@ -23,7 +23,7 @@ impl AtomicOp for Op {
 }
 
 #[cfg(test)] #[test]
-fn tests() {
+fn matrix_repr() {
     use crate::operator::single::*;
 
     const ANGLE: R = 1.23456;

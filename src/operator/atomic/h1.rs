@@ -26,7 +26,7 @@ impl AtomicOp for Op {
 }
 
 #[cfg(test)] #[test]
-fn tests() {
+fn matrix_repr() {
     use crate::operator::single::*;
 
     const SQRT_1_2: C = C { re: crate::math::FRAC_1_SQRT_2, im: 0.0 };

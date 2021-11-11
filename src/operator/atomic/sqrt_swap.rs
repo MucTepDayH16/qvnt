@@ -32,7 +32,7 @@ impl AtomicOp for Op {
 }
 
 #[cfg(test)] #[test]
-fn tests() {
+fn matrix_repr() {
     use crate::operator::single::*;
 
     const O: C = C{ re: 0.0, im: 0.0 };
