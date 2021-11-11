@@ -16,10 +16,13 @@ jobs:
         uses: snickerbockers/submodules-init@v4
       - name: Set stable channel
         run: rustup default stable
+      - name: Clean space
+        run: cargo clean --package qvnt
       - name: Build crate
-        run: cargo build --release --package qvnt --verbose --all-features
+        run: cargo build --release --package qvnt --verbose --features=${{ matrix.features }}
       - name: Test crate
-        run: cargo test --release --package qvnt --verbose
+        run: cargo test --release --package qvnt --verbose --features=${{ matrix.features }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        features: [default, cpu]

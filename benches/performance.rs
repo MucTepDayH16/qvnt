@@ -18,8 +18,8 @@ fn performance(c: &mut Criterion) {
     #[cfg(not(feature = "cpu"))]
     let count = 1;
 
-    for th_num in 1..=1 {
-        for qu_num in 12..=12 {
+    for th_num in 1..=count {
+        for qu_num in [18, 19, 20] {
             c.bench_function(
                 format!("evaluate_qu{}_th{}", qu_num, th_num).as_str(),
                 |b| b.iter(||

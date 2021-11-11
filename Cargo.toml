@@ -12,7 +12,8 @@ readme      = "README.md"
 license-file = "LICENSE.md"
 
 [features]
-cpu = ["rayon"]
+default     = []
+cpu         = ["rayon", "lazy_static"]
 
 [dependencies]
 lazy_static = { version = "1.4", optional = true }
