@@ -9,7 +9,7 @@ fn perf_test(q_num: usize, t_num: usize) {
     reg.apply(&(op::qft(0b0111) * op::qft(0b1110)));
 
     let mask = 0b100;
-    assert_eq!(reg.measure_mask(mask) & !mask, 0);
+    assert_eq!(reg.measure_mask(mask).get() & !mask, 0);
 }
 
 fn performance(c: &mut Criterion) {

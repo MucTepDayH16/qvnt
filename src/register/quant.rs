@@ -6,9 +6,74 @@ use crate::math::*;
 
 const MIN_QREG_LEN: usize = 8;
 
+/// [`Quantum register`](Reg)
+///
+/// __The heart of [`QVNT`](crate) crate.__ It represents a set of entangle qubits,
+/// their collective wavefunction and techniques for controlling quantum state.
+///
+/// Theoretically it could contain up to 64 qubits, however it would require more than 2_000_000 Terabytes of RAM.
+/// For a common computer with 4Gb RAM the limitation is 26 qubits.
+/// If you have more than 4Gb just remember, that 1 additional qubit require twice more RAM.
+/// More precise formula is:
+///
+/// ```MAX_QUBIT_COUNT = 24 + log2(MEM_CAPACITY_IN_GB)```
+///
+/// For practice purposes it will be enough.
+///
+/// To create quantum computer state, e.g. with 10 qubits, you can use this code:
+///
+/// ```rust
+/// use qvnt::prelude::*;
+///
+/// let q = QReg::new(10);
+/// ```
+///
+/// The quantum register ```q``` starts with state |0>.
+/// To vary initial state of register, you may use [`init_state`](Reg::init_state) modifier:
+///
+/// ```rust
+/// # use qvnt::prelude::*;
+/// // it will create quantum register in state |123>
+/// let q = QReg::new(10).init_state(123);
+/// ```
+///
+/// After creation of quantum computer you would like to be able to control its state.
+/// QVNT provide [`op`](crate::operator) module, which contains an amount of quantum gates.
+/// [`QReg::apply()`](Reg::apply) method is to apply <sup>sorry for tautology :)</sup> them:
+///
+/// ```rust
+/// # use qvnt::prelude::*;
+/// // quantum gates change state, so register must be mutable
+/// let mut q = QReg::new(2);
+///
+/// // controlled gates have to be unwrapped
+/// let gate =  op::h(0b01) * op::x(0b10).c(0b01).unwrap();
+/// q.apply(&gate);
+/// ```
+///
+/// This is the example of entangled state, which means that if we will apply gate on or measure
+/// first(second) qubit, second(first) will change it state automatically.
+/// To show that, we will use [`get_probabilities`](Reg::get_probabilities()) method.
+/// It could show us the probabilities of each state in quantum register:
+///
+/// ```rust
+/// # use qvnt::prelude::*;
+/// let mut q = QReg::new(2);
+/// # let gate = op::h(0b01) * op::x(0b10).c(0b01).unwrap();
+/// q.apply(&gate);
+/// let prob: Vec<f64> = q.get_probabilities();
+/// println!("{:?}", prob);
+/// # assert_eq!(prob, [0.5, 0.0, 0.0, 0.5]);
+/// ```
+///
+/// Output will be ```[0.5, 0.0, 0.0, 0.5]```, which means that quantum state consists only of states |00> and |11>.
+/// Thus, measuring first qubit (```|_0>``` or ```|_1>``` will always collapse second qubit to the same value.
+/// So, this example is just a complicated version if *flipping a coin* example.
+///
+///
 #[derive(Clone)]
 pub struct Reg {
-    pub (crate) psi: Vec<C>,
+    psi: Vec<C>,
     q_num: N,
     q_mask: N,
 }
@@ -37,16 +102,14 @@ impl Reg {
     }
 
     pub fn get_vreg(&self) -> super::VReg {
-        let bi = bits_iter::BitsIter::from(self.q_mask);
-        super::VReg(self.q_mask, bi.collect())
+        super::VReg::new_with_mask(self.q_mask)
     }
 
-    pub fn get_vreg_by_mask(&self, mask: N) -> Option<super::VReg> {
-        if mask & self.q_mask == 0 {
+    pub fn get_vreg_by(&self, mask: N) -> Option<super::VReg> {
+        if mask & !self.q_mask != 0 {
             None
         } else {
-            let bi = bits_iter::BitsIter::from(mask & self.q_mask);
-            Some(super::VReg(mask, bi.collect()))
+            Some(super::VReg::new_with_mask(mask))
         }
     }
 
@@ -137,8 +200,8 @@ impl Reg {
 
     pub fn get_polar(&self) -> Vec<(R, R)> {
         crate::threads::global_install(|| {
-            #[cfg(feature = "cpu")] let iter = self.psi.par_iter();
-            #[cfg(not(feature = "cpu"))] let iter = self.psi.iter();
+            #[cfg(feature = "cpu")] let iter = self.psi[..(1 << self.q_num)].par_iter();
+            #[cfg(not(feature = "cpu"))] let iter = self.psi[..(1 << self.q_num)].iter();
             iter.map(|z| z.to_polar()).collect()
         })
     }
@@ -146,8 +209,8 @@ impl Reg {
     pub fn get_probabilities(&self) -> Vec<R> {
         let abs = self.get_absolute();
         crate::threads::global_install(|| {
-            #[cfg(feature = "cpu")] let iter = self.psi.par_iter();
-            #[cfg(not(feature = "cpu"))] let iter = self.psi.iter();
+            #[cfg(feature = "cpu")] let iter = self.psi[..(1 << self.q_num)].par_iter();
+            #[cfg(not(feature = "cpu"))] let iter = self.psi[..(1 << self.q_num)].iter();
             iter.map(|z| z.norm_sqr() / abs).collect()
         })
     }
@@ -172,9 +235,9 @@ impl Reg {
                     });
         });
     }
-    pub fn measure_mask(&mut self, mask: N) -> N {
+    pub fn measure_mask(&mut self, mask: N) -> super::CReg {
         let mask = mask & self.q_mask;
-        if mask == 0 { return 0; }
+        if mask == 0 { return super::CReg::new(self.q_num); }
 
         let rand_idx = thread_rng().sample(
             rand_distr::WeightedIndex::new(
@@ -183,9 +246,9 @@ impl Reg {
         );
 
         self.collapse_mask(rand_idx, mask);
-        rand_idx & mask
+        super::CReg::new(self.q_num).init_state(rand_idx & mask)
     }
-    pub fn measure(&mut self) -> N {
+    pub fn measure(&mut self) -> super::CReg {
         self.measure_mask(self.q_mask)
     }
 

@@ -79,10 +79,13 @@
 //! ```rust
 //! # use qvnt::prelude::*;
 //! # let mut  reg = QReg::new(8).init_state(4);
-//! println!("{}", reg.measure());
+//! let c = reg.measure();
+//! println!("{}", c.get());
 //! ```
 //!
 //! will print equally distributed values from 0 to 255, which have bit 3 equal to zero and 8 bit equal to one.
+//!
+//! # Gate's modifiers - [`.c(...)`](crate::prelude::Applicable::c) and [`.dgr()`](crate::prelude::Applicable::dgr)
 
 pub use self::{applicable::Applicable, multi::MultiOp, single::SingleOp};
 use self::{multi::*, single::*};

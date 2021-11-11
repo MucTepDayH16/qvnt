@@ -1,10 +1,20 @@
+//! Module contains definitions for quantum and classical registers.
+//!
+//! QVNT provide 3 types of registers:
+//! * [`QReg`] - quantum register;
+//! * [`CReg`] - classical register;
+//! * [`VReg`] - *vurtual* register.
+//!
+//! [`QReg`] is used when you need to build and apply quantum circuit.
+//!
+
 pub (crate) mod virtl;
 pub (crate) mod quant;
 pub (crate) mod class;
 
-pub use virtl::Reg as VReg;
 pub use quant::Reg as QReg;
 pub use class::Reg as CReg;
+pub use virtl::Reg as VReg;
 
 #[cfg(test)]
 mod tests {
@@ -28,7 +38,7 @@ mod tests {
 
         operator.clear();
         assert_eq!(operator.len(), 0);
-        assert_eq!(reg.measure_mask(mask) & !mask, 0);
+        assert_eq!(reg.measure_mask(mask).get() & !mask, 0);
     }
 
     #[test]
@@ -75,9 +85,9 @@ mod tests {
         reg *= QReg::new(2);
 
         let r = reg.get_vreg();
-        let m = reg.get_vreg_by_mask(0b01101).unwrap();
-        let x = reg.get_vreg_by_mask(0b00111).unwrap();
-        let y = reg.get_vreg_by_mask(0b11000).unwrap();
+        let m = reg.get_vreg_by(0b01101).unwrap();
+        let x = reg.get_vreg_by(0b00111).unwrap();
+        let y = reg.get_vreg_by(0b11000).unwrap();
 
         assert_eq!(r[0],    0b00001);
         assert_eq!(r[1],    0b00010);

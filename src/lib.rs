@@ -18,6 +18,7 @@ pub mod threads;
 #[doc(hidden)]
 pub use threads::num_threads;
 #[cfg(not(feature = "cpu"))]
+#[doc(hidden)]
 pub mod threads {
     pub (crate) fn global_install<OP, R>(op: OP) -> R
     where OP: FnOnce() -> R, { op() }
