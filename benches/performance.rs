@@ -2,6 +2,7 @@ use criterion::*;
 use qvnt::prelude::*;
 
 fn perf_test(q_num: usize, t_num: usize) {
+    #[cfg(feature = "cpu")]
     qvnt::num_threads(t_num);
 
     let mut reg = QReg::new(q_num).init_state(0);
@@ -12,7 +13,12 @@ fn perf_test(q_num: usize, t_num: usize) {
 }
 
 fn performance(c: &mut Criterion) {
-    for th_num in 1..=rayon::current_num_threads() {
+    #[cfg(feature = "cpu")]
+    let count = rayon::current_num_threads();
+    #[cfg(not(feature = "cpu"))]
+    let count = 1;
+
+    for th_num in 1..=1 {
         for qu_num in 12..=12 {
             c.bench_function(
                 format!("evaluate_qu{}_th{}", qu_num, th_num).as_str(),

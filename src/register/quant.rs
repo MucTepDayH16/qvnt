@@ -1,4 +1,5 @@
 use {rand::prelude::*, rand_distr};
+#[cfg(feature = "cpu")]
 use rayon::prelude::*;
 use std::{fmt, ops::{Mul, MulAssign}};
 use crate::math::*;
@@ -54,8 +55,11 @@ impl Reg {
         if q.0.q_num == q.1.q_num {
             let mut q_reg = Self::new(q.0.q_num + 1);
             let q_mask = q.0.q_mask;
-            q_reg.psi.par_iter_mut()
-                .enumerate()
+
+            #[cfg(feature = "cpu")] let iter = q_reg.psi.par_iter_mut();
+            #[cfg(not(feature = "cpu"))] let iter = q_reg.psi.iter_mut();
+
+            iter.enumerate()
                 .for_each(|(idx, v)| {
                     let q = (q.0.psi[q_mask & idx], q.1.psi[q_mask & idx]);
                     if !q_mask & idx == 0 {
@@ -74,9 +78,12 @@ impl Reg {
     pub (crate) fn linear_composition(&mut self, psi: &[C], c: (C, C)) {
         assert_eq!(self.psi.len(), psi.len());
 
-        self.psi.par_iter_mut()
-            .zip(psi.par_iter())
-            .for_each(|q| *q.0 = q.0.mul(c.0) + q.1.mul(c.1));
+        #[cfg(feature = "cpu")]
+        let iter = self.psi.par_iter_mut().zip(psi.par_iter());
+        #[cfg(not(feature = "cpu"))]
+        let iter = self.psi.iter_mut().zip(psi.iter());
+
+        iter.for_each(|q| *q.0 = q.0.mul(c.0) + q.1.mul(c.1));
     }
 
     fn tensor_prod(self, other: Self) -> Self {
@@ -86,9 +93,10 @@ impl Reg {
         let q_num = self.q_num + other.q_num;
         let q_size = 1_usize << q_num;
         let psi = crate::threads::global_install(|| {
-            (0..q_size.max(MIN_QREG_LEN))
-                .into_par_iter()
-                .map(
+            #[cfg(feature = "cpu")] let iter = (0..q_size.max(MIN_QREG_LEN)).into_par_iter();
+            #[cfg(not(feature = "cpu"))] let iter = (0..q_size.max(MIN_QREG_LEN)).into_iter();
+
+            iter.map(
                     move |idx| if idx < q_size {
                         self.psi[(idx >> shift.0) & mask.0] * other.psi[(idx >> shift.1) & mask.1]
                     } else {
@@ -112,33 +120,43 @@ impl Reg {
     fn normalize(&mut self) -> &mut Self {
         let norm = 1. / self.get_absolute().sqrt();
         crate::threads::global_install(|| {
-            self.psi.par_iter_mut().for_each(|v| *v *= norm);
+            #[cfg(feature = "cpu")] let iter = self.psi.par_iter_mut();
+            #[cfg(not(feature = "cpu"))] let iter = self.psi.iter_mut();
+
+            iter.for_each(|v| *v *= norm);
         });
         self
     }
 
     pub fn get_polar(&self) -> Vec<(R, R)> {
         crate::threads::global_install(|| {
-            self.psi.par_iter().map(|z| z.to_polar()).collect()
+            #[cfg(feature = "cpu")] let iter = self.psi.par_iter();
+            #[cfg(not(feature = "cpu"))] let iter = self.psi.iter();
+            iter.map(|z| z.to_polar()).collect()
         })
     }
 
     pub fn get_probabilities(&self) -> Vec<R> {
+        let abs = self.get_absolute();
         crate::threads::global_install(|| {
-            let abs = self.psi.par_iter().map(|z| z.norm_sqr()).sum::<R>();
-            self.psi.par_iter().map(|z| z.norm_sqr() / abs).collect()
+            #[cfg(feature = "cpu")] let iter = self.psi.par_iter();
+            #[cfg(not(feature = "cpu"))] let iter = self.psi.iter();
+            iter.map(|z| z.norm_sqr() / abs).collect()
         })
     }
     pub fn get_absolute(&self) -> R {
         crate::threads::global_install(|| {
-            self.psi.par_iter().map(|z| z.norm_sqr()).sum()
+            #[cfg(feature = "cpu")] let iter = self.psi.par_iter();
+            #[cfg(not(feature = "cpu"))] let iter = self.psi.iter();
+            iter.map(|z| z.norm_sqr()).sum()
         })
     }
 
     fn collapse_mask(&mut self, idy: N, mask: N) {
         crate::threads::global_install(|| {
-            self.psi.iter_mut()
-                .enumerate()
+            #[cfg(feature = "cpu")] let iter = self.psi.par_iter_mut();
+            #[cfg(not(feature = "cpu"))] let iter = self.psi.iter_mut();
+            iter.enumerate()
                 .for_each(
                     |(idx, psi)| {
                         if (idx ^ idy) & mask != 0 {
@@ -164,6 +182,7 @@ impl Reg {
         self.measure_mask(self.q_mask)
     }
 
+    #[cfg(feature = "cpu")]
     pub fn sample_all(&self, count: N) -> Vec<N> {
         use std::cmp::Ordering;
 

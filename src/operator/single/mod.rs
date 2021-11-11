@@ -84,25 +84,29 @@ impl SingleOp {
 
 impl Applicable for SingleOp {
     fn apply(&self, psi: Vec<C>) -> Vec<C> {
+        #[cfg(feature = "cpu")]
         use rayon::iter::*;
 
         let len = psi.len();
         let psi = Ptr::new(psi);
 
+        #[cfg(feature = "cpu")] let enum_iter = (0..len).into_par_iter();
+        #[cfg(not(feature = "cpu"))] let enum_iter =(0..len).into_iter();
+
         if self.ctrl != 0 {
-            (0..len).into_par_iter()
-                    .map(
-                        |idx| if !idx & self.ctrl == 0 {
-                            self.func.atomic_op(&psi, idx)
-                        } else {
-                            psi[idx]
-                        }
-                    ).collect()
+            enum_iter
+                .map(
+                    |idx| if !idx & self.ctrl == 0 {
+                        self.func.atomic_op(&psi, idx)
+                    } else {
+                        psi[idx]
+                    }
+                ).collect()
         } else {
-            (0..len).into_par_iter()
-                    .map(
-                        |idx| self.func.atomic_op(&psi, idx)
-                    ).collect()
+            enum_iter
+                .map(
+                    |idx| self.func.atomic_op(&psi, idx)
+                ).collect()
         }
     }
 

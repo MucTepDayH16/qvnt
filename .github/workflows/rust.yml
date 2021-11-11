@@ -17,7 +17,7 @@ jobs:
       - name: Set stable channel
         run: rustup default stable
       - name: Build crate
-        run: cargo build --release --package qvnt --verbose
+        run: cargo build --release --package qvnt --verbose --all-features
       - name: Test crate
         run: cargo test --release --package qvnt --verbose
     strategy:
