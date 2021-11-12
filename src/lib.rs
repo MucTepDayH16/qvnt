@@ -13,6 +13,7 @@ mod threads;
 pub mod operator;
 pub mod register;
 
+#[doc(hidden)]
 pub mod prelude {
     pub use crate::{
         operator as op,

@@ -97,8 +97,6 @@ mod threading {
 /// Output will be ```[0.5, 0.0, 0.0, 0.5]```, which means that quantum state consists only of states |00> and |11>.
 /// Thus, measuring first qubit (```|_0>``` or ```|_1>``` will always collapse second qubit to the same value.
 /// So, this example is just a complicated version if *flipping a coin* example.
-///
-///
 #[derive(Clone)]
 pub struct Reg {
     th: threading::Model,
@@ -108,6 +106,8 @@ pub struct Reg {
 }
 
 impl Reg {
+    /// Create quantum register with a given number of bits.
+    /// Initial value will be 0.
     pub fn new(q_num: N) -> Self {
         let q_size = 1_usize << q_num;
 
@@ -120,10 +120,16 @@ impl Reg {
         }
     }
 
+    /// __This method available with "cpu" feature enabled.__
+    ///
+    /// Set specified number of threads for a given quantum register.
+    /// This value is used all across other methods to accelerate execution, using threads of your computer.
     #[cfg(feature = "cpu")]
     pub fn num_threads(self, num_threads: usize) -> Option<Self> {
-        if num_threads > rayon::current_num_threads() {
+        if 0 == num_threads || num_threads > rayon::current_num_threads() {
             None
+        } else if num_threads == 1 {
+            Some(Self{ th: threading::Single, ..self })
         } else {
             Some(Self{ th: threading::Multi(num_threads), ..self })
         }
@@ -134,15 +140,18 @@ impl Reg {
         self.psi[self.q_mask & i_state] = C_ONE;
     }
 
+    /// Initialize state of qubits.
     pub fn init_state(mut self, i_state: N) -> Self {
         self.reset(i_state);
         self
     }
 
+    /// Acquire the [`VReg`](super::VReg) for a whole quantum register.
     pub fn get_vreg(&self) -> super::VReg {
         super::VReg::new_with_mask(self.q_mask)
     }
 
+    /// Acquire the [`VReg`](super::VReg) for a specified part of quantum register.
     pub fn get_vreg_by(&self, mask: N) -> Option<super::VReg> {
         if mask & !self.q_mask != 0 {
             None
@@ -151,8 +160,38 @@ impl Reg {
         }
     }
 
+    pub (crate) fn combine(q: (&Self, &Self)) -> Option<Self> {
+        if q.0.q_num == q.1.q_num {
+            let mut q_reg = Self::new(q.0.q_num + 1);
+
+            match q.0.th {
+                Model::Single => {
+                    q_reg.psi[..q.0.psi.len()].clone_from_slice(&q.0.psi[..]);
+                    q_reg.psi[q.0.psi.len()..].clone_from_slice(&q.1.psi[..]);
+                }
+                #[cfg(feature = "cpu")]
+                Model::Multi(n) => {
+                    crate::threads::global_install(n, || {
+                        q_reg.psi[..q.0.psi.len()].par_iter_mut()
+                            .zip(q.0.psi.par_iter())
+                            .for_each(|p| *p.0 = *p.1);
+                        q_reg.psi[q.0.psi.len()..].par_iter_mut()
+                            .zip(q.1.psi.par_iter())
+                            .for_each(|p| *p.0 = *p.1);
+                    })
+                }
+            }
+
+            Some(q_reg)
+        } else {
+            None
+        }
+    }
+
     // TODO: add tests for combine
-    pub (crate) fn combine(q: (&Self, &Self), c: M1) -> Option<Self> {
+    pub (crate) fn combine_with_unitary(q: (&Self, &Self), c: M1) -> Option<Self> {
+        #[cfg(feature = "float-cmp")]
+        assert!(crate::math::matrix::is_unitary_m1(&c));
         if q.0.q_num == q.1.q_num {
             let mut q_reg = Self::new(q.0.q_num + 1);
             let q_mask = q.0.q_mask;
@@ -196,12 +235,19 @@ impl Reg {
     pub (crate) fn linear_composition(&mut self, psi: &[C], c: (C, C)) {
         assert_eq!(self.psi.len(), psi.len());
 
-        #[cfg(feature = "cpu")]
-        let iter = self.psi.par_iter_mut().zip(psi.par_iter());
-        #[cfg(not(feature = "cpu"))]
-        let iter = self.psi.iter_mut().zip(psi.iter());
-
-        iter.for_each(|q| *q.0 = q.0.mul(c.0) + q.1.mul(c.1));
+        match self.th {
+            Model::Single => {
+                self.psi.iter_mut().zip(psi.iter())
+                    .for_each(|q| *q.0 = q.0.mul(c.0) + q.1.mul(c.1))
+            }
+            #[cfg(feature = "cpu")]
+            Model::Multi(n) => {
+                crate::threads::global_install(n, || {
+                    self.psi.par_iter_mut().zip(psi.par_iter())
+                        .for_each(|q| *q.0 = q.0.mul(c.0) + q.1.mul(c.1))
+                })
+            }
+        }
     }
 
     fn tensor_prod(self, other: Self) -> Self {
@@ -244,11 +290,17 @@ impl Reg {
         }
     }
 
+    /// Apply quantum gate to register.
+    /// This method only works in single threading model.
+    /// To accelerate it you may use [`apply_sync`].
     pub fn apply<Op>(&mut self, op: &Op)
     where Op: crate::operator::applicable::Applicable {
         self.psi = op.apply(std::mem::take(&mut self.psi))
     }
 
+    /// __This method available with "cpu" feature enabled.__
+    ///
+    /// Apply quantum gate to register, using specified number of threads in [`num_threads`](Reg::num_threads).
     #[cfg(feature = "cpu")]
     pub fn apply_sync<Op>(&mut self, op: &Op)
     where Op: crate::operator::applicable::ApplicableSync {
@@ -279,6 +331,7 @@ impl Reg {
         self
     }
 
+    /// Return complex amplitudes of quantum states of register in polar form.
     pub fn get_polar(&self) -> Vec<(R, R)> {
         match self.th {
             Model::Single => {
@@ -295,6 +348,7 @@ impl Reg {
         }
     }
 
+    /// Return probabilities of quantum states of register.
     pub fn get_probabilities(&self) -> Vec<R> {
         match self.th {
             Model::Single => {
@@ -318,6 +372,9 @@ impl Reg {
             }
         }
     }
+
+    /// Return absolute value of wavefunction of quantum register.
+    /// If you use gates from [`op`](crate::operator) module, it always will be 1.
     pub fn get_absolute(&self) -> R {
         match self.th {
             Model::Single => {
@@ -363,6 +420,9 @@ impl Reg {
             }
         }
     }
+
+    /// Measure specified qubits into classical register.
+    /// Wavefunction of quantum register will collapse after measurement.
     pub fn measure_mask(&mut self, mask: N) -> super::CReg {
         let mask = mask & self.q_mask;
         if mask == 0 { return super::CReg::new(self.q_num); }
@@ -376,11 +436,17 @@ impl Reg {
         self.collapse_mask(rand_idx, mask);
         super::CReg::new(self.q_num).init_state(rand_idx & mask)
     }
+
+    /// Measure all qubits into classical register.
+    /// Wavefunction of quantum register will collapse after measurement.
     pub fn measure(&mut self) -> super::CReg {
         self.measure_mask(self.q_mask)
     }
 
-    #[cfg(feature = "cpu")]
+    /// Make a histogram for quantum register.
+    /// This histogram also could be obtained by calling [`measure`](Reg::measure) *count* times.
+    /// But [`sample_all`](Reg::sample_all) does not collapse wavefunction and executes __MUSH FASTER__.
+    /// If you want to simulate the execution of quantum computer, you would prefer [`sample_all`](Reg::sample_all).
     pub fn sample_all(&self, count: N) -> Vec<N> {
         use std::cmp::Ordering;
 
@@ -411,6 +477,7 @@ impl Reg {
 
                 (n, delta)
             }
+            #[cfg(feature = "cpu")]
             Model::Multi(n) => {
                 crate::threads::global_install(n, || {
                     let n = p
@@ -442,7 +509,7 @@ impl Reg {
                 let delta = (delta >> self.q_num, delta % self.q_mask);
                 for (idx, n) in n.iter_mut().enumerate() {
                     *n += delta.0;
-                    if idx < delta.1 {
+                    if delta.1 > 0 {
                         *n += 1;
                     }
                 }
@@ -485,5 +552,78 @@ impl Mul for Reg {
 impl MulAssign for Reg {
     fn mul_assign(&mut self, rhs: Self) {
         *self = std::mem::take(self).tensor_prod(rhs);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::prelude::*;
+
+    #[test]
+    fn quantum_reg() {
+        let mut reg = QReg::new(4)
+            .init_state(0b1100);
+        let mask = 0b0110;
+
+        let mut operator =
+            op::h(0b1111)
+                * op::h(0b0011).c(0b1000).unwrap()
+                * op::swap(0b1001).c(0b0010).unwrap()
+            ;
+
+        reg.apply(&operator);
+
+        assert_eq!(format!("{:?}", operator), "[H3, H12, C8_H3, C2_SWAP9]");
+        assert_eq!(format!("{:?}", reg), "[Complex { re: 0.25, im: 0.0 }, Complex { re: 0.25, im: 0.0 }, Complex { re: 0.25, im: 0.0 }, Complex { re: 0.0, im: 0.0 }, Complex { re: -0.25, im: 0.0 }, Complex { re: -0.25, im: 0.0 }, Complex { re: -0.25, im: 0.0 }, Complex { re: 0.0, im: 0.0 }]");
+
+        operator.clear();
+        assert_eq!(operator.len(), 0);
+        assert_eq!(reg.measure_mask(mask).get() & !mask, 0);
+    }
+
+    #[test]
+    fn tensor() {
+        const EPS: f64 = 1e-9;
+
+        let pend_ops = op::h(0b01);
+
+        let mut reg1 = QReg::new(2).init_state(0b01);
+        let mut reg2 = QReg::new(1).init_state(0b1);
+
+        reg1.apply(&pend_ops);
+        reg2.apply(&pend_ops);
+
+        let test_prob = (reg1 * reg2).get_probabilities();
+        let true_prob = vec![0.25, 0.25, 0., 0., 0.25, 0.25, 0., 0.];
+
+        assert!(
+            test_prob.into_iter().zip(true_prob.into_iter())
+                     .all(|(a, b)| (a - b).abs() < EPS)
+        );
+
+        let mut reg3 = QReg::new(3).init_state(0b101);
+        let pend_ops = op::h(0b101);
+
+        reg3.apply(&pend_ops);
+
+        let test_prob = reg3.get_probabilities();
+        let true_prob = vec![0.25, 0.25, 0., 0., 0.25, 0.25, 0., 0.];
+
+        assert!(
+            test_prob.into_iter().zip(true_prob.into_iter())
+                     .all(|(a, b)| (a - b).abs() < EPS)
+        );
+    }
+
+    #[test]
+    fn histogram() {
+        let mut q = QReg::new(8).init_state(123);
+
+        q.apply(&op::h(255));
+
+        for _ in 0..10 {
+            let hist = q.sample_all(2048);
+            assert_eq!(hist.iter().sum::<usize>(), 2048);
+        }
     }
 }
