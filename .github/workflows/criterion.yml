@@ -13,6 +13,4 @@ jobs:
       - name: Checkout master
         uses: actions/checkout@v2
       - name: Benchmark crate
-        run: cargo bench --package qvnt --bench performance
-      - name: Benchmark crate (with "cpu" feature)
         run: cargo bench --package qvnt --bench performance --features=cpu

@@ -25,25 +25,21 @@ where OP: FnOnce() -> R + Send, R: Send {
         .unwrap()
 }
 
-pub fn num_threads(num_threads: usize) {
-    match get_current_num_threads() {
-        Some(th) if th == num_threads => {},
-        _ => {
-            *GLOBAL_POOL.write().unwrap() = Some((
-                num_threads,
-                ThreadPoolBuilder::new()
-                    .num_threads(num_threads)
-                    .build()
-                    .unwrap()
-            ));
-        }
-    }
+fn set_num_threads(num_threads: usize) {
+    *GLOBAL_POOL.write().unwrap() = Some((
+        num_threads,
+        ThreadPoolBuilder::new()
+            .num_threads(num_threads)
+            .build()
+            .unwrap()
+    ));
 }
 
-pub (crate) fn global_install<OP, R>(op: OP) -> R
+pub (crate) fn global_install<OP, R>(num_threads: usize, op: OP) -> R
 where OP: FnOnce() -> R + Send, R: Send {
-    let th = get_current_num_threads()
-        .unwrap_or(DEFAULT_NUM_THREADS);
-    num_threads(th);
+    match get_current_num_threads() {
+        Some(th) if th == num_threads => {},
+        _ => set_num_threads(num_threads),
+    };
     global_install_unchecked(op)
 }

@@ -37,3 +37,8 @@ pub trait Applicable: Sized {
         matrix
     }
 }
+
+#[cfg(feature = "cpu")]
+pub trait ApplicableSync: Applicable + Sync {
+    fn apply_sync(&self, psi: Vec<C>) -> Vec<C>;
+}

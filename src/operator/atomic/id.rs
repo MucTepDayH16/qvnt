@@ -1,5 +1,6 @@
 pub use super::*;
 
+#[derive(Clone, Copy)]
 pub (crate) struct Op ();
 
 impl Into<SingleOp> for Op {
@@ -17,9 +18,11 @@ impl AtomicOp for Op {
         "Id".to_string()
     }
 
-    fn dgr(self: Ptr<Self>) -> Ptr<dyn AtomicOp> {
-        self
+    fn dgr(&self) -> Box<dyn AtomicOp> {
+        Box::new(*self)
     }
+
+    clone_impl!{}
 }
 
 #[cfg(test)] #[test]

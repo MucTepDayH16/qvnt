@@ -87,11 +87,11 @@
 //!
 //! # Gate's modifiers - [`.c(...)`](crate::prelude::Applicable::c) and [`.dgr()`](crate::prelude::Applicable::dgr)
 
-pub use self::{applicable::Applicable, multi::MultiOp, single::SingleOp};
+pub use self::{applicable::*, multi::MultiOp, single::SingleOp};
 use self::{multi::*, single::*};
 use crate::math::{C, R, N, FRAC_PI_2};
 
-pub(crate) mod applicable;
+pub (crate) mod applicable;
 
 pub (self) mod atomic;
 pub (self) mod single;

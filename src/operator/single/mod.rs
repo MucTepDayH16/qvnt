@@ -1,5 +1,8 @@
+use std::{rc::Rc, sync::Arc};
 use crate::{math::{C, R, N}, operator::atomic::*};
-pub(crate) use super::Applicable;
+#[cfg(feature = "cpu")]
+pub (crate) use super::ApplicableSync;
+pub (crate) use super::Applicable;
 
 macro_rules! single_op_checked {
     ($op:expr) => {
@@ -13,11 +16,6 @@ macro_rules! single_op_checked {
 pub mod pauli;
 pub mod rotate;
 pub mod swap;
-
-#[cfg(feature = "cpu")]
-type Ptr<T> = std::sync::Arc<T>;
-#[cfg(not(feature = "cpu"))]
-type Ptr<T> = std::rc::Rc<T>;
 
 /// Single quantum operation.
 ///
@@ -48,7 +46,7 @@ type Ptr<T> = std::rc::Rc<T>;
 pub struct SingleOp {
     pub (crate) act: N,
     pub (crate) ctrl: N,
-    pub (crate) func: Ptr<dyn AtomicOp>,
+    pub (crate) func: Box<dyn AtomicOp>,
 }
 
 impl SingleOp {
@@ -87,26 +85,21 @@ impl SingleOp {
 
 impl Applicable for SingleOp {
     fn apply(&self, psi: Vec<C>) -> Vec<C> {
-        #[cfg(feature = "cpu")]
-        use rayon::iter::*;
-
         let len = psi.len();
-        let psi = Ptr::new(psi);
+        let ctrl = self.ctrl;
+        let func = self.func.as_ref();
 
-        #[cfg(feature = "cpu")] let enum_iter = (0..len).into_par_iter();
-        #[cfg(not(feature = "cpu"))] let enum_iter =(0..len).into_iter();
-
-        if self.ctrl != 0 {
-            enum_iter
+        if ctrl != 0 {
+            (0..len).into_iter()
                 .map(
-                    |idx| if !idx & self.ctrl == 0 {
-                        self.func.atomic_op(&psi, idx)
+                    |idx| if !idx & ctrl == 0 {
+                        func.atomic_op(&psi, idx)
                     } else {
                         psi[idx]
                     }
                 ).collect()
         } else {
-            enum_iter
+            (0..len).into_iter()
                 .map(
                     |idx| self.func.atomic_op(&psi, idx)
                 ).collect()
@@ -121,7 +114,7 @@ impl Applicable for SingleOp {
     #[inline]
     fn dgr(self) -> Self {
         Self {
-            func: self.func.dgr(),
+            func: self.func.dgr().into(),
             ..self
         }
     }
@@ -135,6 +128,33 @@ impl Applicable for SingleOp {
                 ctrl: self.ctrl | c,
                 ..self
             })
+        }
+    }
+}
+
+#[cfg(feature = "cpu")]
+impl ApplicableSync for SingleOp {
+    fn apply_sync(&self, psi: Vec<C>) -> Vec<C> {
+        use rayon::iter::*;
+
+        let len = psi.len();
+        let ctrl = self.ctrl;
+        let func = self.func.as_ref();
+
+        if ctrl != 0 {
+            (0..len).into_par_iter()
+                .map(
+                    |idx| if !idx & ctrl == 0 {
+                        func.atomic_op(&psi, idx)
+                    } else {
+                        psi[idx]
+                    }
+                ).collect()
+        } else {
+            (0..len).into_par_iter()
+                .map(
+                    |idx| func.atomic_op(&psi, idx)
+                ).collect()
         }
     }
 }

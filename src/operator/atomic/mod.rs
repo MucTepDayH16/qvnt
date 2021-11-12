@@ -1,13 +1,9 @@
+use std::{boxed::Box as Ptr};
+use std::ops::Deref;
 use super::single::SingleOp;
 use crate::math::{C, R, N};
 
-#[cfg(feature = "cpu")]
-type Ptr<T> = std::sync::Arc<T>;
-#[cfg(not(feature = "cpu"))]
-type Ptr<T> = std::rc::Rc<T>;
-
-#[cfg(feature = "cpu")]
-pub (crate) trait AtomicOp: Send + Sync {
+pub (crate) trait AtomicOp: Sync + Send {
     fn atomic_op(&self, psi: &[C], idx: N) -> C;
 
     fn name(&self) -> String;
@@ -16,24 +12,27 @@ pub (crate) trait AtomicOp: Send + Sync {
         true
     }
 
-    fn dgr(self: Ptr<Self>) -> Ptr<dyn AtomicOp>;
+    fn dgr(&self) -> Box<dyn AtomicOp>;
+
+    fn cloned(&self) -> Box<dyn AtomicOp>;
 }
 
-#[cfg(not(feature = "cpu"))]
-pub (crate) trait AtomicOp {
-    fn atomic_op(&self, psi: &[C], idx: N) -> C;
-
-    fn name(&self) -> String;
-
-    fn is_valid(&self) -> bool {
-        true
+impl Clone for Box<dyn AtomicOp> {
+    fn clone(&self) -> Self {
+        self.deref().cloned()
     }
-
-    fn dgr(self: Ptr<Self>) -> Ptr<dyn AtomicOp>;
 }
 
+macro_rules! clone_impl {
+    () => {
+        fn cloned(&self) -> Box<dyn AtomicOp> {
+            Box::new(self.clone())
+        }
+    }
+}
 macro_rules! op_impl {
     (s $mask:ident) => {
+        #[derive(Clone, Copy)]
         pub(crate) struct Op {
             $mask: N,
         }
@@ -45,17 +44,10 @@ macro_rules! op_impl {
             }
         }
 
-        impl Into<SingleOp> for Op {
-            fn into(self) -> SingleOp {
-                SingleOp {
-                    act: self.$mask,
-                    ctrl: 0,
-                    func: Ptr::new(self),
-                }
-            }
-        }
+        into_single_op_impl! { $mask }
     };
     (d $mask:ident) => {
+        #[derive(Clone, Copy)]
         pub(crate) struct Op {
             $mask: N,
             dagger: bool,
@@ -71,17 +63,10 @@ macro_rules! op_impl {
             }
         }
 
-        impl Into<SingleOp> for Op {
-            fn into(self) -> SingleOp {
-                SingleOp {
-                    act: self.$mask,
-                    ctrl: 0,
-                    func: Ptr::new(self),
-                }
-            }
-        }
+        into_single_op_impl! { $mask }
     };
     (r $mask:ident) => {
+        #[derive(Clone, Copy)]
         pub(crate) struct Op {
             $mask: N,
             phase: C,
@@ -96,15 +81,7 @@ macro_rules! op_impl {
             }
         }
 
-        impl Into<SingleOp> for Op {
-            fn into(self) -> SingleOp {
-                SingleOp {
-                    act: self.$mask,
-                    ctrl: 0,
-                    func: Ptr::new(self),
-                }
-            }
-        }
+        into_single_op_impl! { $mask }
     };
 }
 macro_rules! into_single_op_impl {

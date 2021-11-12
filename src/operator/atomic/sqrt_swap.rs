@@ -26,9 +26,11 @@ impl AtomicOp for Op {
         self.ab_mask.count_ones() == 2
     }
 
-    fn dgr(self: Ptr<Self>) -> Ptr<dyn AtomicOp> {
-        Ptr::new(Self{ dagger: !self.dagger, ..*self })
+    fn dgr(&self) -> Box<dyn AtomicOp> {
+        Box::new(Self{ dagger: !self.dagger, ..*self })
     }
+
+    clone_impl!{}
 }
 
 #[cfg(test)] #[test]

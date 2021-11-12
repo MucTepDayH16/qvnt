@@ -22,7 +22,8 @@ mod tests {
 
     #[test]
     fn quantum_reg() {
-        let mut reg = QReg::new(4).init_state(0b1100);
+        let mut reg = QReg::new(4)
+            .init_state(0b1100);
         let mask = 0b0110;
 
         let mut operator =

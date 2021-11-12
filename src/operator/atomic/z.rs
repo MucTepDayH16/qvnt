@@ -15,9 +15,11 @@ impl AtomicOp for Op {
         format!("Z{}", self.a_mask)
     }
 
-    fn dgr(self: Ptr<Self>) -> Ptr<dyn AtomicOp> {
-        self
+    fn dgr(&self) -> Box<dyn AtomicOp> {
+        Box::new(*self)
     }
+
+    clone_impl!{}
 }
 
 #[cfg(test)] #[test]

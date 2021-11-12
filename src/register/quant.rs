@@ -3,8 +3,36 @@ use {rand::prelude::*, rand_distr};
 use rayon::prelude::*;
 use std::{fmt, ops::{Mul, MulAssign}};
 use crate::math::*;
+use crate::prelude::quant::threading::Model;
 
 const MIN_QREG_LEN: usize = 8;
+
+mod threading {
+    use super::*;
+
+    #[derive(Clone, Copy, Debug)]
+    pub enum Model {
+        Single,
+        #[cfg(feature = "cpu")]
+        Multi(N),
+    }
+
+    pub use Model::*;
+
+    impl Model {
+        pub fn and(self, other: Self) -> Self {
+            match (self, other) {
+                (Single, Single) => Single,
+                #[cfg(feature = "cpu")]
+                (Single, Multi(n)) => Multi(n),
+                #[cfg(feature = "cpu")]
+                (Multi(n), Single) => Multi(n),
+                #[cfg(feature = "cpu")]
+                (Multi(n), Multi(m)) => Multi(n.max(m)),
+            }
+        }
+    }
+}
 
 /// [`Quantum register`](Reg)
 ///
@@ -73,6 +101,7 @@ const MIN_QREG_LEN: usize = 8;
 ///
 #[derive(Clone)]
 pub struct Reg {
+    th: threading::Model,
     psi: Vec<C>,
     q_num: N,
     q_mask: N,
@@ -86,8 +115,17 @@ impl Reg {
         psi[0] = C_ONE;
 
         Self {
-            psi, q_num,
+            th: threading::Single, psi, q_num,
             q_mask: q_size.wrapping_add(!0_usize),
+        }
+    }
+
+    #[cfg(feature = "cpu")]
+    pub fn num_threads(self, num_threads: usize) -> Option<Self> {
+        if num_threads > rayon::current_num_threads() {
+            None
+        } else {
+            Some(Self{ th: threading::Multi(num_threads), ..self })
         }
     }
 
@@ -119,18 +157,35 @@ impl Reg {
             let mut q_reg = Self::new(q.0.q_num + 1);
             let q_mask = q.0.q_mask;
 
-            #[cfg(feature = "cpu")] let iter = q_reg.psi.par_iter_mut();
-            #[cfg(not(feature = "cpu"))] let iter = q_reg.psi.iter_mut();
-
-            iter.enumerate()
-                .for_each(|(idx, v)| {
-                    let q = (q.0.psi[q_mask & idx], q.1.psi[q_mask & idx]);
-                    if !q_mask & idx == 0 {
-                        *v = c[0b00] * q.0 + c[0b01] * q.1;
-                    } else {
-                        *v = c[0b10] * q.0 + c[0b11] * q.1;
-                    }
-                });
+            match q.0.th.and(q.1.th) {
+                Model::Single => {
+                    q_reg.psi.iter_mut()
+                        .enumerate()
+                        .for_each(|(idx, v)| {
+                            let q = (q.0.psi[q_mask & idx], q.1.psi[q_mask & idx]);
+                            if !q_mask & idx == 0 {
+                                *v = c[0b00] * q.0 + c[0b01] * q.1;
+                            } else {
+                                *v = c[0b10] * q.0 + c[0b11] * q.1;
+                            }
+                        });
+                }
+                #[cfg(feature = "cpu")]
+                Model::Multi(n) => {
+                    crate::threads::global_install(n, || {
+                        q_reg.psi.par_iter_mut()
+                             .enumerate()
+                             .for_each(|(idx, v)| {
+                                 let q = (q.0.psi[q_mask & idx], q.1.psi[q_mask & idx]);
+                                 if !q_mask & idx == 0 {
+                                     *v = c[0b00] * q.0 + c[0b01] * q.1;
+                                 } else {
+                                     *v = c[0b10] * q.0 + c[0b11] * q.1;
+                                 }
+                             });
+                    })
+                }
+            }
             Some(q_reg)
         } else {
             None
@@ -150,90 +205,163 @@ impl Reg {
     }
 
     fn tensor_prod(self, other: Self) -> Self {
+        let th = self.th.and(other.th);
+
         let shift = (0u8, self.q_num as u8);
         let mask = (self.q_mask, other.q_mask);
 
         let q_num = self.q_num + other.q_num;
         let q_size = 1_usize << q_num;
-        let psi = crate::threads::global_install(|| {
-            #[cfg(feature = "cpu")] let iter = (0..q_size.max(MIN_QREG_LEN)).into_par_iter();
-            #[cfg(not(feature = "cpu"))] let iter = (0..q_size.max(MIN_QREG_LEN)).into_iter();
 
-            iter.map(
-                    move |idx| if idx < q_size {
-                        self.psi[(idx >> shift.0) & mask.0] * other.psi[(idx >> shift.1) & mask.1]
-                    } else {
-                        C_ZERO
-                    }
-                ).collect()
-        });
+        let psi = match th {
+            Model::Single => {
+                (0..q_size.max(MIN_QREG_LEN))
+                    .into_iter()
+                    .map(
+                        move |idx| if idx < q_size {
+                            self.psi[(idx >> shift.0) & mask.0] * other.psi[(idx >> shift.1) & mask.1]
+                        } else {
+                            C_ZERO
+                        }
+                    ).collect()
+            }
+            #[cfg(feature = "cpu")]
+            Model::Multi(n) => {
+                crate::threads::global_install(n, || {
+                    (0..q_size.max(MIN_QREG_LEN)).into_par_iter().map(
+                        move |idx| if idx < q_size {
+                            self.psi[(idx >> shift.0) & mask.0] * other.psi[(idx >> shift.1) & mask.1]
+                        } else {
+                            C_ZERO
+                        }
+                    ).collect()
+                })
+            }
+        };
 
         Self {
-            psi, q_num, q_mask: q_size.wrapping_add(!0_usize),
+            th, psi, q_num, q_mask: q_size.wrapping_add(!0_usize),
         }
     }
 
-    #[cfg(feature = "cpu")]
-    pub fn apply<Op>(&mut self, op: &Op)
-    where Op: crate::operator::applicable::Applicable + Sync {
-        crate::threads::global_install(|| {
-            self.psi = op.apply(std::mem::take(&mut self.psi))
-        });
-    }
-
-    #[cfg(not(feature = "cpu"))]
     pub fn apply<Op>(&mut self, op: &Op)
     where Op: crate::operator::applicable::Applicable {
         self.psi = op.apply(std::mem::take(&mut self.psi))
     }
 
+    #[cfg(feature = "cpu")]
+    pub fn apply_sync<Op>(&mut self, op: &Op)
+    where Op: crate::operator::applicable::ApplicableSync {
+        match self.th {
+            Model::Single => self.apply(op),
+            #[cfg(feature = "cpu")]
+            Model::Multi(n) => {
+                crate::threads::global_install(n, || {
+                    self.psi = op.apply_sync(std::mem::take(&mut self.psi));
+                })
+            }
+        }
+    }
+
     fn normalize(&mut self) -> &mut Self {
         let norm = 1. / self.get_absolute().sqrt();
-        crate::threads::global_install(|| {
-            #[cfg(feature = "cpu")] let iter = self.psi.par_iter_mut();
-            #[cfg(not(feature = "cpu"))] let iter = self.psi.iter_mut();
-
-            iter.for_each(|v| *v *= norm);
-        });
+        match self.th {
+            Model::Single => {
+                self.psi.iter_mut().for_each(|v| *v *= norm)
+            }
+            #[cfg(feature = "cpu")]
+            Model::Multi(n) => {
+                crate::threads::global_install(n, || {
+                    self.psi.par_iter_mut().for_each(|v| *v *= norm)
+                })
+            }
+        };
         self
     }
 
     pub fn get_polar(&self) -> Vec<(R, R)> {
-        crate::threads::global_install(|| {
-            #[cfg(feature = "cpu")] let iter = self.psi[..(1 << self.q_num)].par_iter();
-            #[cfg(not(feature = "cpu"))] let iter = self.psi[..(1 << self.q_num)].iter();
-            iter.map(|z| z.to_polar()).collect()
-        })
+        match self.th {
+            Model::Single => {
+                self.psi[..(1 << self.q_num)].iter()
+                    .map(|z| z.to_polar()).collect()
+            }
+            #[cfg(feature = "cpu")]
+            Model::Multi(n) => {
+                crate::threads::global_install(n, || {
+                    self.psi[..(1 << self.q_num)].par_iter()
+                        .map(|z| z.to_polar()).collect()
+                })
+            }
+        }
     }
 
     pub fn get_probabilities(&self) -> Vec<R> {
-        let abs = self.get_absolute();
-        crate::threads::global_install(|| {
-            #[cfg(feature = "cpu")] let iter = self.psi[..(1 << self.q_num)].par_iter();
-            #[cfg(not(feature = "cpu"))] let iter = self.psi[..(1 << self.q_num)].iter();
-            iter.map(|z| z.norm_sqr() / abs).collect()
-        })
+        match self.th {
+            Model::Single => {
+                let abs: R = self.psi.iter()
+                    .map(|z| z.norm_sqr())
+                    .sum();
+                self.psi[..(1 << self.q_num)].iter()
+                    .map(|z| z.norm_sqr() / abs)
+                    .collect()
+            }
+            #[cfg(feature = "cpu")]
+            Model::Multi(n) => {
+                crate::threads::global_install(n, || {
+                    let abs: R = self.psi.par_iter()
+                        .map(|z| z.norm_sqr())
+                        .sum();
+                    self.psi[..(1 << self.q_num)].par_iter()
+                        .map(|z| z.norm_sqr() / abs)
+                        .collect()
+                })
+            }
+        }
     }
     pub fn get_absolute(&self) -> R {
-        crate::threads::global_install(|| {
-            #[cfg(feature = "cpu")] let iter = self.psi.par_iter();
-            #[cfg(not(feature = "cpu"))] let iter = self.psi.iter();
-            iter.map(|z| z.norm_sqr()).sum()
-        })
+        match self.th {
+            Model::Single => {
+                self.psi.iter()
+                    .map(|z| z.norm_sqr())
+                    .sum()
+            }
+            #[cfg(feature = "cpu")]
+            Model::Multi(n) => {
+                crate::threads::global_install(n, || {
+                    self.psi.par_iter()
+                        .map(|z| z.norm_sqr())
+                        .sum()
+                })
+            }
+        }
     }
 
     fn collapse_mask(&mut self, idy: N, mask: N) {
-        crate::threads::global_install(|| {
-            #[cfg(feature = "cpu")] let iter = self.psi.par_iter_mut();
-            #[cfg(not(feature = "cpu"))] let iter = self.psi.iter_mut();
-            iter.enumerate()
-                .for_each(
-                    |(idx, psi)| {
-                        if (idx ^ idy) & mask != 0 {
-                            *psi = C_ZERO;
-                        }
-                    });
-        });
+        match self.th {
+            Model::Single => {
+                self.psi.iter_mut()
+                    .enumerate()
+                    .for_each(
+                        |(idx, psi)| {
+                            if (idx ^ idy) & mask != 0 {
+                                *psi = C_ZERO;
+                            }
+                        });
+            }
+            #[cfg(feature = "cpu")]
+            Model::Multi(n) => {
+                crate::threads::global_install(n, || {
+                    self.psi.par_iter_mut()
+                        .enumerate()
+                        .for_each(
+                            |(idx, psi)| {
+                                if (idx ^ idy) & mask != 0 {
+                                    *psi = C_ZERO;
+                                }
+                            });
+                })
+            }
+        }
     }
     pub fn measure_mask(&mut self, mask: N) -> super::CReg {
         let mask = mask & self.q_mask;
@@ -260,38 +388,64 @@ impl Reg {
         let c = count as R;
         let c_sqrt = c.sqrt();
 
-        let (mut n, delta) = crate::threads::global_install(|| {
-            let n = p
-                .par_iter()
-                .map(|&p| {
-                    let rnd: R = rand::thread_rng().sample(rand_distr::StandardNormal);
-                    p.sqrt() * rnd
+        let (mut n, delta) = match self.th {
+            Model::Single => {
+                let mut rng = rand::thread_rng();
+                let n = p.iter()
+                    .map(|&p| {
+                        let rnd: R = rng.sample(rand_distr::StandardNormal);
+                        p.sqrt() * rnd
+                    })
+                    .collect::<Vec<R>>();
+
+                let n_sum = n.iter().sum::<R>();
+
+                let n = (0..self.psi.len())
+                    .into_iter()
+                    .map(|idx| {
+                        ((c * p[idx] + c_sqrt * (n[idx] - n_sum * p[idx])).round() as Z).max(0) as N
+                    })
+                    .collect::<Vec<N>>();
+
+                let delta = n.iter().sum::<N>() as Z - count as Z;
+
+                (n, delta)
+            }
+            Model::Multi(n) => {
+                crate::threads::global_install(n, || {
+                    let n = p
+                        .par_iter()
+                        .map(|&p| {
+                            let rnd: R = rand::thread_rng().sample(rand_distr::StandardNormal);
+                            p.sqrt() * rnd
+                        })
+                        .collect::<Vec<R>>();
+
+                    let n_sum = n.par_iter().sum::<R>();
+
+                    let n = (0..self.psi.len())
+                        .into_par_iter()
+                        .map(|idx| {
+                            ((c * p[idx] + c_sqrt * (n[idx] - n_sum * p[idx])).round() as Z).max(0) as N
+                        })
+                        .collect::<Vec<N>>();
+
+                    let delta = n.par_iter().sum::<N>() as Z - count as Z;
+
+                    (n, delta)
                 })
-                .collect::<Vec<R>>();
-
-            let n_sum = n.par_iter().sum::<R>();
-
-            let n = (0..self.psi.len())
-                .into_par_iter()
-                .map(|idx| {
-                    ((c * p[idx] + c_sqrt * (n[idx] - n_sum * p[idx])).round() as Z).max(0) as N
-                })
-                .collect::<Vec<N>>();
-
-            let delta = n.par_iter().sum::<N>() as Z - count as Z;
-
-            (n, delta)
-        });
+            }
+        };
         match delta.cmp(&0) {
             Ordering::Less => {
                 let delta = delta.abs() as N;
                 let delta = (delta >> self.q_num, delta % self.q_mask);
-                n.par_iter_mut().for_each(|n| {
+                for (idx, n) in n.iter_mut().enumerate() {
                     *n += delta.0;
-                });
-                n.par_iter_mut().zip((0..delta.1).into_par_iter()).for_each(|(n, _)| {
-                    *n += 1;
-                });
+                    if idx < delta.1 {
+                        *n += 1;
+                    }
+                }
             },
             Ordering::Greater => {
                 let mut delta = delta as N;

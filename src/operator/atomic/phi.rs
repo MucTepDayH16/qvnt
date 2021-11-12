@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use super::*;
 
+#[derive(Clone)]
 pub struct Op {
     phases: BTreeMap<N, C>,
 }
@@ -44,7 +45,9 @@ impl AtomicOp for Op {
         format!("Phase{:?}", self.phases)
     }
 
-    fn dgr(self: Ptr<Self>) -> Ptr<dyn AtomicOp> {
-        Ptr::new(Self{ phases: self.phases.iter().map(|(idx, ang)| (*idx, ang.conj())).collect() })
+    fn dgr(&self) -> Box<dyn AtomicOp> {
+        Box::new(Self{ phases: self.phases.iter().map(|(idx, ang)| (*idx, ang.conj())).collect() })
     }
+
+    clone_impl!{}
 }

@@ -20,9 +20,11 @@ impl AtomicOp for Op {
         self.a_mask.count_ones() == 1
     }
 
-    fn dgr(self: Ptr<Self>) -> Ptr<dyn AtomicOp> {
-        self
+    fn dgr(&self) -> Box<dyn AtomicOp> {
+        Box::new(*self)
     }
+
+    clone_impl!{}
 }
 
 #[cfg(test)] #[test]

@@ -1,5 +1,7 @@
 use std::{collections::VecDeque, ops::{Mul, MulAssign}};
 use crate::{math::{C, R, N}, operator::single::*};
+#[cfg(feature = "cpu")]
+pub (crate) use super::ApplicableSync;
 pub (crate) use super::Applicable;
 
 /// Quantum operation's queue.
@@ -105,6 +107,13 @@ impl Applicable for MultiOp {
                 .collect();
             Some(Self(new))
         }
+    }
+}
+
+#[cfg(feature = "cpu")]
+impl ApplicableSync for MultiOp {
+    fn apply_sync(&self, psi: Vec<C>) -> Vec<C> {
+        self.0.iter().fold(psi, |psi, op| op.apply_sync(psi))
     }
 }
 

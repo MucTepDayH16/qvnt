@@ -20,9 +20,11 @@ impl AtomicOp for Op {
         format!("T{}", self.a_mask)
     }
 
-    fn dgr(self: Ptr<Self>) -> Ptr<dyn AtomicOp> {
-        Ptr::new(Self{ dagger: !self.dagger, ..*self })
+    fn dgr(&self) -> Box<dyn AtomicOp> {
+        Box::new(Self{ dagger: !self.dagger, ..*self })
     }
+
+    clone_impl!{}
 }
 
 #[cfg(test)] #[test]
