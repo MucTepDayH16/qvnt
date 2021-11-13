@@ -19,9 +19,9 @@ jobs:
       - name: Clean space
         run: cargo clean --package qvnt
       - name: Build crate
-        run: cargo build --release --package qvnt --verbose --features=${{ matrix.features }}
+        run: cargo build --release --package qvnt --features=${{ matrix.features }}
       - name: Test crate
-        run: cargo test --release --package qvnt --verbose --features=${{ matrix.features }}
+        run: cargo test --quiet --release --package qvnt --features=${{ matrix.features }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
