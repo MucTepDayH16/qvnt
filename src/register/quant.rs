@@ -509,7 +509,7 @@ impl Reg {
                 let delta = (delta >> self.q_num, delta % self.q_mask);
                 for (idx, n) in n.iter_mut().enumerate() {
                     *n += delta.0;
-                    if delta.1 > 0 {
+                    if idx < delta.1 {
                         *n += 1;
                     }
                 }
@@ -518,8 +518,8 @@ impl Reg {
                 let mut delta = delta as N;
                 for idx in 0.. {
                     if delta == 0 { break; }
-                    if n[idx & self.psi.len()] == 0 { continue; }
-                    n[idx & self.psi.len()] -= 1;
+                    if n[idx & self.q_mask] == 0 { continue; }
+                    n[idx & self.q_mask] -= 1;
                     delta -= 1;
                 }
             },
@@ -623,6 +623,7 @@ mod tests {
 
         for _ in 0..10 {
             let hist = q.sample_all(2048);
+			assert_eq!(hist.len(), 256);
             assert_eq!(hist.iter().sum::<usize>(), 2048);
         }
     }
