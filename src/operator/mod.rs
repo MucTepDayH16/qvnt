@@ -126,6 +126,12 @@ pub fn id() -> MultiOp {
 ///     <tr><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>&nbsp;&nbsp;1&nbsp;&nbsp;</th></tr>
 ///     <tr><th>&nbsp;&nbsp;1&nbsp;&nbsp;</th><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th></tr>
 /// </table>
+///
+/// [`X`](x) gate acts on Bloch sphere:
+///
+/// | arbitrary state | state 0 | state 1 |
+/// | :---: | :---: | :---: |
+/// | ![X](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/X.gif) | ![X0](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/X0.gif) |  ![X1](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/X1.gif) |
 #[inline(always)]
 pub fn x(a_mask: N) -> MultiOp {
     pauli::x(a_mask).into()
@@ -179,6 +185,12 @@ pub fn rxx(phase: R, ab_mask: N) -> MultiOp {
 ///     <tr><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>&nbsp;- <i>i</i>&nbsp;</th></tr>
 ///     <tr><th>&nbsp;&nbsp;<i>i</i>&nbsp;&nbsp;</th><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th></tr>
 /// </table>
+///
+/// [`Y`](y) gate acts on Bloch sphere:
+///
+/// | arbitrary state | state 0 | state 1 |
+/// | :---: | :---: | :---: |
+/// | ![Y](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/Y.gif) | ![Y0](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/Y0.gif) |  ![Y1](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/Y1.gif) |
 #[inline(always)]
 pub fn y(a_mask: N) -> MultiOp {
     pauli::y(a_mask).into()
@@ -228,6 +240,12 @@ pub fn ryy(phase: R, ab_mask: N) -> MultiOp {
 ///     <tr><th>&nbsp;&nbsp;1&nbsp;&nbsp;</th><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th></tr>
 ///     <tr><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>&nbsp;- 1&nbsp;</th></tr>
 /// </table>
+///
+/// [`Z`](z) gate acts on Bloch sphere:
+///
+/// | arbitrary state | state 0 | state 1 |
+/// | :---: | :---: | :---: |
+/// | ![Z](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/Z.gif) | ![Z0](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/Z0.gif) |  ![Z1](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/Z1.gif) |
 #[inline(always)]
 pub fn z(a_mask: N) -> MultiOp {
     pauli::z(a_mask).into()
@@ -447,6 +465,12 @@ pub fn sqrt_i_swap(ab_mask: N) -> MultiOp {
 ///     <tr><th>1/&radic;2</th><th>1/&radic;2</th></tr>
 ///     <tr><th>1/&radic;2</th><th>-1/&radic;2</th></tr>
 /// </table>
+///
+/// [`H`](h()) gate acts on Bloch sphere:
+///
+/// | arbitrary state | state 0 | state 1 |
+/// | :---: | :---: | :---: |
+/// | ![H](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/H.gif) | ![H0](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/H0.gif) |  ![H1](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/H1.gif) |
 #[inline(always)]
 pub fn h(a_mask: N) -> MultiOp {
     h::h(a_mask)

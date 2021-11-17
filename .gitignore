@@ -4,3 +4,7 @@ Cargo.lock
 *.xlsx
 
 .idea
+
+__pycache__
+media
+.venv
