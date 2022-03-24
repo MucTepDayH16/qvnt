@@ -83,8 +83,13 @@ impl std::fmt::Debug for MultiOp {
 }
 
 impl Applicable for MultiOp {
-    fn apply(&self, psi: Vec<C>) -> Vec<C> {
-        self.0.iter().fold(psi, |psi, op| op.apply(psi))
+    fn apply(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>) {
+        let psi_i = &mut psi_i.clone();
+        self.0.iter().for_each(|op| {
+            op.apply(psi_i, psi_o);
+            std::mem::swap(psi_i, psi_o);
+        });
+        std::mem::swap(psi_i, psi_o);
     }
 
     fn act_on(&self) -> N {
@@ -112,8 +117,13 @@ impl Applicable for MultiOp {
 
 #[cfg(feature = "cpu")]
 impl ApplicableSync for MultiOp {
-    fn apply_sync(&self, psi: Vec<C>) -> Vec<C> {
-        self.0.iter().fold(psi, |psi, op| op.apply_sync(psi))
+    fn apply_sync(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>) {
+        let psi_i = &mut psi_i.clone();
+        self.0.iter().for_each(|op| {
+            op.apply_sync(psi_i, psi_o);
+            std::mem::swap(psi_i, psi_o);
+        });
+        std::mem::swap(psi_i, psi_o);
     }
 }
 

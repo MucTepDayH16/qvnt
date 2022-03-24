@@ -94,27 +94,9 @@ impl<Op: AtomicOp> From<Op> for SingleOp {
 }
 
 impl Applicable for SingleOp {
-    fn apply(&self, psi: Vec<C>) -> Vec<C> {
-        let len = psi.len();
+    fn apply(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>) {
         let ctrl = self.ctrl;
-        let func = self.func.clone().get_dispatch();
-        let func = func.as_ref();
-
-        if ctrl != 0 {
-            (0..len).into_iter()
-                .map(
-                    |idx| if !idx & ctrl == 0 {
-                        func(&psi, idx)
-                    } else {
-                        psi[idx]
-                    }
-                ).collect()
-        } else {
-            (0..len).into_iter()
-                .map(
-                    |idx| func(&psi, idx)
-                ).collect()
-        }
+        self.func.for_each(&psi_i[..], &mut psi_o[..], ctrl);
     }
 
     #[inline]
@@ -145,29 +127,9 @@ impl Applicable for SingleOp {
 
 #[cfg(feature = "cpu")]
 impl ApplicableSync for SingleOp {
-    fn apply_sync(&self, psi: Vec<C>) -> Vec<C> {
-        use rayon::iter::*;
-
-        let len = psi.len();
+    fn apply_sync(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>) {
         let ctrl = self.ctrl;
-        let func = self.func.clone().get_dispatch();
-        let func = func.as_ref();
-
-        if ctrl != 0 {
-            (0..len).into_par_iter()
-                .map(
-                    |idx| if !idx & ctrl == 0 {
-                        func(&psi, idx)
-                    } else {
-                        psi[idx]
-                    }
-                ).collect()
-        } else {
-            (0..len).into_par_iter()
-                .map(
-                    |idx| func(&psi, idx)
-                ).collect()
-        }
+        self.func.for_each_par(&psi_i[..], &mut psi_o[..], ctrl);
     }
 }
 

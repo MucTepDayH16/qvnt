@@ -295,7 +295,10 @@ impl Reg {
     /// To accelerate it you may use [`apply_sync`].
     pub fn apply<Op>(&mut self, op: &Op)
     where Op: crate::operator::applicable::Applicable {
-        self.psi = op.apply(std::mem::take(&mut self.psi))
+        let mut psi = Vec::with_capacity(self.psi.capacity());
+        unsafe { psi.set_len(self.psi.len()) };
+        op.apply(&self.psi, &mut psi);
+        std::mem::swap(&mut self.psi, &mut psi);
     }
 
     /// __This method available with "cpu" feature enabled.__
@@ -309,7 +312,10 @@ impl Reg {
             #[cfg(feature = "cpu")]
             Model::Multi(n) => {
                 crate::threads::global_install(n, || {
-                    self.psi = op.apply_sync(std::mem::take(&mut self.psi));
+                    let mut psi = Vec::with_capacity(self.psi.capacity());
+                    unsafe { psi.set_len(self.psi.len()) };
+                    op.apply_sync(&self.psi, &mut psi);
+                    std::mem::swap(&mut self.psi, &mut psi);
                 })
             }
         }

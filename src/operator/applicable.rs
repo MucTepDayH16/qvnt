@@ -1,7 +1,7 @@
 use crate::math::{C, R, N};
 
 pub trait Applicable: Sized {
-    fn apply(&self, psi: Vec<C>) -> Vec<C>;
+    fn apply(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>);
 
     fn act_on(&self) -> N;
 
@@ -23,7 +23,10 @@ pub trait Applicable: Sized {
             psi.resize(size, O);
             psi[idx] = I;
 
-            matrix.push(self.apply(psi));
+            let mut psi_o = Vec::with_capacity(psi.capacity());
+            unsafe { psi_o.set_len(psi.len()) };
+            self.apply(&psi, &mut psi_o);
+            matrix.push(psi_o);
         }
 
         for idx in 0..size {
@@ -40,5 +43,5 @@ pub trait Applicable: Sized {
 
 #[cfg(feature = "cpu")]
 pub trait ApplicableSync: Applicable + Sync {
-    fn apply_sync(&self, psi: Vec<C>) -> Vec<C>;
+    fn apply_sync(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>);
 }
