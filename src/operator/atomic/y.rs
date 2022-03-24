@@ -7,14 +7,11 @@ pub (crate) struct Op {
 }
 
 impl Op {
-    #[inline(always)]
     pub fn new(a_mask: N) -> Self {
         let i_pow = !a_mask.count_ones().wrapping_add(1) as N;
         Self{ a_mask, i_pow }
     }
 }
-
-into_single_op_impl!{a_mask}
 
 impl AtomicOp for Op {
     fn atomic_op(&self, psi: &[C], idx: N) -> C {
@@ -27,11 +24,17 @@ impl AtomicOp for Op {
         format!("Y{}", self.a_mask)
     }
 
-    fn dgr(&self) -> Box<dyn AtomicOp> {
-        Box::new(*self)
+    fn acts_on(&self) -> N {
+        self.a_mask
     }
 
-    clone_impl!{}
+    fn this(self) -> dispatch::AtomicOpDispatch {
+        dispatch::AtomicOpDispatch::Y(self)
+    }
+
+    fn dgr(self) -> dispatch::AtomicOpDispatch {
+        dispatch::AtomicOpDispatch::Y(self)
+    }
 }
 
 #[cfg(test)] #[test]

@@ -1,13 +1,7 @@
 pub use super::*;
 
 #[derive(Clone, Copy)]
-pub (crate) struct Op ();
-
-impl Into<SingleOp> for Op {
-    fn into(self) -> SingleOp {
-        SingleOp { act: 0, ctrl: 0, func: Ptr::new(self) }
-    }
-}
+pub (crate) struct Op;
 
 impl AtomicOp for Op {
     fn atomic_op(&self, psi: &[C], idx: N) -> C {
@@ -18,11 +12,17 @@ impl AtomicOp for Op {
         "Id".to_string()
     }
 
-    fn dgr(&self) -> Box<dyn AtomicOp> {
-        Box::new(*self)
+    fn acts_on(&self) -> N {
+        0
     }
 
-    clone_impl!{}
+    fn this(self) -> dispatch::AtomicOpDispatch {
+        dispatch::AtomicOpDispatch::Id(self)
+    }
+
+    fn dgr(self) -> dispatch::AtomicOpDispatch {
+        dispatch::AtomicOpDispatch::Id(self)
+    }
 }
 
 #[cfg(test)] #[test]
@@ -32,7 +32,7 @@ fn matrix_repr() {
     const O: C = C{ re: 0.0, im: 0.0 };
     const I: C = C{ re: 1.0, im: 0.0 };
 
-    let op: SingleOp = Op().into();
+    let op: SingleOp = Op.into();
     assert_eq!(op.name(), "Id");
     assert_eq!(op.matrix(1),
                [   [I, O],

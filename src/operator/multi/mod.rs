@@ -119,7 +119,7 @@ impl ApplicableSync for MultiOp {
 
 impl From<SingleOp> for MultiOp {
     fn from(single: SingleOp) -> Self {
-        Self(if single.func.name() != "Id" {vec![single]} else {vec![]}.into())
+        Self(if single.name() != "Id" {vec![single]} else {vec![]}.into())
     }
 }
 

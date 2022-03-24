@@ -23,13 +23,6 @@ impl Op {
     }
 }
 
-impl Into<SingleOp> for Op {
-    fn into(self) -> SingleOp {
-        let act = self.phases.iter().fold(0, |act, (i, _)| act | *i);
-        SingleOp { act, ctrl: 0, func: Ptr::new(self) }
-    }
-}
-
 impl AtomicOp for Op {
     fn atomic_op(&self, psi: &[C], idx: N) -> C {
         let mut psi = psi[idx];
@@ -45,9 +38,15 @@ impl AtomicOp for Op {
         format!("Phase{:?}", self.phases)
     }
 
-    fn dgr(&self) -> Box<dyn AtomicOp> {
-        Box::new(Self{ phases: self.phases.iter().map(|(idx, ang)| (*idx, ang.conj())).collect() })
+    fn acts_on(&self) -> N {
+        self.phases.iter().fold(0, |acc, idx| acc | *idx.0)
     }
 
-    clone_impl!{}
+    fn this(self) -> AtomicOpDispatch {
+        AtomicOpDispatch::Phi(self)
+    }
+
+    fn dgr(self) -> AtomicOpDispatch {
+        AtomicOpDispatch::Phi(Self{ phases: self.phases.into_iter().map(|(idx, ang)| (idx, ang.conj())).collect() })
+    }
 }

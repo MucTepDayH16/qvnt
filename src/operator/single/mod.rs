@@ -46,7 +46,7 @@ pub mod swap;
 pub struct SingleOp {
     pub (crate) act: N,
     pub (crate) ctrl: N,
-    pub (crate) func: Box<dyn AtomicOp>,
+    pub (crate) func: dispatch::AtomicOpDispatch,
 }
 
 impl SingleOp {
@@ -83,17 +83,28 @@ impl SingleOp {
     }
 }
 
+impl<Op: AtomicOp> From<Op> for SingleOp {
+    fn from(op: Op) -> Self {
+        Self {
+            act: op.acts_on(),
+            ctrl: 0,
+            func: op.this(),
+        }
+    }
+}
+
 impl Applicable for SingleOp {
     fn apply(&self, psi: Vec<C>) -> Vec<C> {
         let len = psi.len();
         let ctrl = self.ctrl;
-        let func = self.func.as_ref();
+        let func = self.func.clone().get_dispatch();
+        let func = func.as_ref();
 
         if ctrl != 0 {
             (0..len).into_iter()
                 .map(
                     |idx| if !idx & ctrl == 0 {
-                        func.atomic_op(&psi, idx)
+                        func(&psi, idx)
                     } else {
                         psi[idx]
                     }
@@ -101,7 +112,7 @@ impl Applicable for SingleOp {
         } else {
             (0..len).into_iter()
                 .map(
-                    |idx| self.func.atomic_op(&psi, idx)
+                    |idx| func(&psi, idx)
                 ).collect()
         }
     }
@@ -139,13 +150,14 @@ impl ApplicableSync for SingleOp {
 
         let len = psi.len();
         let ctrl = self.ctrl;
-        let func = self.func.as_ref();
+        let func = self.func.clone().get_dispatch();
+        let func = func.as_ref();
 
         if ctrl != 0 {
             (0..len).into_par_iter()
                 .map(
                     |idx| if !idx & ctrl == 0 {
-                        func.atomic_op(&psi, idx)
+                        func(&psi, idx)
                     } else {
                         psi[idx]
                     }
@@ -153,7 +165,7 @@ impl ApplicableSync for SingleOp {
         } else {
             (0..len).into_par_iter()
                 .map(
-                    |idx| func.atomic_op(&psi, idx)
+                    |idx| func(&psi, idx)
                 ).collect()
         }
     }

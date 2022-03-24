@@ -1,6 +1,20 @@
 use super::*;
 
-op_impl!{d ab_mask}
+#[derive(Clone, Copy)]
+pub (crate) struct Op {
+    ab_mask: N,
+    dagger: bool,
+}
+
+impl Op {
+    #[inline(always)]
+    pub fn new(ab_mask: N) -> Self {
+        Self {
+            ab_mask,
+            dagger: false,
+        }
+    }
+}
 
 impl AtomicOp for Op {
     fn atomic_op(&self, psi: &[C], idx: N) -> C {
@@ -24,11 +38,17 @@ impl AtomicOp for Op {
         self.ab_mask.count_ones() == 2
     }
 
-    fn dgr(&self) -> Box<dyn AtomicOp> {
-        Box::new(Self{ dagger: !self.dagger, ..*self })
+    fn acts_on(&self) -> N {
+        self.ab_mask
     }
 
-    clone_impl!{}
+    fn this(self) -> AtomicOpDispatch {
+        AtomicOpDispatch::ISwap(self)
+    }
+
+    fn dgr(self) -> AtomicOpDispatch {
+        AtomicOpDispatch::ISwap(Self { dagger: !self.dagger, ..self })
+    }
 }
 
 #[cfg(test)] #[test]

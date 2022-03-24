@@ -2,7 +2,17 @@ use super::*;
 
 const EXP_I_PI_4: C = C{ re: crate::math::FRAC_1_SQRT_2, im: crate::math::FRAC_1_SQRT_2 };
 
-op_impl!{d a_mask}
+#[derive(Clone, Copy)]
+pub (crate) struct Op {
+    a_mask: N,
+    dagger: bool,
+}
+
+impl Op {
+    pub fn new(a_mask: N) -> Self {
+        Self { a_mask, dagger: false }
+    }
+}
 
 impl AtomicOp for Op {
     fn atomic_op(&self, psi: &[C], idx: N) -> C {
@@ -20,11 +30,17 @@ impl AtomicOp for Op {
         format!("T{}", self.a_mask)
     }
 
-    fn dgr(&self) -> Box<dyn AtomicOp> {
-        Box::new(Self{ dagger: !self.dagger, ..*self })
+    fn acts_on(&self) -> N {
+        self.a_mask
     }
 
-    clone_impl!{}
+    fn this(self) -> dispatch::AtomicOpDispatch {
+        dispatch::AtomicOpDispatch::T(self)
+    }
+
+    fn dgr(self) -> dispatch::AtomicOpDispatch {
+        dispatch::AtomicOpDispatch::T(Self{ dagger: !self.dagger, ..self })
+    }
 }
 
 #[cfg(test)] #[test]

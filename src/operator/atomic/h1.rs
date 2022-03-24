@@ -2,7 +2,18 @@ use super::*;
 
 const SQRT_1_2: R = crate::math::FRAC_1_SQRT_2;
 
-op_impl!{s a_mask}
+
+#[derive(Clone, Copy)]
+pub (crate) struct Op {
+    a_mask: N,
+}
+
+impl Op {
+    #[inline(always)]
+    pub fn new(a_mask: N) -> Self {
+        Self { a_mask }
+    }
+}
 
 impl AtomicOp for Op {
     fn atomic_op(&self, psi: &[C], idx: N) -> C {
@@ -20,11 +31,17 @@ impl AtomicOp for Op {
         self.a_mask.count_ones() == 1
     }
 
-    fn dgr(&self) -> Box<dyn AtomicOp> {
-        Box::new(*self)
+    fn acts_on(&self) -> N {
+        self.a_mask
     }
 
-    clone_impl!{}
+    fn this(self) -> AtomicOpDispatch {
+        AtomicOpDispatch::H1(self)
+    }
+
+    fn dgr(self) -> AtomicOpDispatch {
+        AtomicOpDispatch::H1(self)
+    }
 }
 
 #[cfg(test)] #[test]

@@ -1,6 +1,15 @@
 use super::*;
 
-op_impl!{s a_mask}
+#[derive(Clone, Copy)]
+pub (crate) struct Op {
+    a_mask: N,
+}
+
+impl Op {
+    pub fn new(a_mask: N) -> Self {
+        Self { a_mask }
+    }
+}
 
 impl AtomicOp for Op {
     fn atomic_op(&self, psi: &[C], idx: N) -> C {
@@ -15,11 +24,17 @@ impl AtomicOp for Op {
         format!("Z{}", self.a_mask)
     }
 
-    fn dgr(&self) -> Box<dyn AtomicOp> {
-        Box::new(*self)
+    fn acts_on(&self) -> N {
+        self.a_mask
     }
 
-    clone_impl!{}
+    fn this(self) -> dispatch::AtomicOpDispatch {
+        dispatch::AtomicOpDispatch::Z(self)
+    }
+
+    fn dgr(self) -> dispatch::AtomicOpDispatch {
+        dispatch::AtomicOpDispatch::Z(self)
+    }
 }
 
 #[cfg(test)] #[test]
