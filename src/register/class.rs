@@ -73,8 +73,8 @@ impl Reg {
             ..self
         }
     }
-    
-    pub (crate) fn reset(&mut self, i_state: N) {
+
+    pub(crate) fn reset(&mut self, i_state: N) {
         self.value = i_state & self.q_mask;
     }
 
@@ -104,17 +104,16 @@ impl Reg {
         self.value
     }
 
-    pub (crate) fn get_by_mask(&self, mask: N) -> N {
+    pub(crate) fn get_by_mask(&self, mask: N) -> N {
         crate::math::bits_iter::BitsIter::from(mask & self.q_mask)
             .enumerate()
-            .fold(0,
-                  |mask, (idx, val)|
-                      if self.value & val != 0 {
-                          mask | (1usize << idx)
-                      } else {
-                          mask
-                      }
-            )
+            .fold(0, |mask, (idx, val)| {
+                if self.value & val != 0 {
+                    mask | (1usize << idx)
+                } else {
+                    mask
+                }
+            })
     }
 }
 

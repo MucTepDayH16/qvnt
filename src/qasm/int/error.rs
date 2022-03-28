@@ -1,7 +1,4 @@
-use {
-    std::fmt,
-    qasm::AstNode,
-};
+use {qasm::AstNode, std::fmt};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Error {

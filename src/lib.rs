@@ -25,5 +25,5 @@ pub mod prelude {
     };
 
     #[cfg(feature = "interpreter")]
-    pub use crate::qasm::{Int, Ast};
+    pub use crate::qasm::{Ast, Int};
 }

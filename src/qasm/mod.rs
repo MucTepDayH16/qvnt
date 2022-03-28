@@ -1,13 +1,13 @@
-pub (crate) mod ast;
-pub (crate) mod int;
+pub(crate) mod ast;
+pub(crate) mod int;
 
 pub use ast::Ast;
 pub use int::Int;
 
 #[cfg(test)]
 mod tests {
-    use crate::register::CReg;
     use super::*;
+    use crate::register::CReg;
 
     #[test]
     fn circuit() {

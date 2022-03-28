@@ -6,7 +6,10 @@ macro_rules! gate {
         if regs == 0 {
             Err(Error::WrongRegNumber(stringify!($op).to_string(), 0))
         } else if $args.len() != 0 {
-            Err(Error::WrongArgNumber(stringify!($op).to_string(), $args.len()))
+            Err(Error::WrongArgNumber(
+                stringify!($op).to_string(),
+                $args.len(),
+            ))
         } else {
             Ok(op::$op(regs))
         }
@@ -14,9 +17,15 @@ macro_rules! gate {
     (2 $op:ident $regs:expr , $args:expr) => {{
         let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg);
         if crate::math::count_bits(regs) != 2 {
-            Err(Error::WrongRegNumber(stringify!($op).to_string(), crate::math::count_bits(regs)))
+            Err(Error::WrongRegNumber(
+                stringify!($op).to_string(),
+                crate::math::count_bits(regs),
+            ))
         } else if $args.len() != 0 {
-            Err(Error::WrongArgNumber(stringify!($op).to_string(), $args.len()))
+            Err(Error::WrongArgNumber(
+                stringify!($op).to_string(),
+                $args.len(),
+            ))
         } else {
             Ok(op::$op(regs))
         }
@@ -24,9 +33,15 @@ macro_rules! gate {
     (r($num:expr) $op:ident $regs:expr , $args:expr) => {{
         let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg);
         if crate::math::count_bits(regs) != $num {
-            Err(Error::WrongRegNumber(stringify!($op).to_string(), crate::math::count_bits(regs)))
+            Err(Error::WrongRegNumber(
+                stringify!($op).to_string(),
+                crate::math::count_bits(regs),
+            ))
         } else if $args.len() != 1 {
-            Err(Error::WrongArgNumber(stringify!($op).to_string(), $args.len()))
+            Err(Error::WrongArgNumber(
+                stringify!($op).to_string(),
+                $args.len(),
+            ))
         } else {
             Ok(op::$op($args[0], regs))
         }
@@ -34,9 +49,15 @@ macro_rules! gate {
     (u1 $regs:expr , $args:expr) => {{
         let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg);
         if crate::math::count_bits(regs) != 1 {
-            Err(Error::WrongRegNumber(stringify!($op).to_string(), crate::math::count_bits(regs)))
+            Err(Error::WrongRegNumber(
+                stringify!($op).to_string(),
+                crate::math::count_bits(regs),
+            ))
         } else if $args.len() != 1 {
-            Err(Error::WrongArgNumber(stringify!($op).to_string(), $args.len()))
+            Err(Error::WrongArgNumber(
+                stringify!($op).to_string(),
+                $args.len(),
+            ))
         } else {
             Ok(op::u1($args[0], regs))
         }
@@ -44,9 +65,15 @@ macro_rules! gate {
     (u2 $regs:expr , $args:expr) => {{
         let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg);
         if crate::math::count_bits(regs) != 1 {
-            Err(Error::WrongRegNumber(stringify!($op).to_string(), crate::math::count_bits(regs)))
+            Err(Error::WrongRegNumber(
+                stringify!($op).to_string(),
+                crate::math::count_bits(regs),
+            ))
         } else if $args.len() != 2 {
-            Err(Error::WrongArgNumber(stringify!($op).to_string(), $args.len()))
+            Err(Error::WrongArgNumber(
+                stringify!($op).to_string(),
+                $args.len(),
+            ))
         } else {
             Ok(op::u2($args[0], $args[1], regs))
         }
@@ -54,9 +81,15 @@ macro_rules! gate {
     (u3 $regs:expr , $args:expr) => {{
         let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg);
         if crate::math::count_bits(regs) != 1 {
-            Err(Error::WrongRegNumber(stringify!($op).to_string(), crate::math::count_bits(regs)))
+            Err(Error::WrongRegNumber(
+                stringify!($op).to_string(),
+                crate::math::count_bits(regs),
+            ))
         } else if $args.len() != 3 {
-            Err(Error::WrongArgNumber(stringify!($op).to_string(), $args.len()))
+            Err(Error::WrongArgNumber(
+                stringify!($op).to_string(),
+                $args.len(),
+            ))
         } else {
             Ok(op::u3($args[0], $args[1], $args[2], regs))
         }
@@ -69,51 +102,52 @@ pub(crate) fn process(name: String, regs: Vec<N>, args: Vec<R>) -> Result<MultiO
             let mut name = name.chars();
             name.next();
             match process(name.collect(), Vec::from(&regs[1..]), args) {
-                Ok(op) => if regs[0] & op.act_on() == 0 {
-                    Ok(op.c(regs[0]).unwrap())
-                } else {
-                    Err(Error::InvalidControlMask(regs[0], op.act_on()))
-                },
-                Err(err) => {
-                    Err(match err {
-                        Error::WrongRegNumber(name, num) =>
-                            Error::WrongRegNumber("c".to_string() + &name, 1 + num),
-                        Error::WrongArgNumber(name, num) =>
-                            Error::WrongArgNumber("c".to_string() + &name, num),
-                        Error::UnknownGate(name) =>
-                            Error::UnknownGate("c".to_string() + &name),
-                        e => e,
-                    })
+                Ok(op) => {
+                    if regs[0] & op.act_on() == 0 {
+                        Ok(op.c(regs[0]).unwrap())
+                    } else {
+                        Err(Error::InvalidControlMask(regs[0], op.act_on()))
+                    }
                 }
+                Err(err) => Err(match err {
+                    Error::WrongRegNumber(name, num) => {
+                        Error::WrongRegNumber("c".to_string() + &name, 1 + num)
+                    }
+                    Error::WrongArgNumber(name, num) => {
+                        Error::WrongArgNumber("c".to_string() + &name, num)
+                    }
+                    Error::UnknownGate(name) => Error::UnknownGate("c".to_string() + &name),
+                    e => e,
+                }),
             }
-        },
-        "x"             => gate!(any x regs , args),
-        "y"             => gate!(any y regs , args),
-        "z"             => gate!(any z regs , args),
-        "s"             => gate!(any s regs , args),
-        "t"             => gate!(any t regs , args),
+        }
+        "x" => gate!(any x regs , args),
+        "y" => gate!(any y regs , args),
+        "z" => gate!(any z regs , args),
+        "s" => gate!(any s regs , args),
+        "t" => gate!(any t regs , args),
 
-        "h"             => gate!(any h regs , args),
-        "qft"           => gate!(any qft regs , args),
+        "h" => gate!(any h regs , args),
+        "qft" => gate!(any qft regs , args),
 
-        "rx"            => gate!(r(1) rx regs , args),
-        "ry"            => gate!(r(1) ry regs , args),
-        "rz"            => gate!(r(1) rz regs , args),
+        "rx" => gate!(r(1) rx regs , args),
+        "ry" => gate!(r(1) ry regs , args),
+        "rz" => gate!(r(1) rz regs , args),
 
-        "rxx"           => gate!(r(2) rxx regs , args),
-        "ryy"           => gate!(r(2) ryy regs , args),
-        "rzz"           => gate!(r(2) rzz regs , args),
+        "rxx" => gate!(r(2) rxx regs , args),
+        "ryy" => gate!(r(2) ryy regs , args),
+        "rzz" => gate!(r(2) rzz regs , args),
 
-        "swap"          => gate!(2 swap regs , args),
-        "sqrt_swap"     => gate!(2 sqrt_swap regs , args),
-        "i_swap"        => gate!(2 i_swap regs , args),
-        "sqrt_i_swap"   => gate!(2 sqrt_i_swap regs , args),
+        "swap" => gate!(2 swap regs , args),
+        "sqrt_swap" => gate!(2 sqrt_swap regs , args),
+        "i_swap" => gate!(2 i_swap regs , args),
+        "sqrt_i_swap" => gate!(2 sqrt_i_swap regs , args),
 
-        "u1"            => gate!(u1 regs , args),
-        "u2"            => gate!(u2 regs , args),
-        "u3"            => gate!(u3 regs , args),
+        "u1" => gate!(u1 regs , args),
+        "u2" => gate!(u2 regs , args),
+        "u3" => gate!(u3 regs , args),
 
-        _               => Err(Error::UnknownGate(name))
+        _ => Err(Error::UnknownGate(name)),
     }
 }
 
@@ -192,7 +226,7 @@ mod tests {
             process("u1".to_string(), vec![0b001], vec![1.0])
         );
         assert_eq!(
-            Ok(op::u2(1.0, 2.0,0b001)),
+            Ok(op::u2(1.0, 2.0, 0b001)),
             process("u2".to_string(), vec![0b001], vec![1.0, 2.0])
         );
         assert_eq!(

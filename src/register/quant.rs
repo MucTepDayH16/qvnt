@@ -151,22 +151,24 @@ impl Reg {
         self.psi = vec![C_ZERO; self.psi.len()];
         self.psi[self.q_mask & i_state] = C_ONE;
     }
-    
-    pub (crate) fn reset_by_mask(&mut self, mask: N) {
+
+    pub(crate) fn reset_by_mask(&mut self, mask: N) {
         match self.th {
             Model::Single => {
-                self.psi.iter_mut().enumerate()
+                self.psi
+                    .iter_mut()
+                    .enumerate()
                     .filter(|(idx, _)| idx & mask != 0)
                     .for_each(|(_, psi)| *psi = C_ZERO);
-            },
-            #[cfg(feature = "cpu")]
-            Model::Multi(n) => {
-                crate::threads::global_install(n, || {
-                    self.psi.par_iter_mut().enumerate()
-                        .filter(|(idx, _)| idx & mask != 0)
-                        .for_each(|(_, psi)| *psi = C_ZERO);
-                })
             }
+            #[cfg(feature = "cpu")]
+            Model::Multi(n) => crate::threads::global_install(n, || {
+                self.psi
+                    .par_iter_mut()
+                    .enumerate()
+                    .filter(|(idx, _)| idx & mask != 0)
+                    .for_each(|(_, psi)| *psi = C_ZERO);
+            }),
         }
     }
 
