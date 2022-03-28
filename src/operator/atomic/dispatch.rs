@@ -27,7 +27,7 @@ pub (crate) trait AtomicOp: Clone + Sync + Send {
     fn for_each(&self, psi_i: &[C], psi_o: &mut [C], ctrl: N) {
         if ctrl != 0 {
             psi_o.into_iter().enumerate()
-                .for_each(|(idx, psi)| *psi = if ctrl != 0 { self.atomic_op(psi_i, idx) } else { psi_i[idx] })
+                .for_each(|(idx, psi)| *psi = if !idx & ctrl == 0 { self.atomic_op(psi_i, idx) } else { psi_i[idx] })
         } else {
             psi_o.into_iter().enumerate()
                 .for_each(|(idx, psi)| *psi = self.atomic_op(psi_i, idx))
@@ -40,7 +40,7 @@ pub (crate) trait AtomicOp: Clone + Sync + Send {
 
         if ctrl != 0 {
             psi_o.into_par_iter().enumerate()
-                .for_each(|(idx, psi)| *psi = if ctrl != 0 { self.atomic_op(psi_i, idx) } else { psi_i[idx] })
+                .for_each(|(idx, psi)| *psi = if !idx & ctrl == 0 { self.atomic_op(psi_i, idx) } else { psi_i[idx] })
         } else {
             psi_o.into_par_iter().enumerate()
                 .for_each(|(idx, psi)| *psi = self.atomic_op(psi_i, idx))
