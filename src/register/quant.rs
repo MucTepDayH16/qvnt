@@ -5,7 +5,8 @@ use std::{fmt, ops::{Mul, MulAssign}};
 use crate::math::*;
 use crate::prelude::quant::threading::Model;
 
-const MIN_QREG_LEN: usize = 8;
+const MIN_BUFFER_LEN: usize = 8;
+const MAX_LEN_TO_DISPLAY: usize = 8;
 
 mod threading {
     use super::*;
@@ -111,7 +112,7 @@ impl Reg {
     pub fn new(q_num: N) -> Self {
         let q_size = 1_usize << q_num;
 
-        let mut psi = vec![C_ZERO; q_size.max(MIN_QREG_LEN)];
+        let mut psi = vec![C_ZERO; q_size.max(MIN_BUFFER_LEN)];
         psi[0] = C_ONE;
 
         Self {
@@ -261,7 +262,7 @@ impl Reg {
 
         let psi = match th {
             Model::Single => {
-                (0..q_size.max(MIN_QREG_LEN))
+                (0..q_size.max(MIN_BUFFER_LEN))
                     .into_iter()
                     .map(
                         move |idx| if idx < q_size {
@@ -544,7 +545,25 @@ impl Default for Reg {
 
 impl fmt::Debug for Reg {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.psi[..MIN_QREG_LEN].fmt(f)
+        if 1 << self.q_num <= MAX_LEN_TO_DISPLAY {
+            self.psi[..(1 << self.q_num)]
+            .iter()
+            .enumerate()
+            .fold(
+                &mut f.debug_struct("QReg"),
+                |f, (idx, psi)| f.field(&format!("{}", idx), psi)
+            )
+            .finish()
+        } else {
+            self.psi[..MAX_LEN_TO_DISPLAY]
+            .iter()
+            .enumerate()
+            .fold(
+                &mut f.debug_struct("QReg"),
+                |f, (idx, psi)| f.field(&format!("{}", idx), psi)
+            )
+            .finish_non_exhaustive()
+        }
     }
 }
 
@@ -567,23 +586,39 @@ mod tests {
 
     #[test]
     fn quantum_reg() {
+        use crate::math::C;
+
         let mut reg = QReg::new(4)
             .init_state(0b1100);
         let mask = 0b0110;
 
-        let mut operator =
-            op::h(0b1111)
-                * op::h(0b0011).c(0b1000).unwrap()
-                * op::swap(0b1001).c(0b0010).unwrap()
-            ;
+        let operator = op::h(0b1111)
+            * op::h(0b0011).c(0b1000).unwrap()
+            * op::swap(0b1001).c(0b0010).unwrap();
 
         reg.apply(&operator);
 
         assert_eq!(format!("{:?}", operator), "[H3, H12, C8_H3, C2_SWAP9]");
-        assert_eq!(format!("{:?}", reg), "[Complex { re: 0.25, im: 0.0 }, Complex { re: 0.25, im: 0.0 }, Complex { re: 0.25, im: 0.0 }, Complex { re: 0.0, im: 0.0 }, Complex { re: -0.25, im: 0.0 }, Complex { re: -0.25, im: 0.0 }, Complex { re: -0.25, im: 0.0 }, Complex { re: 0.0, im: 0.0 }]");
+        assert_eq!(reg.psi, [
+            C { re: 0.25, im: 0.0 },
+            C { re: 0.25, im: 0.0 },
+            C { re: 0.25, im: 0.0 },
+            C { re: 0.0, im: 0.0 },
+            C { re: -0.25, im: 0.0 },
+            C { re: -0.25, im: 0.0 },
+            C { re: -0.25, im: 0.0 },
+            C { re: 0.0, im: 0.0 },
+            C { re: -0.5, im: 0.0 },
+            C { re: 0.0, im: 0.0 },
+            C { re: 0.25, im: 0.0 },
+            C { re: 0.0, im: 0.0 },
+            C { re: 0.5, im: 0.0 },
+            C { re: 0.0, im: 0.0 },
+            C { re: -0.25, im: 0.0 },
+            C { re: 0.0, im: 0.0 },
+            ]);
+        assert_eq!(format!("{:?}", reg), "QReg { 0: Complex { re: 0.25, im: 0.0 }, 1: Complex { re: 0.25, im: 0.0 }, 2: Complex { re: 0.25, im: 0.0 }, 3: Complex { re: 0.0, im: 0.0 }, 4: Complex { re: -0.25, im: 0.0 }, 5: Complex { re: -0.25, im: 0.0 }, 6: Complex { re: -0.25, im: 0.0 }, 7: Complex { re: 0.0, im: 0.0 }, .. }".to_string());
 
-        operator.clear();
-        assert_eq!(operator.len(), 0);
         assert_eq!(reg.measure_mask(mask).get() & !mask, 0);
     }
 
