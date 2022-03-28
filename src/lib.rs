@@ -2,34 +2,28 @@
 #![allow(non_upper_case_globals)]
 #![allow(dead_code)]
 
-#[cfg(test)]
-mod tests;
+#[doc = include_str!("../README.md")]
+#[cfg(doctest)]
+mod README {}
 
-mod types;
 mod math;
-mod bits_iter;
-
-pub mod prelude {
-    pub use super::operator::{applicable::Applicable, MultiOp, op};
-    pub use super::register::{VReg, QReg};
-
-    #[cfg(feature = "interpreter")]
-    pub use super::qasm::{Int, Ast};
-
-    pub mod consts {
-        pub const _1: crate::types::C = crate::types::C{ re: 1.0, im: 0.0 };
-        pub const _0: crate::types::C = crate::types::C{ re: 0.0, im: 0.0 };
-        pub const _i: crate::types::C = crate::types::C{ re: 0.0, im: 1.0 };
-
-        pub const SQRT_1_2: crate::types::R = crate::types::SQRT_2 * 0.5;
-    }
-}
-
-pub use crate::threads::num_threads;
+#[cfg(feature = "cpu")]
+mod threads;
 
 pub mod operator;
 pub mod register;
-pub mod threads;
 
 #[cfg(feature = "interpreter")]
 pub mod qasm;
+
+#[doc(hidden)]
+pub mod prelude {
+    pub use crate::{
+        operator as op,
+        operator::{Applicable, MultiOp, SingleOp},
+        register::*,
+    };
+
+    #[cfg(feature = "interpreter")]
+    pub use crate::qasm::{Int, Ast};
+}

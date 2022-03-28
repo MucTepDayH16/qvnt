@@ -1,10 +1,15 @@
 use super::*;
 
-pub (crate) struct Op {
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub(crate) struct Op {
     a_mask: N,
 }
 
-simple_op_impl!{a_mask}
+impl Op {
+    pub fn new(a_mask: N) -> Self {
+        Self { a_mask }
+    }
+}
 
 impl AtomicOp for Op {
     fn atomic_op(&self, psi: &[C], idx: N) -> C {
@@ -19,21 +24,28 @@ impl AtomicOp for Op {
         format!("Z{}", self.a_mask)
     }
 
-    fn dgr(self: Ptr<Self>) -> Ptr<dyn AtomicOp> {
-        self
+    fn acts_on(&self) -> N {
+        self.a_mask
+    }
+
+    fn this(self) -> dispatch::AtomicOpDispatch {
+        dispatch::AtomicOpDispatch::Z(self)
+    }
+
+    fn dgr(self) -> dispatch::AtomicOpDispatch {
+        dispatch::AtomicOpDispatch::Z(self)
     }
 }
 
-#[cfg(test)] #[test]
-fn tests() {
+#[cfg(test)]
+#[test]
+fn matrix_repr() {
     use crate::operator::single::*;
 
-    const O: C = C{ re: 0.0, im: 0.0 };
-    const I: C = C{ re: 1.0, im: 0.0 };
+    const O: C = C { re: 0.0, im: 0.0 };
+    const I: C = C { re: 1.0, im: 0.0 };
 
-    let op = SingleOp::from_atomic(Op::new(0b1)).unwrap();
+    let op: SingleOp = Op::new(0b1).into();
     assert_eq!(op.name(), "Z1");
-    assert_eq!(op.matrix(1),
-               [   [I, O],
-                   [O, -I]   ]);
+    assert_eq!(op.matrix(1), [[I, O], [O, -I]]);
 }

@@ -3,12 +3,12 @@ use crate::operator::atomic;
 
 #[inline(always)]
 fn h1(a_mask: N) -> SingleOp {
-    SingleOp::from_atomic_unchecked(atomic::h1::Op::new(a_mask))
+    atomic::h1::Op::new(a_mask).into()
 }
 
 #[inline(always)]
 fn h2(a_mask: N, b_mask: N) -> SingleOp {
-    SingleOp::from_atomic_unchecked(atomic::h2::Op::new(a_mask, b_mask))
+    atomic::h2::Op::new(a_mask, b_mask).into()
 }
 
 pub fn h(a_mask: N) -> MultiOp {

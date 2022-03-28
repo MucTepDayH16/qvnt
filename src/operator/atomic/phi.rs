@@ -1,6 +1,7 @@
 use super::*;
 use std::collections::BTreeMap;
 
+#[derive(Clone, PartialEq)]
 pub struct Op {
     phases: BTreeMap<N, C>,
 }
@@ -12,13 +13,15 @@ impl Op {
             let mut jdx = 1;
             while jdx <= *idx {
                 if jdx & *idx != 0 {
-                    phases.entry(jdx).or_insert(C::new(0.0, 0.0)).im += *val;
+                    phases.entry(jdx).or_insert(crate::math::C_ZERO).im += *val;
                 }
                 jdx <<= 1;
             }
         }
-        phases.iter_mut().for_each(|(_, val)| *val = C::from_polar(1.0, val.im));
-        Self{ phases }
+        phases
+            .iter_mut()
+            .for_each(|(_, val)| *val = C::from_polar(1.0, val.im));
+        Self { phases }
     }
 }
 
@@ -37,7 +40,21 @@ impl AtomicOp for Op {
         format!("Phase{:?}", self.phases)
     }
 
-    fn dgr(self: Ptr<Self>) -> Ptr<dyn AtomicOp> {
-        Ptr::new(Self{ phases: self.phases.iter().map(|(idx, ang)| (*idx, ang.conj())).collect() })
+    fn acts_on(&self) -> N {
+        self.phases.iter().fold(0, |acc, idx| acc | *idx.0)
+    }
+
+    fn this(self) -> AtomicOpDispatch {
+        AtomicOpDispatch::Phi(self)
+    }
+
+    fn dgr(self) -> AtomicOpDispatch {
+        AtomicOpDispatch::Phi(Self {
+            phases: self
+                .phases
+                .into_iter()
+                .map(|(idx, ang)| (idx, ang.conj()))
+                .collect(),
+        })
     }
 }

@@ -1,6 +1,5 @@
 use {
     std::fmt,
-
     qasm::AstNode,
 };
 
@@ -10,6 +9,7 @@ pub enum Error {
     NoCReg(String),
     IdxOutOfRange(String, usize),
     UnknownGate(String),
+    InvalidControlMask(usize, usize),
     UnevaluatedArgument(String),
     WrongRegNumber(String, usize),
     WrongArgNumber(String, usize),
@@ -35,6 +35,8 @@ impl fmt::Display for Error {
                 write!(f, "index (={idx}) is out of bounds for register: {name}[{idx}]", name=name, idx=idx),
             Error::UnknownGate(name) =>
                 write!(f, "there's no quantum gate, called \"{name}\"", name=name),
+            Error::InvalidControlMask(ctrl, act) =>
+                write!(f, "Control mask ({}) should not overlap with operators' qubits ({})", ctrl, act),
             Error::UnevaluatedArgument(arg) =>
                 write!(f, "cannot evaluate gate argument [{arg}]", arg=arg),
             Error::WrongRegNumber(name, num) =>

@@ -1,11 +1,20 @@
-use crate::math::{C, R, N};
+use crate::math::{C, N, R};
 
-pub trait Applicable {
-    fn apply(&self, _: Vec<C>) -> Vec<C>;
+pub trait Applicable: Sized + Sync {
+    fn apply(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>);
+
+    #[cfg(feature = "cpu")]
+    fn apply_sync(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>);
+
+    fn act_on(&self) -> N;
+
+    fn dgr(self) -> Self;
+
+    fn c(self, c_mask: N) -> Option<Self>;
 
     fn matrix(&self, size: N) -> Vec<Vec<C>> {
-        const O: C = C{ re: 0.0, im: 0.0 };
-        const I: C = C{ re: 1.0, im: 0.0 };
+        const O: C = C { re: 0.0, im: 0.0 };
+        const I: C = C { re: 1.0, im: 0.0 };
 
         let size = 1 << size;
 
@@ -17,7 +26,10 @@ pub trait Applicable {
             psi.resize(size, O);
             psi[idx] = I;
 
-            matrix.push(self.apply(psi));
+            let mut psi_o = Vec::with_capacity(psi.capacity());
+            unsafe { psi_o.set_len(psi.len()) };
+            self.apply(&psi, &mut psi_o);
+            matrix.push(psi_o);
         }
 
         for idx in 0..size {

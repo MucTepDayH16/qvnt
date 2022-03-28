@@ -5,9 +5,9 @@ use {
     qasm::{Argument, AstNode},
 
     crate::{
-        bits_iter::BitsIter,
+        math::bits_iter::BitsIter,
         math::{C, R, N},
-        operator::{MultiOp, op},
+        operator::{Applicable, MultiOp, self as op},
         register::{QReg, CReg},
         qasm::ast::Ast,
     },
@@ -76,7 +76,7 @@ impl Int {
                     self.measure(*q, *c);
                 },
                 Sep::IfBranch(c, v) => {
-                    if self.c_reg.0.get_value(*c) == *v {
+                    if self.c_reg.0.get_by_mask(*c) == *v {
                         self.q_reg.0.apply(op);
                     }
                 },
@@ -252,7 +252,7 @@ impl Int {
             Argument::Qubit(alias, idx) => {
                 let mask = self.get_idx_by_alias(alias).0;
                 if mask != 0 {
-                    crate::bits_iter::BitsIter::from(mask)
+                    BitsIter::from(mask)
                         .nth(*idx as N)
                         .ok_or(Error::IdxOutOfRange(alias.clone(), *idx as N))
                 } else {
@@ -275,7 +275,7 @@ impl Int {
             Argument::Qubit(alias, idx) => {
                 let mask = self.get_idx_by_alias(alias).1;
                 if mask != 0 {
-                    crate::bits_iter::BitsIter::from(mask)
+                    BitsIter::from(mask)
                         .nth(*idx as N)
                         .ok_or(Error::IdxOutOfRange(alias.clone(), *idx as N))
                 } else {
@@ -300,10 +300,10 @@ impl Int {
         match self.m_op {
             MeasureOp::Set => BitsIter::from(q_arg)
                 .zip(BitsIter::from(c_arg))
-                .for_each(|(q, c)| self.c_reg.0.set(mask & q != 0, c)),
+                .for_each(|(q, c)| self.c_reg.0.set(mask.get() & q != 0, c)),
             MeasureOp::Xor => BitsIter::from(q_arg)
                 .zip(BitsIter::from(c_arg))
-                .for_each(|(q, c)| self.c_reg.0.xor(mask & q != 0, c)),
+                .for_each(|(q, c)| self.c_reg.0.xor(mask.get() & q != 0, c)),
         };
     }
 

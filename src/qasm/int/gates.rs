@@ -68,17 +68,24 @@ pub(crate) fn process(name: String, regs: Vec<N>, args: Vec<R>) -> Result<MultiO
         s if s.chars().next() == Some('c') => {
             let mut name = name.chars();
             name.next();
-            process(name.collect(), Vec::from(&regs[1..]), args)
-                .map(|op| op.c(regs[0]))
-                .map_err(|err| match err {
-                    Error::WrongRegNumber(name, num) =>
-                        Error::WrongRegNumber("c".to_string() + &name, 1 + num),
-                    Error::WrongArgNumber(name, num) =>
-                        Error::WrongArgNumber("c".to_string() + &name, num),
-                    Error::UnknownGate(name) =>
-                        Error::UnknownGate("c".to_string() + &name),
-                    e => e,
-                })
+            match process(name.collect(), Vec::from(&regs[1..]), args) {
+                Ok(op) => if regs[0] & op.act_on() == 0 {
+                    Ok(op.c(regs[0]).unwrap())
+                } else {
+                    Err(Error::InvalidControlMask(regs[0], op.act_on()))
+                },
+                Err(err) => {
+                    Err(match err {
+                        Error::WrongRegNumber(name, num) =>
+                            Error::WrongRegNumber("c".to_string() + &name, 1 + num),
+                        Error::WrongArgNumber(name, num) =>
+                            Error::WrongArgNumber("c".to_string() + &name, num),
+                        Error::UnknownGate(name) =>
+                            Error::UnknownGate("c".to_string() + &name),
+                        e => e,
+                    })
+                }
+            }
         },
         "x"             => gate!(any x regs , args),
         "y"             => gate!(any y regs , args),

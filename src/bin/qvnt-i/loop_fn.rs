@@ -82,7 +82,7 @@ mod cmd {
 				"exit" | "quit" | "q" =>
 					std::process::exit(0),
 				"class" =>
-					println!("{}\n", int.get_class().get_value(!0usize)),
+					println!("{}\n", int.get_class().get()),
 				"polar" =>
 					println!("{:.4?}\n", int.get_polar_wavefunction()),
 				"prob" =>

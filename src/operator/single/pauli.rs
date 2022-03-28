@@ -1,34 +1,34 @@
 use crate::{
+    math::{C, N, R},
     operator::{atomic, single::*},
-    math::{C, R, N},
 };
 
 #[inline(always)]
-pub (crate) fn x(a_mask: N) -> SingleOp {
-    SingleOp::from_atomic_unchecked(atomic::x::Op::new(a_mask))
+pub fn x(a_mask: N) -> SingleOp {
+    atomic::x::Op::new(a_mask).into()
 }
 
 #[inline(always)]
-pub (crate) fn y(a_mask: N) -> SingleOp {
-    SingleOp::from_atomic_unchecked(atomic::y::Op::new(a_mask))
+pub fn y(a_mask: N) -> SingleOp {
+    atomic::y::Op::new(a_mask).into()
 }
 
 #[inline(always)]
-pub (crate) fn z(a_mask: N) -> SingleOp {
-    SingleOp::from_atomic_unchecked(atomic::z::Op::new(a_mask))
+pub fn z(a_mask: N) -> SingleOp {
+    atomic::z::Op::new(a_mask).into()
 }
 
 #[inline(always)]
-pub (crate) fn s(a_mask: N) -> SingleOp {
-    SingleOp::from_atomic_unchecked(atomic::s::Op::new(a_mask))
+pub fn s(a_mask: N) -> SingleOp {
+    atomic::s::Op::new(a_mask).into()
 }
 
 #[inline(always)]
-pub (crate) fn t(a_mask: N) -> SingleOp {
-    SingleOp::from_atomic_unchecked(atomic::t::Op::new(a_mask))
+pub fn t(a_mask: N) -> SingleOp {
+    atomic::t::Op::new(a_mask).into()
 }
 
 #[inline(always)]
-pub (crate) fn phi(phases: Vec<(R, N)>) -> SingleOp {
-    SingleOp::from_atomic_unchecked(atomic::phi::Op::new(phases))
+pub fn phi(phases: Vec<(R, N)>) -> SingleOp {
+    atomic::phi::Op::new(phases).into()
 }

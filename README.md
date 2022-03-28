@@ -18,40 +18,65 @@
 
 ___
 ## Usage
+
+Add this lines to your *Cargo.toml* file to use __QVNT__ crate:
+
+```toml
+[dependencies]
+qvnt = "0.3.3"
+```
+
+Quantum register and operators are controlled by bitmasks.
+Each *bit* in it will act on a specific *qubit*.
+
 ```rust
 use qvnt::prelude::*;
 
-//  create quantum register, called 'x', with 10 qubits
-let mut q_reg = QReg::new(10).alias_char('x');
-//  or with initial state, where 3 qubits are already in state |1>
-//  let q_reg = QReg::new(10).alias_char('x').init_state(0b0011100000);
+//  Create quantum register with 10 qubits
+let mut q_reg = QReg::new(10);
+//  or with initial state, where 5th, 6th and 7th qubits are already in state |1>.
+let mut q_reg = QReg::new(10).init_state(0b0011100000);
 
-//  get virtual register 'x', to interact with specified qubits
-let x = q_reg.get_vreg();
+//  Create qft (Quantum Fourier Transform) operation, acting on first 5 qubits in q_reg.
+let op = op::qft(0b0000011111);
 
-//  create qft operation, acting on first 5 qubits in q_reg
-let op = Op::qft(x[0] | x[1] | x[2] | x[3] | x[4]);
-
-//  apply operation
+//  Apply created operation
 q_reg.apply(&op);
 
-//  measure and write first 3 qubit, which leads to collapse of q_reg wave function
-println!("{}", q_reg.measure_mask(x[0] | x[1] | x[2]));
+//  Measure and write first 3 qubit, which leads to collapse of q_reg wave function.
+//  Measured variable will contain one of the following values:
+//  0b000, 0b001, 0b010, 0b011, 0b100, 0b101, 0b110, 0b111
+let measured = q_reg.measure_mask(0b0000000111);
+```
+
+You're able to use *VReg* to simplify operations definition:
+
+```rust
+use qvnt::prelude::*;
+
+let mut q_reg = QReg::new(10);
+let q = q_reg.get_vreg();
+
+//  Crate Hadamard operator, that act on odd qubits.
+let op = op::h(q[1] | q[3] | q[5] | q[7] | q[9]);
+//  This is equivalent to op::h(0b0101010101);
 ```
 
 ___
 ## Implemented operations
 * Pauli's *X*, *Y* & *Z* operators;
-* *S* & *T* operators;
-* Phase shift operator;
-* 1-qubit rotation operators;
-* 2-qubits rotation operators, *aka* Ising coupling gates;
+* Square and fourth root of *Z* - *S* & *T* operators;
+* Phase shift operator - *phi*;
+* 1-qubit rotation operators - *rx*, *ry* & *rz*;
+* 2-qubits rotation operators, *aka* Ising coupling gates, - *rxx*, *ryy* & *rzz*;
 * *SWAP*, *iSWAP* operators and square rooted ones;
 * Quantum Fourier and Hadamard Transform;
 * Universal *U1*, *U2* and *U3* operators;
 
 __ALL__ operators have inverse versions, accessing by ```.dgr()``` method:
 ```rust
+use qvnt::prelude::*;
+
 let usual_op = op::s(0b1);
 //  Inverse S operator
 let inverse_op = op::s(0b1).dgr();
@@ -59,12 +84,25 @@ let inverse_op = op::s(0b1).dgr();
 
 Also, __ALL__ these operators could be turned into controlled ones, using ```.c(...)``` method:
 ```rust
+use qvnt::prelude::*;
+
 let usual_op = op::x(0b001);
 //  NOT gate, controlled by 2 qubits, aka CCNOT gate, aka Toffoli gate
-let controlled_op = op::x(0b001).c(0b110);
+let controlled_op = op::x(0b001).c(0b110).unwrap();
+```
+Controlled operation has to be unwrapped, since it could be None if its mask overlaps with the mask of operator.
+For example, this code will *panic*:
+```rust,should_panic,panics
+use qvnt::prelude::*;
+let _ = op::x(0b001).c(0b001).unwrap();
 ```
 
 ___
 ## In work
-1. Optimizing and vectorizing operations.
-3. Writing documentation for all modules.
+1. Implementing vectorized operations;
+2. Developpement of *QASM* Interpreter;
+3. Writing documentation for all modules;
+
+___
+## License
+Licensed under [MIT License](LICENSE.md)

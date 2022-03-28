@@ -1,5 +1,8 @@
 use super::*;
-use crate::math::{C, R, N};
+use crate::{
+    math::{C, N, R},
+    operator::single::pauli::phi,
+};
 
 pub fn qft(a_mask: N) -> MultiOp {
     let count = a_mask.count_ones() as usize;
@@ -17,16 +20,18 @@ pub fn qft(a_mask: N) -> MultiOp {
                 }
             }
 
-            for i in 0..(count-1) {
+            for i in 0..(count - 1) {
                 res.append(&mut h::h(vec[i]).0);
                 res.push_back(
-                    crate::operator::single::pauli::phi(
-                        ((i+1)..count).map(|j| (crate::math::PI * (0.5 as R).powi((j-i) as i32), vec[j]) ).collect())
-                        .ctrl(vec[i])
+                    phi(((i + 1)..count)
+                        .map(|j| (crate::math::PI * 0.5f64.powi((j - i) as i32), vec[j]))
+                        .collect())
+                    .c(vec[i])
+                    .unwrap(),
                 );
             }
 
-            res.append(&mut h::h(vec[count-1]).0);
+            res.append(&mut h::h(vec[count - 1]).0);
             MultiOp(res)
         }
     }
