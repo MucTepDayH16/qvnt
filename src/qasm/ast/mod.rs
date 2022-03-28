@@ -1,6 +1,6 @@
 use std::slice::Iter;
 use {
-    qasm::{lex, parse, process, AstNode},
+    qasm::{self, AstNode},
     std::{fs::File, io::Read, path::Path},
 };
 
@@ -14,13 +14,14 @@ pub struct Ast {
 
 impl Ast {
     pub fn from_source<S: ToString>(source: S) -> Result<Self> {
-        let mut tokens = lex(&source.to_string());
+        let mut tokens = qasm::lex(&source.to_string());
         if tokens.is_empty() {
             Err(Error::EmptySource)
         } else {
-            parse(&mut tokens)
-                .map(|ast| Self { ast })
-                .map_err(|err| Error::ParseError(err))
+            match qasm::parse(&mut tokens) {
+                Ok(ast) => Ok(Self { ast }),
+                Err(err) => Err(Error::ParseError(err)),
+            }
         }
     }
 
@@ -31,7 +32,7 @@ impl Ast {
         file.read_to_string(&mut source)
             .map_err(|_| Error::CannotRead(path.as_ref().to_path_buf()))?;
 
-        let source = process(&source, &std::env::current_dir().unwrap());
+        let source = qasm::process(&source, &std::env::current_dir().unwrap());
         Self::from_source(source)
     }
 

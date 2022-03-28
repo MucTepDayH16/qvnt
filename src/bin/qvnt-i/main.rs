@@ -1,14 +1,15 @@
 use {
     clap::{App, Arg},
+    int_tree::IntSet,
     qvnt::prelude::*,
     rustyline::{error::ReadlineError, Editor},
     std::{collections::HashMap, path::PathBuf},
 };
 
-include! { "loop_fn.rs" }
-include! { "int_tree.rs" }
+mod int_tree;
+mod loop_fn;
 
-const VERSION: &str = "0.3.2";
+const VERSION: &str = "0.3.3";
 const SIGN: &str = "|Q> ";
 const BLCK: &str = "... ";
 
@@ -48,7 +49,7 @@ fn main() {
     let dbg = cli.is_present("debug");
 
     fn process(int: &mut Int, int_set: &mut IntSet, line: String, dbg: bool) {
-        if let Err(err) = loop_fn(int, int_set, line) {
+        if let Err(err) = loop_fn::loop_fn(int, int_set, line) {
             if dbg {
                 eprintln!("{:?}\n", err);
             } else {

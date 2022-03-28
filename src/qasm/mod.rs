@@ -18,7 +18,7 @@ mod tests {
 
         for _ in 0..1000 {
             int.reset().finish();
-            hist[int.get_class().get_value(0b11)] += 1;
+            hist[int.get_class().get_by_mask(0b11)] += 1;
         }
 
         println!("{:?}", hist);

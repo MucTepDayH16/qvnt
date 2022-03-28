@@ -223,7 +223,7 @@ impl Int {
 
                 Ok(self)
             }
-            if_block => Err(Error::DisallowedNodeInMIf(if_block.clone())),
+            if_block => Err(Error::DisallowedNodeInIf(if_block.clone())),
         }
     }
 
@@ -402,7 +402,7 @@ mod tests {
             measure q -> c;",
         )
         .unwrap();
-        let mut int = Int::new(&ast).unwrap();
+        let int = Int::new(&ast).unwrap();
 
         println!("{:#?}", int.q_ops);
     }

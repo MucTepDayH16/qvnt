@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use super::*;
 
 macro_rules! gate {
@@ -96,18 +98,20 @@ macro_rules! gate {
     }};
 }
 
-pub(crate) fn process(name: String, regs: Vec<N>, args: Vec<R>) -> Result<MultiOp> {
-    match name.as_str() {
-        s if s.chars().next() == Some('c') => {
-            let mut name = name.chars();
-            name.next();
-            match process(name.collect(), Vec::from(&regs[1..]), args) {
+pub(crate) fn process<S>(name: S, regs: Vec<N>, args: Vec<R>) -> Result<MultiOp>
+where
+    S: Deref<Target = str>,
+{
+    match &*name {
+        s if &s[..1] == "c" => {
+            let (&ctrl, regs) = regs
+                .split_first()
+                .ok_or(Error::WrongRegNumber(name.to_string(), 0))?;
+
+            match process(&name[1..], regs.into(), args) {
                 Ok(op) => {
-                    if regs[0] & op.act_on() == 0 {
-                        Ok(op.c(regs[0]).unwrap())
-                    } else {
-                        Err(Error::InvalidControlMask(regs[0], op.act_on()))
-                    }
+                    let act = op.act_on();
+                    op.c(ctrl).ok_or(Error::InvalidControlMask(ctrl, act))
                 }
                 Err(err) => Err(match err {
                     Error::WrongRegNumber(name, num) => {
@@ -147,7 +151,7 @@ pub(crate) fn process(name: String, regs: Vec<N>, args: Vec<R>) -> Result<MultiO
         "u2" => gate!(u2 regs , args),
         "u3" => gate!(u3 regs , args),
 
-        _ => Err(Error::UnknownGate(name)),
+        _ => Err(Error::UnknownGate(name.to_string())),
     }
 }
 
@@ -156,103 +160,134 @@ mod tests {
     use super::*;
 
     #[test]
-    fn from_name() {
+    fn try_process_x() {
         assert_eq!(
+            process("x".to_string(), vec![0b111], vec![]),
             Ok(op::x(0b111)),
-            process("x".to_string(), vec![0b111], vec![])
         );
         assert_eq!(
+            process("x".to_string(), vec![0b111], vec![1.0]),
             Err(Error::WrongArgNumber("x".to_string(), 1)),
-            process("x".to_string(), vec![0b111], vec![1.0])
+        );
+    }
+
+    #[test]
+    fn try_process_cx() {
+        assert_eq!(
+            process("cx".to_string(), vec![0b100, 0b010, 0b001], vec![]),
+            Ok(op::x(0b011).c(0b100).unwrap()),
         );
         assert_eq!(
-            Ok(op::x(0b011).c(0b100)),
-            process("cx".to_string(), vec![0b100, 0b010, 0b001], vec![])
-        );
-        assert_eq!(
+            process("cx".to_string(), vec![0b100], vec![]),
             Err(Error::WrongRegNumber("cx".to_string(), 1)),
-            process("cx".to_string(), vec![0b100], vec![])
         );
         assert_eq!(
-            Ok(op::x(0b001).c(0b110)),
-            process("ccx".to_string(), vec![0b100, 0b010, 0b001], vec![])
+            process("cx".to_string(), vec![0b100, 0b010, 0b001], vec![1.0]),
+            Err(Error::WrongArgNumber("cx".to_string(), 1)),
+        );
+    }
+
+    #[test]
+    fn try_process_ccx() {
+        assert_eq!(
+            process("ccx".to_string(), vec![0b100, 0b010, 0b001], vec![]),
+            Ok(op::x(0b001).c(0b110).unwrap()),
         );
         assert_eq!(
+            process("ccx".to_string(), vec![0b100], vec![]),
+            Err(Error::WrongRegNumber("ccx".to_string(), 1)),
+        );
+        assert_eq!(
+            process("ccx".to_string(), vec![0b100, 0b010, 0b001], vec![1.0]),
             Err(Error::WrongArgNumber("ccx".to_string(), 1)),
-            process("ccx".to_string(), vec![0b100, 0b010, 0b001], vec![1.0])
         );
+    }
 
+    #[test]
+    fn try_process_rx() {
         assert_eq!(
+            process("rx".to_string(), vec![0b100], vec![1.0]),
             Ok(op::rx(1.0, 0b100)),
-            process("rx".to_string(), vec![0b100], vec![1.0])
         );
         assert_eq!(
+            process("rx".to_string(), vec![0b101], vec![1.0]),
             Err(Error::WrongRegNumber("rx".to_string(), 2)),
-            process("rx".to_string(), vec![0b101], vec![1.0])
         );
         assert_eq!(
+            process("rx".to_string(), vec![0b100], vec![]),
             Err(Error::WrongArgNumber("rx".to_string(), 0)),
-            process("rx".to_string(), vec![0b100], vec![])
         );
+    }
 
+    #[test]
+    fn try_process_rxx() {
         assert_eq!(
+            process("rxx".to_string(), vec![0b101], vec![1.0]),
             Ok(op::rxx(1.0, 0b101)),
-            process("rxx".to_string(), vec![0b101], vec![1.0])
         );
         assert_eq!(
+            process("rxx".to_string(), vec![0b100], vec![1.0]),
             Err(Error::WrongRegNumber("rxx".to_string(), 1)),
-            process("rxx".to_string(), vec![0b100], vec![1.0])
         );
         assert_eq!(
+            process("rxx".to_string(), vec![0b101], vec![2.0, 1.0]),
             Err(Error::WrongArgNumber("rxx".to_string(), 2)),
-            process("rxx".to_string(), vec![0b101], vec![2.0, 1.0])
         );
+    }
 
+    #[test]
+    fn try_process_swap() {
         assert_eq!(
+            process("swap".to_string(), vec![0b101], vec![]),
             Ok(op::swap(0b101)),
-            process("swap".to_string(), vec![0b101], vec![])
         );
         assert_eq!(
+            process("swap".to_string(), vec![0b111], vec![1.0]),
             Err(Error::WrongRegNumber("swap".to_string(), 3)),
-            process("swap".to_string(), vec![0b111], vec![1.0])
         );
         assert_eq!(
+            process("swap".to_string(), vec![0b101], vec![1.0]),
             Err(Error::WrongArgNumber("swap".to_string(), 1)),
-            process("swap".to_string(), vec![0b101], vec![1.0])
         );
+    }
 
+    #[test]
+    fn try_process_unitary() {
         assert_eq!(
+            process("u1".to_string(), vec![0b001], vec![1.0]),
             Ok(op::u1(1.0, 0b001)),
-            process("u1".to_string(), vec![0b001], vec![1.0])
         );
         assert_eq!(
+            process("u2".to_string(), vec![0b001], vec![1.0, 2.0]),
             Ok(op::u2(1.0, 2.0, 0b001)),
-            process("u2".to_string(), vec![0b001], vec![1.0, 2.0])
         );
         assert_eq!(
+            process("u3".to_string(), vec![0b001], vec![1.0, 2.0, 3.0]),
             Ok(op::u3(1.0, 2.0, 3.0, 0b001)),
-            process("u3".to_string(), vec![0b001], vec![1.0, 2.0, 3.0])
         );
+    }
 
+    #[test]
+    fn try_process_any() {
         assert_eq!(
             process("x".to_string(), vec![0b001, 0b100], vec![]),
-            Ok(op::x(0b101))
+            Ok(op::x(0b101)),
         );
         assert_eq!(
             process("y".to_string(), vec![0b11], vec![]),
-            Ok(op::y(0b11))
+            Ok(op::y(0b11)),
         );
         assert_eq!(
             process("ch".to_string(), vec![0b100, 0b010, 0b001], vec![]),
-            Ok(op::h(0b011).c(0b100))
+            Ok(op::h(0b011).c(0b100).unwrap()),
         );
         assert_eq!(
             process("swap".to_string(), vec![0b100, 0b010], vec![]),
-            Ok(op::swap(0b110))
+            Ok(op::swap(0b110)),
         );
         assert_eq!(
             process("swap".to_string(), vec![0b001], vec![]),
-            Err(Error::WrongRegNumber("swap".to_string(), 1))
+            Err(Error::WrongRegNumber("swap".to_string(), 1)),
         );
     }
 }

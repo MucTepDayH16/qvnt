@@ -12,7 +12,7 @@ pub enum Error {
     WrongArgNumber(String, usize),
     UnmatchedRegSize(usize, usize),
     MacroError(super::macros::Error),
-    DisallowedNodeInMIf(AstNode),
+    DisallowedNodeInIf(AstNode),
 }
 
 impl From<super::macros::Error> for Error {
@@ -44,7 +44,7 @@ impl fmt::Display for Error {
                 write!(f, "cannot measure [{q_num}] quantum registers into [{c_num}] classical registers", q_num=q_num, c_num=c_num),
             Error::MacroError(err) =>
                 write!(f, "{err:?}", err=err),
-            Error::DisallowedNodeInMIf(node) =>
+            Error::DisallowedNodeInIf(node) =>
                 write!(f, "such operation ({node:?}) isn't allowed in If block", node=node)
         }
     }
