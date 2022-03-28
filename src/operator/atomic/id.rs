@@ -1,6 +1,6 @@
 pub use super::*;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub (crate) struct Op;
 
 impl AtomicOp for Op {

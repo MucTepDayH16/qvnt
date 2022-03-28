@@ -2,7 +2,7 @@ use super::*;
 
 const SQRT_1_2: R = crate::math::FRAC_1_SQRT_2;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub (crate) struct Op {
     ab_mask: N,
     dagger: bool

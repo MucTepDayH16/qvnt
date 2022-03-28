@@ -1,4 +1,5 @@
 use super::*;
+use std::fmt;
 
 type Id = id::Op;
 type X = x::Op;
@@ -21,7 +22,7 @@ type SqrtSwap = sqrt_swap::Op;
 type SqrtISwap = sqrt_i_swap::Op;
 
 #[enum_dispatch::enum_dispatch(AtomicOpDispatch)]
-pub (crate) trait AtomicOp: Clone + Sync + Send {
+pub (crate) trait AtomicOp: Clone + PartialEq + Sync + Send {
     fn atomic_op(&self, psi: &[C], idx: N) -> C;
 
     fn for_each(&self, psi_i: &[C], psi_o: &mut [C], ctrl: N) {
@@ -61,7 +62,7 @@ pub (crate) trait AtomicOp: Clone + Sync + Send {
 }
 
 #[enum_dispatch::enum_dispatch]
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub (crate) enum AtomicOpDispatch {
     Id,
     X, RX, RXX,
@@ -71,4 +72,10 @@ pub (crate) enum AtomicOpDispatch {
     H1, H2,
     Swap, ISwap,
     SqrtSwap, SqrtISwap,
+}
+
+impl fmt::Debug for AtomicOpDispatch {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Op {{ {} }}", self.name())
+    }
 }

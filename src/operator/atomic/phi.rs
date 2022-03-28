@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use super::*;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Op {
     phases: BTreeMap<N, C>,
 }

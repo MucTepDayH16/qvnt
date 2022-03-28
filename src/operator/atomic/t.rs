@@ -2,7 +2,7 @@ use super::*;
 
 const EXP_I_PI_4: C = C{ re: crate::math::FRAC_1_SQRT_2, im: crate::math::FRAC_1_SQRT_2 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub (crate) struct Op {
     a_mask: N,
     dagger: bool,

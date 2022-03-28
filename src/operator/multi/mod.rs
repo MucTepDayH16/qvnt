@@ -57,7 +57,7 @@ pub (crate) use super::Applicable;
 /// # use qvnt::prelude::*;
 /// let new_op = op::x(0b01) * op::y(0b10);
 /// ```
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct MultiOp(VecDeque<SingleOp>);
 
 #[doc(hidden)]
@@ -78,7 +78,9 @@ impl std::ops::DerefMut for MultiOp {
 
 impl std::fmt::Debug for MultiOp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.0)
+        f.debug_list()
+            .entries(&self.0)
+            .finish()
     }
 }
 
@@ -136,12 +138,6 @@ impl From<SingleOp> for MultiOp {
 impl Default for MultiOp {
     fn default() -> Self {
         Self(VecDeque::new())
-    }
-}
-
-impl PartialEq for MultiOp {
-    fn eq(&self, other: &Self) -> bool {
-        format!("{:?}", self) == format!("{:?}", other)
     }
 }
 

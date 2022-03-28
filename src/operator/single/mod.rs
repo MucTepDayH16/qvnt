@@ -42,7 +42,7 @@ pub mod swap;
 /// This is similar to reg.apply(&op::x(0b1)).
 /// Using index notation you could deconstruct complex gates (e.g. [`Quantum Fourier Transform`](super::qft()))
 /// into simple ones and apply them *insequentially*.
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct SingleOp {
     pub (crate) act: N,
     pub (crate) ctrl: N,
