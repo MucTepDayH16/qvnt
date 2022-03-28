@@ -1,7 +1,7 @@
 use super::*;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub (crate) struct Op {
+pub(crate) struct Op {
     ab_mask: N,
 }
 
@@ -42,18 +42,18 @@ impl AtomicOp for Op {
     }
 }
 
-#[cfg(test)] #[test]
+#[cfg(test)]
+#[test]
 fn matrix_repr() {
     use crate::operator::single::*;
 
-    const O: C = C{ re: 0.0, im: 0.0 };
-    const I: C = C{ re: 1.0, im: 0.0 };
+    const O: C = C { re: 0.0, im: 0.0 };
+    const I: C = C { re: 1.0, im: 0.0 };
 
     let op: SingleOp = Op::new(0b11).into();
     assert_eq!(op.name(), "SWAP3");
-    assert_eq!(op.matrix(2),
-               [   [I, O, O, O],
-                   [O, O, I, O],
-                   [O, I, O, O],
-                   [O, O, O, I]   ]);
+    assert_eq!(
+        op.matrix(2),
+        [[I, O, O, O], [O, O, I, O], [O, I, O, O], [O, O, O, I]]
+    );
 }

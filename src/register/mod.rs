@@ -6,10 +6,10 @@
 //! * [`VReg`] - *vurtual* register.
 //!
 
-pub (crate) mod virtl;
-pub (crate) mod quant;
-pub (crate) mod class;
+pub(crate) mod class;
+pub(crate) mod quant;
+pub(crate) mod virtl;
 
-pub use quant::Reg as QReg;
 pub use class::Reg as CReg;
+pub use quant::Reg as QReg;
 pub use virtl::Reg as VReg;

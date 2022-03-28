@@ -1,4 +1,4 @@
-use crate::math::{C, R, N};
+use crate::math::{C, N, R};
 
 pub trait Applicable: Sized + Sync {
     fn apply(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>);

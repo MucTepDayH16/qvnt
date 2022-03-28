@@ -1,6 +1,9 @@
+pub(crate) use super::Applicable;
+use crate::{
+    math::{C, N, R},
+    operator::atomic::*,
+};
 use std::{rc::Rc, sync::Arc};
-use crate::{math::{C, R, N}, operator::atomic::*};
-pub (crate) use super::Applicable;
 
 macro_rules! single_op_checked {
     ($op:expr) => {
@@ -42,9 +45,9 @@ pub mod swap;
 /// into simple ones and apply them *insequentially*.
 #[derive(Clone, PartialEq)]
 pub struct SingleOp {
-    pub (crate) act: N,
-    pub (crate) ctrl: N,
-    pub (crate) func: dispatch::AtomicOpDispatch,
+    pub(crate) act: N,
+    pub(crate) ctrl: N,
+    pub(crate) func: dispatch::AtomicOpDispatch,
 }
 
 impl SingleOp {

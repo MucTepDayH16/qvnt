@@ -1,5 +1,5 @@
-use std::collections::BTreeMap;
 use super::*;
+use std::collections::BTreeMap;
 
 #[derive(Clone, PartialEq)]
 pub struct Op {
@@ -18,8 +18,10 @@ impl Op {
                 jdx <<= 1;
             }
         }
-        phases.iter_mut().for_each(|(_, val)| *val = C::from_polar(1.0, val.im));
-        Self{ phases }
+        phases
+            .iter_mut()
+            .for_each(|(_, val)| *val = C::from_polar(1.0, val.im));
+        Self { phases }
     }
 }
 
@@ -47,6 +49,12 @@ impl AtomicOp for Op {
     }
 
     fn dgr(self) -> AtomicOpDispatch {
-        AtomicOpDispatch::Phi(Self{ phases: self.phases.into_iter().map(|(idx, ang)| (idx, ang.conj())).collect() })
+        AtomicOpDispatch::Phi(Self {
+            phases: self
+                .phases
+                .into_iter()
+                .map(|(idx, ang)| (idx, ang.conj()))
+                .collect(),
+        })
     }
 }

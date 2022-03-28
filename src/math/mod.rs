@@ -1,5 +1,5 @@
-pub use std::f64::consts::*;
 pub use self::{consts::*, types::*};
+pub use std::f64::consts::*;
 
 #[cfg(feature = "float-cmp")]
 pub mod approx_cmp;

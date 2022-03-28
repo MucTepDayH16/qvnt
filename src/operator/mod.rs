@@ -89,13 +89,13 @@
 
 pub use self::{applicable::*, multi::MultiOp, single::SingleOp};
 use self::{multi::*, single::*};
-use crate::math::{C, R, N, FRAC_PI_2};
+use crate::math::{C, FRAC_PI_2, N, R};
 
-pub (crate) mod applicable;
+pub(crate) mod applicable;
 
-pub (self) mod atomic;
-pub (self) mod single;
-pub (self) mod multi;
+pub(self) mod atomic;
+pub(self) mod multi;
+pub(self) mod single;
 
 /// [`Identity`](id) gate.
 ///
@@ -149,7 +149,9 @@ pub fn x(a_mask: N) -> MultiOp {
 /// </table>
 #[inline(always)]
 pub fn rx(phase: R, a_mask: N) -> MultiOp {
-    rotate::rx(a_mask, phase).expect("Mask should contain 1 bit!").into()
+    rotate::rx(a_mask, phase)
+        .expect("Mask should contain 1 bit!")
+        .into()
 }
 
 /// *Ising XX* coupling gate.
@@ -166,7 +168,9 @@ pub fn rx(phase: R, a_mask: N) -> MultiOp {
 /// </table>
 #[inline(always)]
 pub fn rxx(phase: R, ab_mask: N) -> MultiOp {
-    rotate::rxx(ab_mask, phase).expect("Mask should contain 2 bit!").into()
+    rotate::rxx(ab_mask, phase)
+        .expect("Mask should contain 2 bit!")
+        .into()
 }
 
 /// Pauli [`Y`](y) gate.
@@ -208,7 +212,9 @@ pub fn y(a_mask: N) -> MultiOp {
 /// </table>
 #[inline(always)]
 pub fn ry(phase: R, a_mask: N) -> MultiOp {
-    rotate::ry(a_mask, phase).expect("Mask should contain 1 bit!").into()
+    rotate::ry(a_mask, phase)
+        .expect("Mask should contain 1 bit!")
+        .into()
 }
 
 /// *Ising YY* coupling gate.
@@ -225,7 +231,9 @@ pub fn ry(phase: R, a_mask: N) -> MultiOp {
 /// </table>
 #[inline(always)]
 pub fn ryy(phase: R, ab_mask: N) -> MultiOp {
-    rotate::ryy(ab_mask, phase).expect("Mask should contain 2 bit!").into()
+    rotate::ryy(ab_mask, phase)
+        .expect("Mask should contain 2 bit!")
+        .into()
 }
 
 /// Pauli [`Z`](z) gate.
@@ -312,7 +320,9 @@ pub fn t(a_mask: N) -> MultiOp {
 /// </table>
 #[inline(always)]
 pub fn rz(phase: R, a_mask: N) -> MultiOp {
-    rotate::rz(a_mask, phase).expect("Mask should contain 1 bit!").into()
+    rotate::rz(a_mask, phase)
+        .expect("Mask should contain 1 bit!")
+        .into()
 }
 
 /// *Ising ZZ* coupling gate.
@@ -329,7 +339,9 @@ pub fn rz(phase: R, a_mask: N) -> MultiOp {
 /// </table>
 #[inline(always)]
 pub fn rzz(phase: R, ab_mask: N) -> MultiOp {
-    rotate::rzz(ab_mask, phase).expect("Mask should contain 2 bit!").into()
+    rotate::rzz(ab_mask, phase)
+        .expect("Mask should contain 2 bit!")
+        .into()
 }
 
 /// Phase shift gate.
@@ -382,7 +394,9 @@ pub fn phi(phases: Vec<(R, N)>) -> MultiOp {
 /// </table>
 #[inline(always)]
 pub fn swap(ab_mask: N) -> MultiOp {
-    swap::swap(ab_mask).expect("Mask should contain 2 bit!").into()
+    swap::swap(ab_mask)
+        .expect("Mask should contain 2 bit!")
+        .into()
 }
 
 /// Square root of *SWAP* gate.
@@ -402,7 +416,9 @@ pub fn swap(ab_mask: N) -> MultiOp {
 /// </table>
 #[inline(always)]
 pub fn sqrt_swap(ab_mask: N) -> MultiOp {
-    swap::sqrt_swap(ab_mask).expect("Mask should contain 2 bit!").into()
+    swap::sqrt_swap(ab_mask)
+        .expect("Mask should contain 2 bit!")
+        .into()
 }
 
 /// [`iSWAP`](i_swap) gate.
@@ -425,7 +441,9 @@ pub fn sqrt_swap(ab_mask: N) -> MultiOp {
 /// </table>
 #[inline(always)]
 pub fn i_swap(ab_mask: N) -> MultiOp {
-    swap::i_swap(ab_mask).expect("Mask should contain 2 bit!").into()
+    swap::i_swap(ab_mask)
+        .expect("Mask should contain 2 bit!")
+        .into()
 }
 
 /// Square root of *iSWAP* gate.
@@ -445,7 +463,9 @@ pub fn i_swap(ab_mask: N) -> MultiOp {
 /// </table>
 #[inline(always)]
 pub fn sqrt_i_swap(ab_mask: N) -> MultiOp {
-    swap::sqrt_i_swap(ab_mask).expect("Mask should contain 2 bit!").into()
+    swap::sqrt_i_swap(ab_mask)
+        .expect("Mask should contain 2 bit!")
+        .into()
 }
 
 /// Hadamard gate.
@@ -533,7 +553,7 @@ pub fn qft_swapped(a_mask: N) -> MultiOp {
 }
 
 #[cfg(test)]
-pub (crate) fn bench_circuit() -> MultiOp {
+pub(crate) fn bench_circuit() -> MultiOp {
     MultiOp::default()
         * h(0b111)
         * h(0b100).c(0b001).unwrap()

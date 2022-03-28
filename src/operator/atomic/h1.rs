@@ -2,9 +2,8 @@ use super::*;
 
 const SQRT_1_2: R = crate::math::FRAC_1_SQRT_2;
 
-
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub (crate) struct Op {
+pub(crate) struct Op {
     a_mask: N,
 }
 
@@ -17,9 +16,10 @@ impl Op {
 
 impl AtomicOp for Op {
     fn atomic_op(&self, psi: &[C], idx: N) -> C {
-        let mut psi = (psi[ idx ],
-                       psi[ idx ^ self.a_mask ]);
-        if idx & self.a_mask != 0 { psi.0 = -psi.0 };
+        let mut psi = (psi[idx], psi[idx ^ self.a_mask]);
+        if idx & self.a_mask != 0 {
+            psi.0 = -psi.0
+        };
         (psi.0 + psi.1).scale(SQRT_1_2)
     }
 
@@ -44,15 +44,17 @@ impl AtomicOp for Op {
     }
 }
 
-#[cfg(test)] #[test]
+#[cfg(test)]
+#[test]
 fn matrix_repr() {
     use crate::operator::single::*;
 
-    const SQRT_1_2: C = C { re: crate::math::FRAC_1_SQRT_2, im: 0.0 };
+    const SQRT_1_2: C = C {
+        re: crate::math::FRAC_1_SQRT_2,
+        im: 0.0,
+    };
 
     let op: SingleOp = Op::new(0b1).into();
     assert_eq!(op.name(), "H1");
-    assert_eq!(op.matrix(1),
-               [   [SQRT_1_2, SQRT_1_2],
-                   [SQRT_1_2, -SQRT_1_2]    ]);
+    assert_eq!(op.matrix(1), [[SQRT_1_2, SQRT_1_2], [SQRT_1_2, -SQRT_1_2]]);
 }

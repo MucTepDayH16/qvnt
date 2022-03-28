@@ -17,7 +17,7 @@ pub mod register;
 pub mod prelude {
     pub use crate::{
         operator as op,
-        operator::{MultiOp, SingleOp, Applicable},
+        operator::{Applicable, MultiOp, SingleOp},
         register::*,
     };
 }

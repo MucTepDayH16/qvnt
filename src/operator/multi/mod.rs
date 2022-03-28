@@ -1,6 +1,12 @@
-use std::{collections::VecDeque, ops::{Mul, MulAssign}};
-use crate::{math::{C, R, N}, operator::single::*};
-pub (crate) use super::Applicable;
+pub(crate) use super::Applicable;
+use crate::{
+    math::{C, N, R},
+    operator::single::*,
+};
+use std::{
+    collections::VecDeque,
+    ops::{Mul, MulAssign},
+};
 
 /// Quantum operation's queue.
 ///
@@ -76,9 +82,7 @@ impl std::ops::DerefMut for MultiOp {
 
 impl std::fmt::Debug for MultiOp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_list()
-            .entries(&self.0)
-            .finish()
+        f.debug_list().entries(&self.0).finish()
     }
 }
 
@@ -107,9 +111,7 @@ impl Applicable for MultiOp {
     }
 
     fn dgr(self) -> Self {
-        let new = self.0.into_iter()
-            .map(|op| op.dgr())
-            .rev().collect();
+        let new = self.0.into_iter().map(|op| op.dgr()).rev().collect();
         Self(new)
     }
 
@@ -117,9 +119,7 @@ impl Applicable for MultiOp {
         if self.act_on() & c_mask != 0 {
             None
         } else {
-            let new = self.0.into_iter()
-                .map(|op| op.c(c_mask).unwrap())
-                .collect();
+            let new = self.0.into_iter().map(|op| op.c(c_mask).unwrap()).collect();
             Some(Self(new))
         }
     }
@@ -127,7 +127,14 @@ impl Applicable for MultiOp {
 
 impl From<SingleOp> for MultiOp {
     fn from(single: SingleOp) -> Self {
-        Self(if single.name() != "Id" {vec![single]} else {vec![]}.into())
+        Self(
+            if single.name() != "Id" {
+                vec![single]
+            } else {
+                vec![]
+            }
+            .into(),
+        )
     }
 }
 
@@ -182,8 +189,8 @@ impl<'a> MulAssign<SingleOp> for &'a mut MultiOp {
     }
 }
 
-pub (crate) mod h;
-pub (crate) mod qft;
+pub(crate) mod h;
+pub(crate) mod qft;
 
 #[cfg(test)]
 mod tests {

@@ -1,5 +1,8 @@
-use std::{fmt, ops::{Mul, MulAssign}};
-use crate::math::{C, R, N};
+use crate::math::{C, N, R};
+use std::{
+    fmt,
+    ops::{Mul, MulAssign},
+};
 
 /// [`Classical register`](Reg)
 ///
@@ -56,12 +59,19 @@ impl Reg {
     pub fn new(q_num: N) -> Self {
         let q_mask = 1_usize.wrapping_shl(q_num as u32).wrapping_add(!0_usize);
 
-        Self{ value: 0, q_num, q_mask }
+        Self {
+            value: 0,
+            q_num,
+            q_mask,
+        }
     }
 
     /// Initialize a value of register.
     pub fn init_state(self, i_state: N) -> Self {
-        Self{ value: i_state & self.q_mask, ..self }
+        Self {
+            value: i_state & self.q_mask,
+            ..self
+        }
     }
 
     fn tensor_prod(self, other: Self) -> Self {
@@ -81,9 +91,13 @@ impl fmt::Debug for Reg {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let value = crate::math::bits_iter::BitsIter::from(self.q_mask)
             .into_iter()
-            .fold(String::new(), |s, i|
-                if i & self.value == 0 { format!("0{}", s) } else { format!("1{}", s) }
-            );
+            .fold(String::new(), |s, i| {
+                if i & self.value == 0 {
+                    format!("0{}", s)
+                } else {
+                    format!("1{}", s)
+                }
+            });
         write!(f, "({})", value)
     }
 }

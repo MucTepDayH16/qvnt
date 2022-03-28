@@ -1,7 +1,11 @@
-use std::{rc::Rc, cell::RefCell, ops::{Index, RangeFull}};
+use crate::math::{bits_iter, C, N, R};
 use std::ops::Deref;
 use std::slice::SliceIndex;
-use crate::math::{C, R, N, bits_iter};
+use std::{
+    cell::RefCell,
+    ops::{Index, RangeFull},
+    rc::Rc,
+};
 
 type Ptr<T> = Rc<RefCell<T>>;
 
@@ -79,7 +83,7 @@ type Ptr<T> = Rc<RefCell<T>>;
 /// q.apply(&gate);
 /// ```
 #[derive(Clone, Default)]
-pub struct Reg(pub (crate) Ptr<N>, pub (crate) Vec<N>);
+pub struct Reg(pub(crate) Ptr<N>, pub(crate) Vec<N>);
 
 impl Reg {
     /// Create virtual register with a given number of qubits.
@@ -87,7 +91,7 @@ impl Reg {
         Self::new_with_mask(1usize.wrapping_shl(num as u32).wrapping_add(!0usize))
     }
 
-    pub (crate) fn new_with_mask(mask: N) -> Self {
+    pub(crate) fn new_with_mask(mask: N) -> Self {
         let bi = bits_iter::BitsIter::from(mask);
         super::VReg(Ptr::new(0.into()), bi.collect())
     }
@@ -115,12 +119,16 @@ impl Index<N> for Reg {
 }
 
 impl<F> Index<F> for Reg
-where F: Fn(N) -> bool {
+where
+    F: Fn(N) -> bool,
+{
     type Output = N;
 
     #[inline]
     fn index(&self, f: F) -> &Self::Output {
-        let tmp = self.1.iter()
+        let tmp = self
+            .1
+            .iter()
             .enumerate()
             .filter_map(|(i, j)| if f(i) { Some(*j) } else { None })
             .fold(0, |acc, idx| acc | idx);
@@ -142,7 +150,9 @@ impl Index<RangeFull> for Reg {
 
     #[inline]
     fn index(&self, _: RangeFull) -> &Self::Output {
-        fn all(_: N) -> bool { true }
+        fn all(_: N) -> bool {
+            true
+        }
         self.index(all)
     }
 }
@@ -162,12 +172,12 @@ mod tests {
         }
 
         let v = Reg::new(8);
-        assert_eq!(v[3],        0b00001000);
-        assert_eq!(v[even],     0b01010101);
-        assert_eq!(v[odd],      0b10101010);
-        assert_eq!(v[..],       0b11111111);
+        assert_eq!(v[3], 0b00001000);
+        assert_eq!(v[even], 0b01010101);
+        assert_eq!(v[odd], 0b10101010);
+        assert_eq!(v[..], 0b11111111);
         assert_eq!(v[|_| true], 0b11111111);
-        assert_eq!(v[[0, 7]],   0b10000001);
+        assert_eq!(v[[0, 7]], 0b10000001);
     }
 
     #[test]
@@ -186,25 +196,25 @@ mod tests {
         let x = reg.get_vreg_by(0b00111).unwrap();
         let y = reg.get_vreg_by(0b11000).unwrap();
 
-        assert_eq!(r[0],    0b00001);
-        assert_eq!(r[1],    0b00010);
-        assert_eq!(r[2],    0b00100);
-        assert_eq!(r[3],    0b01000);
-        assert_eq!(r[4],    0b10000);
-        assert_eq!(r[..],   0b11111);
+        assert_eq!(r[0], 0b00001);
+        assert_eq!(r[1], 0b00010);
+        assert_eq!(r[2], 0b00100);
+        assert_eq!(r[3], 0b01000);
+        assert_eq!(r[4], 0b10000);
+        assert_eq!(r[..], 0b11111);
 
-        assert_eq!(m[0],    0b00001);
-        assert_eq!(m[1],    0b00100);
-        assert_eq!(m[2],    0b01000);
-        assert_eq!(m[..],   0b01101);
+        assert_eq!(m[0], 0b00001);
+        assert_eq!(m[1], 0b00100);
+        assert_eq!(m[2], 0b01000);
+        assert_eq!(m[..], 0b01101);
 
-        assert_eq!(x[0],    0b00001);
-        assert_eq!(x[1],    0b00010);
-        assert_eq!(x[2],    0b00100);
-        assert_eq!(x[..],   0b00111);
+        assert_eq!(x[0], 0b00001);
+        assert_eq!(x[1], 0b00010);
+        assert_eq!(x[2], 0b00100);
+        assert_eq!(x[..], 0b00111);
 
-        assert_eq!(y[0],    0b01000);
-        assert_eq!(y[1],    0b10000);
-        assert_eq!(y[..],   0b11000);
+        assert_eq!(y[0], 0b01000);
+        assert_eq!(y[1], 0b10000);
+        assert_eq!(y[..], 0b11000);
     }
 }
