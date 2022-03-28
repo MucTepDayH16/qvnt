@@ -9,7 +9,7 @@ authors     = ["Denis Drozhzhin <denisdrozhzhin1999@gmail.com>"]
 edition     = "2018"
 repository  = "https://github.com/MucTepDayH16/qvnt/"
 readme      = "README.md"
-license-file = "LICENSE.md"
+license     = "MIT OR Apache-2.0"
 
 [features]
 default     = []
