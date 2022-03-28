@@ -1,7 +1,5 @@
 use std::{rc::Rc, sync::Arc};
 use crate::{math::{C, R, N}, operator::atomic::*};
-#[cfg(feature = "cpu")]
-pub (crate) use super::ApplicableSync;
 pub (crate) use super::Applicable;
 
 macro_rules! single_op_checked {
@@ -99,6 +97,12 @@ impl Applicable for SingleOp {
         self.func.for_each(&psi_i[..], &mut psi_o[..], ctrl);
     }
 
+    #[cfg(feature = "cpu")]
+    fn apply_sync(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>) {
+        let ctrl = self.ctrl;
+        self.func.for_each_par(&psi_i[..], &mut psi_o[..], ctrl);
+    }
+
     #[inline]
     fn act_on(&self) -> N {
         self.act | self.ctrl
@@ -122,14 +126,6 @@ impl Applicable for SingleOp {
                 ..self
             })
         }
-    }
-}
-
-#[cfg(feature = "cpu")]
-impl ApplicableSync for SingleOp {
-    fn apply_sync(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>) {
-        let ctrl = self.ctrl;
-        self.func.for_each_par(&psi_i[..], &mut psi_o[..], ctrl);
     }
 }
 

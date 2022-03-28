@@ -1,7 +1,10 @@
 use crate::math::{C, R, N};
 
-pub trait Applicable: Sized {
+pub trait Applicable: Sized + Sync {
     fn apply(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>);
+
+    #[cfg(feature = "cpu")]
+    fn apply_sync(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>);
 
     fn act_on(&self) -> N;
 
@@ -39,9 +42,4 @@ pub trait Applicable: Sized {
 
         matrix
     }
-}
-
-#[cfg(feature = "cpu")]
-pub trait ApplicableSync: Applicable + Sync {
-    fn apply_sync(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>);
 }

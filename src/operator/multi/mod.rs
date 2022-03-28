@@ -1,7 +1,5 @@
 use std::{collections::VecDeque, ops::{Mul, MulAssign}};
 use crate::{math::{C, R, N}, operator::single::*};
-#[cfg(feature = "cpu")]
-pub (crate) use super::ApplicableSync;
 pub (crate) use super::Applicable;
 
 /// Quantum operation's queue.
@@ -94,6 +92,16 @@ impl Applicable for MultiOp {
         std::mem::swap(psi_i, psi_o);
     }
 
+    #[cfg(feature = "cpu")]
+    fn apply_sync(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>) {
+        let psi_i = &mut psi_i.clone();
+        self.0.iter().for_each(|op| {
+            op.apply_sync(psi_i, psi_o);
+            std::mem::swap(psi_i, psi_o);
+        });
+        std::mem::swap(psi_i, psi_o);
+    }
+
     fn act_on(&self) -> N {
         self.0.iter().fold(0, |act, op| act | op.act_on())
     }
@@ -114,18 +122,6 @@ impl Applicable for MultiOp {
                 .collect();
             Some(Self(new))
         }
-    }
-}
-
-#[cfg(feature = "cpu")]
-impl ApplicableSync for MultiOp {
-    fn apply_sync(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>) {
-        let psi_i = &mut psi_i.clone();
-        self.0.iter().for_each(|op| {
-            op.apply_sync(psi_i, psi_o);
-            std::mem::swap(psi_i, psi_o);
-        });
-        std::mem::swap(psi_i, psi_o);
     }
 }
 

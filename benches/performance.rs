@@ -17,7 +17,7 @@ fn perf_test_multi(q_num: usize, t_num: usize) {
         .num_threads(t_num).unwrap()
         .init_state(0);
 
-    reg.apply_sync(&(op::qft(0b0111) * op::qft(0b1110)));
+    reg.apply(&(op::qft(0b0111) * op::qft(0b1110)));
 
     let mask = 0b100;
     assert_eq!(reg.measure_mask(mask).get() & !mask, 0);

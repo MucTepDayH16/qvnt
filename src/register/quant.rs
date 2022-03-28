@@ -275,7 +275,7 @@ impl Reg {
             #[cfg(feature = "cpu")]
             Model::Multi(n) => {
                 crate::threads::global_install(n, || {
-                    (0..q_size.max(MIN_QREG_LEN)).into_par_iter().map(
+                    (0..q_size.max(MIN_BUFFER_LEN)).into_par_iter().map(
                         move |idx| if idx < q_size {
                             self.psi[(idx >> shift.0) & mask.0] * other.psi[(idx >> shift.1) & mask.1]
                         } else {
@@ -296,18 +296,32 @@ impl Reg {
     /// To accelerate it you may use [`apply_sync`].
     pub fn apply<Op>(&mut self, op: &Op)
     where Op: crate::operator::applicable::Applicable {
-        let mut psi = Vec::with_capacity(self.psi.capacity());
-        unsafe { psi.set_len(self.psi.len()) };
-        op.apply(&self.psi, &mut psi);
-        std::mem::swap(&mut self.psi, &mut psi);
+        match self.th {
+            Model::Single => {
+                let mut psi = Vec::with_capacity(self.psi.capacity());
+                unsafe { psi.set_len(self.psi.len()) };
+                op.apply(&self.psi, &mut psi);
+                std::mem::swap(&mut self.psi, &mut psi);
+            },
+            #[cfg(feature = "cpu")]
+            Model::Multi(n) => {
+                crate::threads::global_install(n, || {
+                    let mut psi = Vec::with_capacity(self.psi.capacity());
+                    unsafe { psi.set_len(self.psi.len()) };
+                    op.apply_sync(&self.psi, &mut psi);
+                    std::mem::swap(&mut self.psi, &mut psi);
+                })
+            }
+        }
     }
 
     /// __This method available with "cpu" feature enabled.__
     ///
     /// Apply quantum gate to register, using specified number of threads in [`num_threads`](Reg::num_threads).
+    #[deprecated(since = "0.3.3", note = "use `apply` instead")]
     #[cfg(feature = "cpu")]
     pub fn apply_sync<Op>(&mut self, op: &Op)
-    where Op: crate::operator::applicable::ApplicableSync {
+    where Op: crate::operator::applicable::Applicable {
         match self.th {
             Model::Single => self.apply(op),
             #[cfg(feature = "cpu")]
