@@ -38,13 +38,13 @@ mod cmd {
     impl fmt::Display for Error {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             match self {
-                Error::UnknownCommand(s) => write!(f, "unknown command: {}", s),
-                Error::UnspecifiedPath => write!(f, "you must specify path to load file"),
+                Error::UnknownCommand(s) => write!(f, "Unknown command: {s}"),
+                Error::UnspecifiedPath => write!(f, "Path to load file must be specified"),
                 Error::UnspecifiedInt => {
-                    write!(f, "you must specify an integer to loop over comands")
+                    write!(f, "Integer must be specified to loop over comands")
                 }
-                Error::UnspecifiedTag => write!(f, "you must specify a tag name as string"),
-                Error::WrongTagName(s) => write!(f, "there's no tag named \"{}\"", s),
+                Error::UnspecifiedTag => write!(f, "Tag name as string must be specified"),
+                Error::WrongTagName(s) => write!(f, "There's no tag {s:?}"),
             }
         }
     }

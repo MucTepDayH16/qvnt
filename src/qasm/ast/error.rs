@@ -11,10 +11,10 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::EmptySource => write!(f, "given an empty source"),
-            Error::NoSuchFile(file) => write!(f, "file \"{file:?}\" not found", file = file),
-            Error::CannotRead(file) => write!(f, "cannot read file \"{file:?}\"", file = file),
-            Error::ParseError(err) => write!(f, "parser error: {err:?}", err = err),
+            Error::EmptySource => write!(f, "Given an empty source"),
+            Error::NoSuchFile(file) => write!(f, "File {file:?} not found"),
+            Error::CannotRead(file) => write!(f, "Cannot read file {file:?}"),
+            Error::ParseError(err) => write!(f, "Parser error: {err:?}"),
         }
     }
 }

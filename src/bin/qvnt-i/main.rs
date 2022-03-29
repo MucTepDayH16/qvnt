@@ -3,7 +3,7 @@ use {
     int_tree::IntSet,
     qvnt::prelude::*,
     rustyline::{error::ReadlineError, Editor},
-    std::{collections::HashMap, path::PathBuf},
+    std::path::PathBuf,
 };
 
 mod int_tree;
