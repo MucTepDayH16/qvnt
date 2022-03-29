@@ -1,6 +1,6 @@
 name: Criterion
 
-on: [push, pull_request]
+on: [push]
 
 env:
   CARGO_TERM_COLOR:
@@ -10,9 +10,9 @@ jobs:
   benchmark:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout master
+      - name: Checkout branch
         uses: actions/checkout@v2
-      - name: Checkout submodules
-        run: git submodule init && git submodule update
+      - name: Init submodules
+        uses: snickerbockers/submodules-init@v4
       - name: Benchmark crate
         run: cargo bench --quiet --package qvnt --bench performance --features=cpu
