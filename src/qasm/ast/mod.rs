@@ -43,32 +43,51 @@ impl Ast {
 
 #[cfg(test)]
 mod tests {
+    use qasm::Argument;
+
     use super::*;
 
     #[test]
     fn ast_from_source() {
-        let _ = Ast::from_source("OPENQASM 2.0; qreg a[3]; CX a[0], a[1];").unwrap();
+        use AstNode::*;
 
-        assert_eq!(Ast::from_source("").unwrap_err(), Error::EmptySource);
         assert_eq!(
-            Ast::from_source("qreg a[3]; CX a[0], a[1];").unwrap_err(),
-            Error::ParseError(qasm::Error::MissingVersion)
+            Ast::from_source("OPENQASM 2.0; qreg a[3]; rx(pi, sqrt(2.0)) a[0], a[1];"),
+            Ok(Ast {
+                ast: vec![
+                    QReg("a".to_string(), 3),
+                    ApplyGate(
+                        "rx".to_string(),
+                        vec![
+                            Argument::Qubit("a".to_string(), 0),
+                            Argument::Qubit("a".to_string(), 1),
+                        ],
+                        vec!["pi".to_string(), "sqrt(2)".to_string(),]
+                    ),
+                ]
+            }),
+        );
+
+        assert_eq!(Ast::from_source(""), Err(Error::EmptySource),);
+        assert_eq!(
+            Ast::from_source("qreg a[3]; CX a[0], a[1];"),
+            Err(Error::ParseError(qasm::Error::MissingVersion)),
         );
         assert_eq!(
-            Ast::from_source("OPENQASM 0.0; qreg a[3]; CX a[0], a[1];").unwrap_err(),
-            Error::ParseError(qasm::Error::UnsupportedVersion)
+            Ast::from_source("OPENQASM 0.0; qreg a[3]; CX a[0], a[1];"),
+            Err(Error::ParseError(qasm::Error::UnsupportedVersion)),
         );
         assert_eq!(
-            Ast::from_source("OPENQASM 2.0 qreg a[3]; CX a[0], a[1];").unwrap_err(),
-            Error::ParseError(qasm::Error::MissingSemicolon)
+            Ast::from_source("OPENQASM 2.0 qreg a[3]; CX a[0], a[1];"),
+            Err(Error::ParseError(qasm::Error::MissingSemicolon)),
         );
         assert_eq!(
-            Ast::from_source("OPENQASM 2.0; qreg a[]; CX a[0], a[1];").unwrap_err(),
-            Error::ParseError(qasm::Error::MissingInt)
+            Ast::from_source("OPENQASM 2.0; qreg a[]; CX a[0], a[1];"),
+            Err(Error::ParseError(qasm::Error::MissingInt)),
         );
         assert_eq!(
-            Ast::from_source("OPENQASM 2.0; qreg a[3]; a[0], a[1];").unwrap_err(),
-            Error::ParseError(qasm::Error::MissingIdentifier)
+            Ast::from_source("OPENQASM 2.0; qreg a[3]; a[0], a[1];"),
+            Err(Error::ParseError(qasm::Error::MissingIdentifier)),
         );
     }
 
