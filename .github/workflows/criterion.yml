@@ -12,5 +12,7 @@ jobs:
     steps:
       - name: Checkout master
         uses: actions/checkout@v2
+      - name: Checkout submodules
+        run: git submodule init && git submodule update
       - name: Benchmark crate
         run: cargo bench --quiet --package qvnt --bench performance --features=cpu
