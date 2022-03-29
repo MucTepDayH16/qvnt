@@ -11,25 +11,19 @@ use {
 };
 
 mod error;
+mod ext_op;
 mod gates;
 mod macros;
 mod parse;
 
 use error::{Error, Result};
+use ext_op::{Op as ExtOp, Sep};
 use macros::Macro;
 
 #[derive(Clone, Debug, PartialEq)]
 enum MeasureOp {
     Set,
     Xor,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub(crate) enum Sep {
-    Nop,
-    Measure(N, N),
-    IfBranch(N, N),
-    Reset(N),
 }
 
 impl Default for MeasureOp {
@@ -43,6 +37,7 @@ pub struct Int {
     m_op: MeasureOp,
     q_reg: (QReg, Vec<String>),
     c_reg: (CReg, Vec<String>),
+    q_ops: ExtOp,
     macros: BTreeMap<String, Macro>,
 }
 
@@ -65,7 +60,7 @@ impl Int {
     }
 
     pub fn finish(&mut self) -> &mut Self {
-        let ops = std::mem::take(&mut self.q_ops.1);
+        let ops = std::mem::take(&mut self.q_ops.0);
         for (op, sep) in ops.iter() {
             match sep {
                 Sep::Nop => {
@@ -86,8 +81,8 @@ impl Int {
                 }
             }
         }
-        self.q_reg.0.apply(&self.q_ops.0);
-        self.q_ops.1 = ops;
+        self.q_reg.0.apply(&self.q_ops.1);
+        self.q_ops.0 = ops;
         self
     }
 
@@ -295,15 +290,15 @@ impl Int {
     }
 
     fn branch(&mut self, sep: Sep) {
-        let ops = std::mem::take(&mut self.q_ops.0);
+        let ops = std::mem::take(&mut self.q_ops.1);
         if !ops.is_empty() {
-            self.q_ops.1.push_back((ops, sep));
+            self.q_ops.0.push_back((ops, sep));
         }
     }
 
     fn branch_with_id(&mut self, sep: Sep) {
-        let ops = std::mem::take(&mut self.q_ops.0);
-        self.q_ops.1.push_back((ops, sep));
+        let ops = std::mem::take(&mut self.q_ops.1);
+        self.q_ops.0.push_back((ops, sep));
     }
 
     pub fn get_class(&self) -> CReg {
@@ -319,9 +314,7 @@ impl Int {
     }
 
     pub fn get_ops_tree(&self) -> String {
-        self.q_ops.1.iter().fold(String::new(), |s, op| {
-            s + &format!("{:?} <- {:?}\n", op.1, op.0)
-        }) + &format!("{:?}", self.q_ops.0)
+        format!("{:?}", self.q_ops)
     }
 
     pub fn get_q_alias(&self) -> String {
@@ -393,6 +386,6 @@ mod tests {
         .unwrap();
         let int = Int::new(&ast).unwrap();
 
-        println!("{:#?}", int.q_ops);
+        println!("{}", int.get_ops_tree());
     }
 }
