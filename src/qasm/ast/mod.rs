@@ -7,7 +7,7 @@ use {
 mod error;
 pub use error::*;
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Ast {
     ast: Vec<AstNode>,
 }
@@ -36,7 +36,7 @@ impl Ast {
         Self::from_source(source)
     }
 
-    pub(crate) fn iter(&self) -> Iter<AstNode> {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = &AstNode> {
         self.ast.iter()
     }
 }

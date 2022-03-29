@@ -11,11 +11,6 @@ repository  = "https://github.com/MucTepDayH16/qvnt/"
 readme      = "README.md"
 license     = "MIT OR Apache-2.0"
 
-[features]
-default     = []
-cpu         = ["rayon", "lazy_static"]
-interpreter = ["qasm"]
-
 [dependencies]
 lazy_static = { version = "1.4.0", optional = true }
 num-complex = "0.4.0"
@@ -24,20 +19,26 @@ rand        = "0.8.4"
 rand_distr  = "0.4.3"
 rayon       = { version = "1.5.1", optional = true }
 enum_dispatch = "0.3.8"
-rustyline   = { version = "9.1.2", no-default_features = true, optional = true }
+rustyline   = { version = "9.1.2", optional = true }
 clap        = { version = "2.34.0", optional = true }
 qasm        = { path = "./qasm-rust", optional = true }
+meval       = { version = "0.2.0", optional = true }
 
 [dev-dependencies]
 criterion   = "0.3.5"
 
+[features]
+default     = []
+cpu         = ["rayon", "lazy_static"]
+interpreter = ["qasm", "meval"]
+
 [[bench]]
-name        = "performance"
-harness     = false
-required-features = ["cpu"]
+name                = "performance"
+harness             = false
+required-features   = ["cpu"]
 
 [[bin]]
 name                = "qvnt-i"
-required-features   = ["interpreter", "clap", "rustyline"]
+required-features   = ["interpreter", "clap", "rustyline", "cpu"]
 test                = true
 bench               = false

@@ -7,7 +7,7 @@ pub enum Error {
     IdxOutOfRange(String, usize),
     UnknownGate(String),
     InvalidControlMask(usize, usize),
-    UnevaluatedArgument(String),
+    UnevaluatedArgument(String, meval::Error),
     WrongRegNumber(String, usize),
     WrongArgNumber(String, usize),
     UnmatchedRegSize(usize, usize),
@@ -25,27 +25,27 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::NoQReg(name) =>
-                write!(f, "there's no quantum register, called \"{name}\". Ensure to add this code: qreg {name}[*SIZE*]", name=name),
+                write!(f, "There's no quantum register, called {name:?}. Ensure to add this code: qreg {name}[SIZE]"),
             Error::NoCReg(name) =>
-                write!(f, "there's no classical register, called \"{name}\". Ensure to add this code: creg {name}[*SIZE*]", name=name),
+                write!(f, "there's no classical register, called {name:?}. Ensure to add this code: creg {name}[*SIZE*]"),
             Error::IdxOutOfRange(name, idx) =>
-                write!(f, "index (={idx}) is out of bounds for register: {name}[{idx}]", name=name, idx=idx),
+                write!(f, "index (={idx}) is out of bounds for register: {name}[{idx}]"),
             Error::UnknownGate(name) =>
-                write!(f, "there's no quantum gate, called \"{name}\"", name=name),
+                write!(f, "there's no quantum gate, called {name:?}"),
             Error::InvalidControlMask(ctrl, act) =>
-                write!(f, "Control mask ({}) should not overlap with operators' qubits ({})", ctrl, act),
-            Error::UnevaluatedArgument(arg) =>
-                write!(f, "cannot evaluate gate argument [{arg}]", arg=arg),
+                write!(f, "Control mask ({ctrl}) should not overlap with operators' qubits ({act})"),
+            Error::UnevaluatedArgument(arg, err) =>
+                write!(f, "Cannot evaluate gate argument [{arg}]: {err:?}"),
             Error::WrongRegNumber(name, num) =>
-                write!(f, "gate \"{name}\" cannot take [{num}] register(s)", name=name, num=num),
+                write!(f, "Gate {name:?} cannot receive [{num}] register(s)"),
             Error::WrongArgNumber(name, num) =>
-                write!(f, "gate \"{name}\" cannot take [{num}] arguments", name=name, num=num),
+                write!(f, "Gate {name:?} cannot receive [{num}] arguments"),
             Error::UnmatchedRegSize(q_num, c_num) =>
-                write!(f, "cannot measure [{q_num}] quantum registers into [{c_num}] classical registers", q_num=q_num, c_num=c_num),
+                write!(f, "Cannot measure [{q_num}] quantum registers into [{c_num}] classical registers"),
             Error::MacroError(err) =>
-                write!(f, "{err:?}", err=err),
+                write!(f, "{err}"),
             Error::DisallowedNodeInIf(node) =>
-                write!(f, "such operation ({node:?}) isn't allowed in If block", node=node)
+                write!(f, "Operation {node:?} isn't allowed in If block")
         }
     }
 }

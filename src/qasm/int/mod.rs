@@ -16,7 +16,7 @@ mod macros;
 mod parse;
 
 use error::{Error, Result};
-use macros::ProcessMacro;
+use macros::Macro;
 
 #[derive(Clone, Debug, PartialEq)]
 enum MeasureOp {
@@ -43,19 +43,18 @@ pub struct Int {
     m_op: MeasureOp,
     q_reg: (QReg, Vec<String>),
     c_reg: (CReg, Vec<String>),
-    q_ops: (MultiOp, VecDeque<(MultiOp, Sep)>),
-    macros: BTreeMap<String, ProcessMacro>,
+    macros: BTreeMap<String, Macro>,
 }
 
 impl Int {
     pub fn new(ast: &Ast) -> Result<Self> {
         let mut new = Self::default();
-        new.process_nodes(ast.iter())?;
+        new.process_nodes(ast.iter().cloned())?;
         Ok(new)
     }
 
     pub fn add(&mut self, ast: &Ast) -> Result<&mut Self> {
-        self.process_nodes(ast.iter())
+        self.process_nodes(ast.iter().cloned())
     }
 
     pub fn xor(self) -> Self {
@@ -98,26 +97,24 @@ impl Int {
         self
     }
 
-    fn process_nodes<'a, I: Iterator<Item = &'a AstNode>>(
+    fn process_nodes<'a, I: Iterator<Item = AstNode>>(
         &mut self,
         mut nodes: I,
     ) -> Result<&mut Self> {
         nodes.try_fold(self, |this, node| this.process_node(node))
     }
 
-    fn process_node(&mut self, node: &AstNode) -> Result<&mut Self> {
+    fn process_node(&mut self, node: AstNode) -> Result<&mut Self> {
         match node {
-            AstNode::QReg(alias, size) => self.process_qreg(alias.clone(), *size as N),
-            AstNode::CReg(alias, size) => self.process_creg(alias.clone(), *size as N),
+            AstNode::QReg(alias, size) => self.process_qreg(alias, size as N),
+            AstNode::CReg(alias, size) => self.process_creg(alias, size as N),
             AstNode::Barrier(_) => self.process_barrier(),
-            AstNode::Reset(reg) => self.process_reset(reg),
-            AstNode::Measure(q_arg, c_arg) => self.process_measure(q_arg, c_arg),
+            AstNode::Reset(ref reg) => self.process_reset(reg),
+            AstNode::Measure(ref q_arg, ref c_arg) => self.process_measure(q_arg, c_arg),
             AstNode::ApplyGate(name, regs, args) => self.process_apply_gate(name, regs, args),
             AstNode::Opaque(_, _, _) => self.process_opaque(),
-            AstNode::Gate(name, regs, args, nodes) => {
-                self.process_gate(name.clone(), regs, args, nodes)
-            }
-            AstNode::If(lhs, rhs, if_block) => self.process_if(lhs.clone(), *rhs as N, if_block),
+            AstNode::Gate(name, regs, args, nodes) => self.process_gate(name, regs, args, nodes),
+            AstNode::If(lhs, rhs, if_block) => self.process_if(lhs, rhs as N, if_block),
         }
     }
 
@@ -162,34 +159,29 @@ impl Int {
 
     fn process_apply_gate(
         &mut self,
-        name: &String,
-        regs: &Vec<Argument>,
-        args: &Vec<String>,
+        name: String,
+        regs: Vec<Argument>,
+        args: Vec<String>,
     ) -> Result<&mut Self> {
-        if let Some(macros) = self.macros.get(name) {
-            let nodes = macros.apply(name, regs, args)?;
-            self.process_nodes(nodes.iter())
-        } else {
-            let name = name.to_lowercase();
+        let regs = regs
+            .into_iter()
+            .map(|ref reg| self.get_q_idx(reg))
+            .collect::<Result<Vec<_>>>()?;
 
-            let regs = regs.into_iter().try_fold(vec![], |mut regs, reg| {
-                regs.push(self.get_q_idx(reg)?);
-                Result::Ok(regs)
-            })?;
+        let args = args
+            .into_iter()
+            .map(|arg| {
+                parse::eval_extended(arg.clone(), None)
+                    .map_err(|e| Error::UnevaluatedArgument(arg, e))
+            })
+            .collect::<Result<Vec<_>>>()?;
 
-            let args =
-                args.into_iter()
-                    .try_fold(vec![], |mut args, arg| match parse::eval(arg) {
-                        Some(arg) => {
-                            args.push(arg);
-                            Ok(args)
-                        }
-                        None => Err(Error::UnevaluatedArgument(arg.clone())),
-                    })?;
+        self.q_ops.1 *= match self.macros.get(&name) {
+            Some(_macro) => _macro.process(name, regs, args),
+            None => gates::process(name.to_lowercase(), regs, args),
+        }?;
 
-            self.q_ops.0 *= gates::process(name, regs, args)?;
-            Ok(self)
-        }
+        Ok(self)
     }
 
     fn process_opaque(&mut self) -> Result<&mut Self> {
@@ -200,30 +192,27 @@ impl Int {
     fn process_gate(
         &mut self,
         name: String,
-        regs: &Vec<String>,
-        args: &Vec<String>,
-        nodes: &Vec<AstNode>,
+        regs: Vec<String>,
+        args: Vec<String>,
+        nodes: Vec<AstNode>,
     ) -> Result<&mut Self> {
-        let macros = macros::ProcessMacro::new(regs.clone(), args.clone(), nodes.clone())?;
-
+        let macros = Macro::new(regs, args, nodes)?;
         self.macros.insert(name, macros);
         Ok(self)
     }
 
-    fn process_if(&mut self, lhs: String, rhs: N, if_block: &Box<AstNode>) -> Result<&mut Self> {
-        match if_block.as_ref() {
-            AstNode::ApplyGate(_, _, _) => {
+    fn process_if(&mut self, lhs: String, rhs: N, if_block: Box<AstNode>) -> Result<&mut Self> {
+        match *if_block {
+            if_block @ AstNode::ApplyGate(_, _, _) => {
                 self.branch(Sep::Nop);
 
                 let val = self.get_c_idx(&Argument::Register(lhs))?;
-
                 self.process_node(if_block)?;
-
                 self.branch(Sep::IfBranch(val, rhs));
 
                 Ok(self)
             }
-            if_block => Err(Error::DisallowedNodeInIf(if_block.clone())),
+            if_block => Err(Error::DisallowedNodeInIf(if_block)),
         }
     }
 
@@ -386,12 +375,12 @@ mod tests {
             creg c[2];\
   \
             gate foo(x, y) a, b {\
-                rx(x) a;\
+                rx(y*x) a;\
             }\
 \
             h q[0];\
             cx q[0], q[1];\
-            foo(3.141592653589793, 0) q[0], q[1];\
+            foo(pi, 1) q[0], q[1];\
 \
             measure q -> c;\
 \

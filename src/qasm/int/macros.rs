@@ -1,4 +1,11 @@
+use std::{collections::HashMap, ops::Deref};
+
 use {
+    crate::{
+        math::{C, N, R},
+        operator::MultiOp,
+        qasm::int::{gates, parse},
+    },
     qasm::{Argument, AstNode},
     std::{collections::BTreeMap, fmt},
 };
@@ -6,6 +13,7 @@ use {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Error {
     DisallowedNodeInMacro(AstNode),
+    DisallowedRegister(String, N),
     UnknownReg(String),
     UnknownArg(String),
 }
@@ -13,16 +21,18 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::DisallowedNodeInMacro(node) => write!(
+            Error::DisallowedNodeInMacro(node) => {
+                write!(f, "Operation {node:?} isn't allowed in Gate definition")
+            }
+            Error::DisallowedRegister(reg, idx) => write!(
                 f,
-                "such operation ({node:?}) isn't allowed in Gate definition",
-                node = node
+                "Indexing qubits ({reg}[{idx}]) isn't allowed in Gate definition"
             ),
             Error::UnknownReg(reg) => {
-                write!(f, "no such register ({reg:?}) in this scope", reg = reg)
+                write!(f, "No such register ({reg:?}) in this scope")
             }
             Error::UnknownArg(arg) => {
-                write!(f, "no such argument ({arg:?}) in this scope", arg = arg)
+                write!(f, "No such argument ({arg:?}) in this scope")
             }
         }
     }
@@ -32,104 +42,96 @@ impl std::error::Error for Error {}
 
 pub(crate) type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Clone, Debug)]
-pub(crate) struct ProcessMacro {
-    regs: BTreeMap<String, usize>,
-    args: BTreeMap<String, usize>,
-    nodes: Vec<AstNode>,
-}
-
 fn argument_name(reg: &Argument) -> String {
     match reg {
-        Argument::Qubit(name, _) => name.clone(),
-        Argument::Register(name) => name.clone(),
+        Argument::Qubit(name, _) | Argument::Register(name) => name.clone(),
     }
 }
 
-impl ProcessMacro {
-    pub(crate) fn new(regs: Vec<String>, args: Vec<String>, nodes: Vec<AstNode>) -> Result<Self> {
-        nodes.iter().try_for_each(|node| match node {
-            AstNode::ApplyGate(_, a_regs, a_args) => {
-                match a_regs
-                    .iter()
-                    .find(|reg| !regs.contains(&argument_name(reg)))
-                {
-                    Some(reg) => return Err(Error::UnknownReg(argument_name(reg))),
-                    None => {}
-                };
+#[derive(Clone, Debug)]
+pub(crate) struct Macro {
+    regs: Vec<String>,
+    args: Vec<String>,
+    nodes: Vec<(String, Vec<Argument>, Vec<String>)>,
+}
 
-                match a_args
-                    .iter()
-                    .find(|arg| super::parse::eval(arg).is_none() && !args.contains(arg))
-                {
-                    Some(arg) => return Err(Error::UnknownArg(arg.clone())),
-                    None => {}
+impl Macro {
+    pub(crate) fn new(
+        regs: Vec<String>,
+        args: Vec<String>,
+        nodes: Vec<AstNode>,
+    ) -> super::Result<Self> {
+        let nodes = nodes
+            .into_iter()
+            .map(|node| match node {
+                AstNode::ApplyGate(name, regs_a, args_a) => {
+                    for reg_a in &regs_a {
+                        match reg_a {
+                            Argument::Qubit(name, idx) => {
+                                return Err(
+                                    Error::DisallowedRegister(name.clone(), *idx as N).into()
+                                )
+                            }
+                            Argument::Register(name) if !regs.contains(name) => {
+                                return Err(Error::UnknownReg(name.clone()).into())
+                            }
+                            _ => continue,
+                        };
+                    }
+
+                    for arg_a in &args_a {
+                        match super::parse::eval_extended(arg_a.clone(), None) {
+                            Err(parse::Error::UnknownVariable(arg)) if !args.contains(&arg) => {
+                                return Err(Error::UnknownArg(arg).into())
+                            }
+                            Err(err @ (parse::Error::Function(_, _) | parse::Error::ParseError(_) | parse::Error::RPNError(_))) => {
+                                return Err(super::Error::UnevaluatedArgument(arg_a.clone(), err))
+                            }
+                            _ => continue,
+                        };
+                    }
+
+                    Ok((name, regs_a, args_a))
                 }
-
-                Ok(())
-            }
-            x => Err(Error::DisallowedNodeInMacro(x.clone())),
-        })?;
-
-        let regs = regs
-            .iter()
-            .enumerate()
-            .map(|(idx, reg)| (reg.clone(), idx))
-            .collect();
-
-        let args = args
-            .iter()
-            .enumerate()
-            .map(|(idx, arg)| (arg.clone(), idx))
-            .collect();
+                disallowed_node => Err(Error::DisallowedNodeInMacro(disallowed_node).into()),
+            })
+            .collect::<super::Result<Vec<_>>>()?;
 
         Ok(Self { regs, args, nodes })
     }
 
-    pub(crate) fn apply(
+    pub(crate) fn process(
         &self,
-        name: &String,
-        regs: &Vec<Argument>,
-        args: &Vec<String>,
-    ) -> super::Result<Vec<AstNode>> {
+        name: String,
+        regs: Vec<N>,
+        args: Vec<R>,
+    ) -> super::Result<MultiOp> {
         if regs.len() != self.regs.len() {
-            return Err(super::Error::WrongRegNumber(name.clone(), regs.len()));
+            return Err(super::Error::WrongRegNumber(name, regs.len()));
         }
         if args.len() != self.args.len() {
-            return Err(super::Error::WrongArgNumber(name.clone(), args.len()));
+            return Err(super::Error::WrongArgNumber(name, args.len()));
         }
 
-        let nodes = self
-            .nodes
+        let regs: HashMap<String, N> = self.regs.iter().cloned().zip(regs).collect();
+        let args: Vec<(String, R)> = self.args.iter().cloned().zip(args).collect();
+
+        self.nodes
             .iter()
-            .map(|node| {
-                if let AstNode::ApplyGate(name, regs1, args1) = node {
-                    let regs1 = regs1
-                        .iter()
-                        .map(|reg| {
-                            let idx = self.regs[&argument_name(reg)];
-                            regs[idx].clone()
-                        })
-                        .collect();
+            .try_fold(MultiOp::default(), |op, (name, regs_i, args_i)| {
+                let regs_i = regs_i
+                    .iter()
+                    .map(|reg_i| regs[&argument_name(reg_i)])
+                    .collect::<Vec<_>>();
 
-                    let args1 = args1
-                        .iter()
-                        .map(|arg| {
-                            if let Some(_) = super::parse::eval(arg) {
-                                arg.clone()
-                            } else {
-                                let idx = self.args[arg];
-                                args[idx].clone()
-                            }
-                        })
-                        .collect();
+                let args_i = args_i
+                    .iter()
+                    .cloned()
+                    .map(|arg_i| parse::eval_extended(arg_i, &args))
+                    .collect::<parse::Result<Vec<_>>>()
+                    .map_err(|e| super::Error::UnevaluatedArgument(name.clone(), e))?;
 
-                    AstNode::ApplyGate(name.clone(), regs1, args1)
-                } else {
-                    unreachable!()
-                }
+                Ok(op * gates::process(name.clone(), regs_i, args_i)?)
             })
-            .collect();
-        Ok(nodes)
     }
 }
