@@ -1,4 +1,7 @@
-use crate::{IntSet, commands::{Commands, Command, self}};
+use crate::{
+    commands::{self, Command, Commands},
+    IntSet,
+};
 use qvnt::qasm::{Ast, Int};
 
 pub enum Error {
@@ -14,10 +17,7 @@ impl<E: std::error::Error + 'static> From<E> for Error {
 
 type Result = std::result::Result<(), Error>;
 
-pub fn handle_error(
-    result: Result,
-    dbg: bool
-) -> Option<i32> {
+pub fn handle_error(result: Result, dbg: bool) -> Option<i32> {
     match result {
         Ok(()) => None,
         Err(Error::Dyn(err)) => {
@@ -27,16 +27,12 @@ pub fn handle_error(
                 eprintln!("{}\n", err);
             }
             None
-        },
-        Err(Error::Quit(n)) => Some(n)
+        }
+        Err(Error::Quit(n)) => Some(n),
     }
 }
 
-pub fn process<'a>(
-    int: &mut Int,
-    int_set: &mut IntSet,
-    line: String,
-) -> Result {
+pub fn process<'a>(int: &mut Int, int_set: &mut IntSet, line: String) -> Result {
     match line.parse::<Commands>() {
         Ok(cmds) => process_cmd(int, int_set, cmds.0.into_iter()),
         Err(commands::Error::MissingCollon) => process_qasm(int, line),
@@ -44,10 +40,7 @@ pub fn process<'a>(
     }
 }
 
-pub fn process_qasm(
-    int: &mut Int,
-    line: String
-) -> Result {
+pub fn process_qasm(int: &mut Int, line: String) -> Result {
     let line = "OPENQASM 2.0; ".to_string() + &line;
     let ast = Ast::from_source(line)?;
     int.add(&ast)?;
@@ -57,7 +50,7 @@ pub fn process_qasm(
 pub fn process_cmd(
     int: &mut Int,
     int_set: &mut IntSet,
-    mut cmds: impl Iterator<Item=Command> + Clone
+    mut cmds: impl Iterator<Item = Command> + Clone,
 ) -> Result {
     while let Some(cmd) = cmds.next() {
         match cmd {
@@ -66,18 +59,18 @@ pub fn process_cmd(
                     process_cmd(int, int_set, cmds.clone())?;
                 }
                 break;
-            },
+            }
             Command::Tags => {
                 println!(
                     "{:?}\n",
                     int_set.map.keys().collect::<Vec<&(String, String)>>(),
                 );
-            },
+            }
             Command::Tag(tag) => {
                 if let Some(_) = int_set.tag(&tag[..], int) {
                     println!("Replace tag {:?}\n", tag);
                 }
-            },
+            }
             Command::Goto(tag) => {
                 if let Some(to_replace) = int_set.goto(&tag[..]) {
                     *int = to_replace.clone();
@@ -85,38 +78,38 @@ pub fn process_cmd(
                 } else {
                     return Err(commands::Error::WrongTagName(tag).into());
                 }
-            },
+            }
             Command::Go => {
                 int.reset().finish();
-            },
+            }
             Command::Reset => {
                 *int = Int::default();
-            },
+            }
             Command::Load(path) => {
                 let ast = Ast::from_file(&path)?;
                 *int = Int::new(&ast)?;
-            },
+            }
             Command::Class => {
                 println!("CReg: {}\n", int.get_class().get())
-            },
+            }
             Command::Polar => {
                 println!("QReg polar: {:.4?}\n", int.get_polar_wavefunction());
-            },
+            }
             Command::Probs => {
                 println!("QReg probabilities: {:.4?}\n", int.get_probabilities());
-            },
+            }
             Command::Ops => {
                 println!("Operations: {}\n", int.get_ops_tree());
-            },
+            }
             Command::Names => {
                 println!("QReg: {}\nCReg: {}\n", int.get_q_alias(), int.get_c_alias());
-            },
+            }
             Command::Help => {
                 println!("{}", commands::HELP);
-            },
+            }
             Command::Quit => {
                 return Err(Error::Quit(0));
-            },
+            }
         }
     }
 

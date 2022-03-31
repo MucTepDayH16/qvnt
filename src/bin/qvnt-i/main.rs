@@ -5,10 +5,10 @@ use {
     rustyline::{error::ReadlineError, Editor},
 };
 
-mod int_tree;
-mod int;
-mod process;
 mod commands;
+mod int;
+mod int_tree;
+mod process;
 
 use process::*;
 
@@ -48,7 +48,7 @@ fn main() {
                 eprintln!("{}\n", err);
             }
             Int::default()
-        },
+        }
     };
     let mut int_set = IntSet::with_root("");
 

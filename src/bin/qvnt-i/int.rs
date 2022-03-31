@@ -1,11 +1,9 @@
 use std::path::PathBuf;
 
 use clap::ArgMatches;
-use qvnt::prelude::{Int, Ast};
+use qvnt::prelude::{Ast, Int};
 
-pub fn from_cli(
-    cli: &ArgMatches
-) -> Result<Int, Box<dyn std::error::Error>> {
+pub fn from_cli(cli: &ArgMatches) -> Result<Int, Box<dyn std::error::Error>> {
     match cli.value_of("input") {
         Some(input) => {
             let path = PathBuf::from(input);

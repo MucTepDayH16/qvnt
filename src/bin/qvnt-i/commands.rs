@@ -1,7 +1,4 @@
-use std::{
-    str::FromStr,
-    fmt, path::PathBuf,
-};
+use std::{fmt, path::PathBuf, str::FromStr};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Error {
@@ -73,63 +70,69 @@ pub enum Command {
 pub struct Commands(pub Vec<Command>);
 
 impl Commands {
-    fn parse<'a, I: Iterator<Item=&'a str>>(mut source: I) -> Result<Self, Error> {
+    fn parse<'a, I: Iterator<Item = &'a str>>(mut source: I) -> Result<Self, Error> {
         let size_hint = source.size_hint();
         let mut cmds = Vec::with_capacity(size_hint.1.unwrap_or(size_hint.0));
 
         while let Some(cmd) = source.next() {
             match cmd {
                 "watch" | "loop" | "l" => {
-                    let int = source.next().and_then(|int| int.parse().ok()).ok_or(Error::UnspecifiedInt)?;
+                    let int = source
+                        .next()
+                        .and_then(|int| int.parse().ok())
+                        .ok_or(Error::UnspecifiedInt)?;
                     cmds.push(Command::Loop(int));
-                },
+                }
                 "tags" => {
                     cmds.push(Command::Tags);
-                },
+                }
                 "tag" | "t" => {
                     let tag = source.next().ok_or(Error::UnspecifiedTag)?;
                     cmds.push(Command::Tag(tag.to_string()));
-                },
+                }
                 "goto" => {
                     let tag = source.next().ok_or(Error::UnspecifiedTag)?;
                     cmds.push(Command::Goto(tag.to_string()));
-                },
+                }
                 "exit" | "quit" | "q" => {
                     cmds.push(Command::Quit);
                     break;
-                },
+                }
                 "class" | "c" => {
                     cmds.push(Command::Class);
-                },
+                }
                 "polar" => {
                     cmds.push(Command::Polar);
-                },
+                }
                 "prob" | "p" => {
                     cmds.push(Command::Probs);
-                },
+                }
                 "ops" | "o" => {
                     cmds.push(Command::Ops);
-                },
+                }
                 "finish" | "go" | "g" => {
                     cmds.push(Command::Go);
-                },
+                }
                 "reset" | "r" => {
                     cmds.push(Command::Reset);
-                },
+                }
                 "names" | "alias" | "a" => {
                     cmds.push(Command::Names);
-                },
+                }
                 "load" | "file" | "qasm" => {
-                    let path = source.next().and_then(|path| path.parse().ok()).ok_or(Error::UnspecifiedPath)?;
+                    let path = source
+                        .next()
+                        .and_then(|path| path.parse().ok())
+                        .ok_or(Error::UnspecifiedPath)?;
                     cmds.push(Command::Load(path));
-                },
+                }
                 "help" | "h" | "?" => {
                     cmds.push(Command::Help);
                 }
                 cmd => return Err(Error::UnknownCommand(cmd.to_string())),
             }
         }
-        
+
         Ok(Self(cmds))
     }
 }
@@ -153,10 +156,7 @@ mod tests {
 
     #[test]
     fn parse_cmd() {
-        assert_eq!(
-            "a b c d".parse::<Commands>(),
-            Err(Error::MissingCollon)
-        );
+        assert_eq!("a b c d".parse::<Commands>(), Err(Error::MissingCollon));
         assert_eq!(
             ":a b c d".parse::<Commands>(),
             Err(Error::UnknownCommand("b".to_string()))

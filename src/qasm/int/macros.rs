@@ -84,9 +84,11 @@ impl Macro {
                             Err(parse::Error::UnknownVariable(arg)) if !args.contains(&arg) => {
                                 return Err(Error::UnknownArg(arg).into())
                             }
-                            Err(err @ (parse::Error::Function(_, _) | parse::Error::ParseError(_) | parse::Error::RPNError(_))) => {
-                                return Err(super::Error::UnevaluatedArgument(arg_a.clone(), err))
-                            }
+                            Err(
+                                err @ (parse::Error::Function(_, _)
+                                | parse::Error::ParseError(_)
+                                | parse::Error::RPNError(_)),
+                            ) => return Err(super::Error::UnevaluatedArgument(arg_a.clone(), err)),
                             _ => continue,
                         };
                     }
