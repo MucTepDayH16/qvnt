@@ -1,4 +1,4 @@
-use {qasm::AstNode, std::fmt};
+use {qasm::AstNode, std::fmt, super::macros};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Error {
@@ -11,12 +11,12 @@ pub enum Error {
     WrongRegNumber(String, usize),
     WrongArgNumber(String, usize),
     UnmatchedRegSize(usize, usize),
-    MacroError(super::macros::Error),
+    MacroError(macros::Error),
     DisallowedNodeInIf(AstNode),
 }
 
-impl From<super::macros::Error> for Error {
-    fn from(err: super::macros::Error) -> Self {
+impl From<macros::Error> for Error {
+    fn from(err: macros::Error) -> Self {
         Error::MacroError(err)
     }
 }

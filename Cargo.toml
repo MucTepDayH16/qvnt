@@ -21,7 +21,7 @@ rayon       = { version = "1.5.1", optional = true }
 enum_dispatch = "0.3.8"
 rustyline   = { version = "9.1.2", optional = true }
 clap        = { version = "2.34.0", optional = true }
-qasm        = { path = "./qasm-rust", optional = true }
+qasm        = { path = "./qasm-rust", optional = true, features = ["no-check-ver"] }
 meval       = { version = "0.2.0", optional = true }
 
 [dev-dependencies]

@@ -172,9 +172,9 @@ impl Int {
             .collect::<Result<Vec<_>>>()?;
 
         self.q_ops.1 *= match self.macros.get(&name) {
-            Some(_macro) => _macro.process(name, regs, args),
-            None => gates::process(name.to_lowercase(), regs, args),
-        }?;
+            Some(_macro) => _macro.process(name, regs, args)?,
+            None => gates::process(name.to_lowercase(), regs, args)?,
+        };
 
         Ok(self)
     }

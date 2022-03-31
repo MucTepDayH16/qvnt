@@ -70,8 +70,10 @@ mod tests {
 
         assert_eq!(Ast::from_source(""), Err(Error::EmptySource),);
         assert_eq!(
-            Ast::from_source("qreg a[3]; CX a[0], a[1];"),
-            Err(Error::ParseError(qasm::Error::MissingVersion)),
+            Ast::from_source("qreg a[3];"),
+            Ok(Ast{ ast: vec![
+                QReg("a".to_string(), 3)
+            ] }),
         );
         assert_eq!(
             Ast::from_source("OPENQASM 0.0; qreg a[3]; CX a[0], a[1];"),
