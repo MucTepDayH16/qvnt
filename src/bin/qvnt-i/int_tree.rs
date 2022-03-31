@@ -18,10 +18,10 @@ impl IntSet {
         }
     }
 
-    pub fn tag<S: ToString>(&mut self, name: S, int: Int) -> Option<Int> {
+    pub fn tag<S: ToString>(&mut self, name: S, int: &Int) -> Option<Int> {
         let name = name.to_string();
         let head = std::mem::replace(&mut self.head, name.clone());
-        self.map.insert((name, head), int)
+        self.map.insert((name, head), int.clone())
     }
 
     pub fn goto<S: ToString>(&mut self, name: S) -> Option<&Int> {

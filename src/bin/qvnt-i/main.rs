@@ -3,18 +3,20 @@ use {
     int_tree::IntSet,
     qvnt::prelude::*,
     rustyline::{error::ReadlineError, Editor},
-    std::path::PathBuf,
 };
 
 mod int_tree;
-mod loop_fn;
+mod int;
+mod process;
+mod commands;
+
+use process::*;
 
 const VERSION: &str = "0.3.3";
 const SIGN: &str = "|Q> ";
 const BLCK: &str = "... ";
 
 const PROLOGUE: &str = "QVNT - Interactive QASM Interpreter\n\n";
-const EPILOGUE: &str = "";
 
 fn main() {
     let cli = App::new("QVNT Interpreter")
@@ -36,36 +38,29 @@ fn main() {
         )
         .get_matches();
 
-    let mut int = match cli.value_of("input") {
-        Some(input) => {
-            let path = input.parse::<PathBuf>().unwrap();
-            let ast = Ast::from_file(&path).unwrap();
-            Int::new(&ast).unwrap()
-        }
-        None => Int::default(),
-    };
-    let mut int_set = IntSet::with_root("'");
-
     let dbg = cli.is_present("debug");
-
-    fn process(int: &mut Int, int_set: &mut IntSet, line: String, dbg: bool) {
-        if let Err(err) = loop_fn::loop_fn(int, int_set, line) {
+    let mut int = match int::from_cli(&cli) {
+        Ok(int) => int,
+        Err(err) => {
             if dbg {
                 eprintln!("{:?}\n", err);
             } else {
                 eprintln!("{}\n", err);
             }
-        }
-    }
+            Int::default()
+        },
+    };
+    let mut int_set = IntSet::with_root("");
 
     print!("{}", PROLOGUE);
     let mut interact = Editor::<()>::new();
     let _ = interact.load_history(".history");
     let mut block = (false, String::new());
 
-    loop {
+    let code = loop {
         match interact.readline(if block.0 { BLCK } else { SIGN }) {
             Ok(line) => {
+                println!();
                 interact.add_history_entry(&line);
                 match line.chars().last() {
                     Some('{') => {
@@ -75,32 +70,37 @@ fn main() {
                     Some('}') if block.0 => {
                         block.1 += &line;
                         block.0 = false;
-                        process(&mut int, &mut int_set, block.1, dbg);
+                        if let Some(n) = handle_error(process_qasm(&mut int, block.1), dbg) {
+                            break n;
+                        }
                         block.1 = String::new();
                     }
                     _ if block.0 => {
                         block.1 += &line;
                     }
                     _ => {
-                        process(&mut int, &mut int_set, line, dbg);
+                        if let Some(n) = handle_error(process(&mut int, &mut int_set, line), dbg) {
+                            break n;
+                        }
                     }
                 }
             }
             Err(ReadlineError::Interrupted) => {
-                eprintln!("Exit: Keyboard Interrupted");
-                break;
+                eprintln!("\nExit: Keyboard Interrupted");
+                break 1;
             }
             Err(ReadlineError::Eof) => {
-                println!("Exit: End of File");
-                break;
+                eprintln!("\nExit: End of File");
+                break 2;
             }
             Err(err) => {
-                println!("Error: {:?}", err);
-                break;
+                eprintln!("\nError: {:?}", err);
+                break 3;
             }
         }
-    }
+    };
 
     let _ = interact.save_history(".history");
-    println!("{}", EPILOGUE);
+
+    std::process::exit(code)
 }

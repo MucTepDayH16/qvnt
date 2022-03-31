@@ -31,6 +31,7 @@ criterion   = "0.3.5"
 default     = []
 cpu         = ["rayon", "lazy_static"]
 interpreter = ["qasm", "meval"]
+cli         = ["interpreter", "clap", "rustyline", "cpu"]
 
 [[bench]]
 name                = "performance"
@@ -39,6 +40,6 @@ required-features   = ["cpu"]
 
 [[bin]]
 name                = "qvnt-i"
-required-features   = ["interpreter", "clap", "rustyline", "cpu"]
+required-features   = ["cli"]
 test                = true
 bench               = false
