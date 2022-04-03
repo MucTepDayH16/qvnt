@@ -1,5 +1,6 @@
 use crate::math::*;
 use crate::prelude::quant::threading::Model;
+use rand_distr::num_traits::Zero;
 #[cfg(feature = "cpu")]
 use rayon::prelude::*;
 use std::{
@@ -123,6 +124,21 @@ impl Reg {
             psi,
             q_num,
             q_mask: q_size.wrapping_sub(1_usize),
+        }
+    }
+
+    pub fn num(&self) -> N {
+        self.q_num
+    }
+
+    pub fn set_num(&mut self, q_num: N) {
+        let q_size = 1_usize << q_num;
+        self.q_num = q_num;
+        self.q_mask = q_size.wrapping_sub(1_usize);
+        self.psi.resize(q_size, C::zero());
+
+        if q_num < self.q_num {
+            self.reset(0);
         }
     }
 

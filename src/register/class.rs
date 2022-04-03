@@ -57,13 +57,22 @@ impl Reg {
     /// Create classical register with a given number of bits.
     /// Initial value will be 0.
     pub fn new(q_num: N) -> Self {
-        let q_mask = 1_usize.wrapping_shl(q_num as u32).wrapping_add(!0_usize);
+        let q_mask = 1_usize.wrapping_shl(q_num as u32).wrapping_sub(1_usize);
 
         Self {
             value: 0,
             q_num,
             q_mask,
         }
+    }
+
+    pub fn num(&self) -> N {
+        self.q_num
+    }
+
+    pub fn set_num(&mut self, q_num: N) {
+        self.q_num = q_num;
+        self.q_mask = 1_usize.wrapping_shl(q_num as u32).wrapping_sub(1_usize);
     }
 
     /// Initialize a value of register.
