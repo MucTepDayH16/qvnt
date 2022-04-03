@@ -1,6 +1,5 @@
 use crate::math::*;
 use crate::prelude::quant::threading::Model;
-use rand_distr::num_traits::Zero;
 #[cfg(feature = "cpu")]
 use rayon::prelude::*;
 use std::{
@@ -135,10 +134,24 @@ impl Reg {
         let q_size = 1_usize << q_num;
         self.q_num = q_num;
         self.q_mask = q_size.wrapping_sub(1_usize);
-        self.psi.resize(q_size, C::zero());
+        self.psi.resize(q_size, C_ZERO);
 
         if q_num < self.q_num {
             self.reset(0);
+        }
+    }
+
+    #[doc(hidden)]
+    pub(crate) fn set_num_no_realloc(&mut self, q_num: N) {
+        let q_size = 1_usize << q_num;
+        self.q_num = q_num;
+        self.q_mask = q_size.wrapping_sub(1_usize);
+
+        if q_num < self.q_num {
+            self.reset(0);
+            unsafe { self.psi.set_len(q_size) };
+        } else {
+            self.psi.resize(q_size, C_ZERO);
         }
     }
 

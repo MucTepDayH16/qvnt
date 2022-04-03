@@ -30,12 +30,14 @@ impl IntChange {
         }
 
         if !self.q_reg.is_empty() {
-            int.q_reg.0.set_num(int.q_reg.0.num() + self.q_reg.len());
+            let new_len = int.q_reg.0.num() + self.q_reg.len();
+            int.q_reg.0.set_num_no_realloc(new_len);
             int.q_reg.1.append(&mut self.q_reg.clone());
         }
 
         if !self.c_reg.is_empty() {
-            int.c_reg.0.set_num(int.c_reg.0.num() + self.c_reg.len());
+            let new_len = int.c_reg.0.num() + self.c_reg.len();
+            int.c_reg.0.set_num(new_len);
             int.c_reg.1.append(&mut self.c_reg.clone());
         }
 
@@ -61,7 +63,7 @@ impl IntChange {
         if !self.q_reg.is_empty() {
             int.q_reg.1.ends_with(&self.q_reg).then(|| ())?;
             let new_len = int.q_reg.0.num() - self.q_reg.len();
-            int.q_reg.0.set_num(new_len);
+            int.q_reg.0.set_num_no_realloc(new_len);
             int.q_reg.1.resize(new_len, String::new());
         }
 
