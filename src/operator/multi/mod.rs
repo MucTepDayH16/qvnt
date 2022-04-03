@@ -64,6 +64,15 @@ use std::{
 #[derive(Clone, PartialEq)]
 pub struct MultiOp(VecDeque<SingleOp>);
 
+impl MultiOp {
+    pub fn ends_with(&self, suffix: &Self) -> bool {
+        self.iter()
+            .rev()
+            .zip(suffix.iter().rev())
+            .all(|(a, b)| a == b)
+    }
+}
+
 #[doc(hidden)]
 impl std::ops::Deref for MultiOp {
     type Target = VecDeque<SingleOp>;
@@ -204,5 +213,15 @@ mod tests {
             * op::phi(vec![(5.0, 0b001)]);
 
         assert_eq!(pend_ops.len(), 3);
+    }
+
+    #[test]
+    fn ends_with() {
+        let op = (
+            op::x(0x010101) * op::y(0x101010) * op::z(0x011011),
+            op::y(0x101010) * op::z(0x011011),
+        );
+
+        assert!(op.1.ends_with(&op.0));
     }
 }

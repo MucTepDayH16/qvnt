@@ -10,6 +10,7 @@ use {
     std::collections::{HashMap, VecDeque},
 };
 
+mod change;
 mod error;
 mod ext_op;
 mod gates;

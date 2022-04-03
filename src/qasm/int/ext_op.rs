@@ -21,23 +21,48 @@ impl Default for Sep {
 #[derive(Clone, Default, PartialEq)]
 pub(crate) struct Op(pub VecDeque<(MultiOp, Sep)>, pub MultiOp);
 
+impl Op {
+    pub(crate) fn is_empty(&self) -> bool {
+        self.0.is_empty() && self.1.is_empty()
+    }
+
+    pub(crate) fn append(&mut self, other: &mut Self) {
+        let Op(ref mut vec_0, ref mut last_0) = self;
+        let Op(vec_1, last_1) = std::mem::take(other);
+
+        let last = std::mem::replace(last_0, last_1);
+        if !last.is_empty() {
+            vec_0.push_back((last, Sep::Nop));
+        }
+        vec_0.extend(vec_1);
+    }
+
+    pub(crate) fn ends_with(&self, suffix: &Self) -> bool {
+        if suffix.0.is_empty() {
+            self.1.ends_with(&suffix.1)
+        } else {
+            self.1 == suffix.1
+                && suffix.0.iter().rev().enumerate().all(|(idx, op)| {
+                    if let Some(self_op) = self.0.iter().nth_back(idx) {
+                        if self_op.1 == Sep::Nop {
+                            self_op.0.ends_with(&op.0)
+                        } else {
+                            self_op.0 == op.0
+                        }
+                    } else {
+                        false
+                    }
+                })
+        }
+    }
+}
+
 impl std::ops::Mul for Op {
     type Output = Self;
 
-    fn mul(self, rhs: Self) -> Self::Output {
-        let Op(mut vec_0, mut last_0) = self;
-        let Op(mut vec_1, mut last_1) = rhs;
-
-        let first = match vec_1.front_mut() {
-            Some(first) => &mut first.0,
-            None => &mut last_1,
-        };
-        std::mem::swap(first, &mut last_0);
-        first.append(&mut last_0);
-
-        vec_0.extend(vec_1);
-
-        Op(vec_0, last_1)
+    fn mul(mut self, mut rhs: Self) -> Self::Output {
+        self.append(&mut rhs);
+        self
     }
 }
 
@@ -81,7 +106,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn append() {
+    fn append_left() {
         let op = (
             Op(vec![(op::x(0b110), Sep::Nop)].into(), op::h(0b111)),
             Op(
@@ -89,15 +114,48 @@ mod tests {
                 op::y(0b011),
             ),
         );
+
         let expected = Op(
             vec![
                 (op::x(0b110), Sep::Nop),
-                (op::h(0b111) * op::z(0b010), Sep::Measure(0, 0)),
+                (op::h(0b111), Sep::Nop),
+                (op::z(0b010), Sep::Measure(0, 0)),
             ]
             .into(),
             op::y(0b011),
         );
 
+        assert!(expected.ends_with(&op.1));
         assert_eq!(op.0 * op.1, expected);
+    }
+
+    #[test]
+    fn append_right() {
+        let op = (
+            Op(vec![(op::x(0b110), Sep::Nop)].into(), op::h(0b111)),
+            Op(
+                vec![(op::z(0b010), Sep::Measure(0, 0))].into(),
+                op::y(0b011),
+            ),
+        );
+
+        let expected = Op(
+            vec![
+                (op::z(0b010), Sep::Measure(0, 0)),
+                (op::y(0b011), Sep::Nop),
+                (op::x(0b110), Sep::Nop),
+            ]
+            .into(),
+            op::h(0b111),
+        );
+
+        assert!(expected.ends_with(&op.0));
+        assert_eq!(op.1 * op.0, expected);
+    }
+
+    #[test]
+    fn ends_with_itself() {
+        let op = dummy_op();
+        assert!(op.ends_with(&op));
     }
 }
