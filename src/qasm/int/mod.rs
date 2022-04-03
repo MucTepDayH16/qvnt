@@ -7,7 +7,7 @@ use {
         register::{CReg, QReg},
     },
     qasm::{Argument, AstNode},
-    std::collections::{BTreeMap, VecDeque},
+    std::collections::{HashMap, VecDeque},
 };
 
 mod error;
@@ -20,7 +20,7 @@ use error::{Error, Result};
 use ext_op::{Op as ExtOp, Sep};
 use macros::Macro;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 enum MeasureOp {
     Set,
     Xor,
@@ -38,7 +38,7 @@ pub struct Int {
     q_reg: (QReg, Vec<String>),
     c_reg: (CReg, Vec<String>),
     q_ops: ExtOp,
-    macros: BTreeMap<String, Macro>,
+    macros: HashMap<String, Macro>,
 }
 
 impl Int {
@@ -192,8 +192,12 @@ impl Int {
         nodes: Vec<AstNode>,
     ) -> Result<&mut Self> {
         let macros = Macro::new(regs, args, nodes)?;
-        self.macros.insert(name, macros);
-        Ok(self)
+        if !self.macros.contains_key(&name) {
+            self.macros.insert(name, macros);
+            Ok(self)
+        } else {
+            Err(Error::MacroAlreadyDefined(name))
+        }
     }
 
     fn process_if(&mut self, lhs: String, rhs: N, if_block: Box<AstNode>) -> Result<&mut Self> {

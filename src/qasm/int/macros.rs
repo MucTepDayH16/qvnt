@@ -7,7 +7,7 @@ use {
         qasm::int::{gates, parse},
     },
     qasm::{Argument, AstNode},
-    std::{collections::BTreeMap, fmt},
+    std::fmt,
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -48,7 +48,7 @@ fn argument_name(reg: &Argument) -> String {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Macro {
     regs: Vec<String>,
     args: Vec<String>,
@@ -135,5 +135,25 @@ impl Macro {
 
                 Ok(op * gates::process(name.clone(), regs_i, args_i)?)
             })
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn dummy_macro() -> Macro {
+    Macro {
+        regs: vec!["a".to_string(), "b".to_string()],
+        args: vec!["x".to_string(), "y".to_string()],
+        nodes: vec![
+            (
+                "h".to_string(),
+                vec![Argument::Register("x".to_string())],
+                vec![],
+            ),
+            (
+                "x".to_string(),
+                vec![Argument::Register("x".to_string())],
+                vec![],
+            ),
+        ],
     }
 }

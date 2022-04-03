@@ -1,4 +1,4 @@
-use {qasm::AstNode, std::fmt, super::macros};
+use {super::macros, qasm::AstNode, std::fmt};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Error {
@@ -12,6 +12,7 @@ pub enum Error {
     WrongArgNumber(String, usize),
     UnmatchedRegSize(usize, usize),
     MacroError(macros::Error),
+    MacroAlreadyDefined(String),
     DisallowedNodeInIf(AstNode),
 }
 
@@ -42,8 +43,10 @@ impl fmt::Display for Error {
                 write!(f, "Gate {name:?} cannot receive [{num}] arguments"),
             Error::UnmatchedRegSize(q_num, c_num) =>
                 write!(f, "Cannot measure [{q_num}] quantum registers into [{c_num}] classical registers"),
-            Error::MacroError(err) =>
-                write!(f, "{err}"),
+                Error::MacroError(err) =>
+                    write!(f, "{err}"),
+                Error::MacroAlreadyDefined(name) =>
+                    write!(f, "Macro with name {name:?} already defined"),
             Error::DisallowedNodeInIf(node) =>
                 write!(f, "Operation {node:?} isn't allowed in If block")
         }

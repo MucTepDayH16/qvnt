@@ -12,6 +12,12 @@ pub(crate) enum Sep {
     Reset(N),
 }
 
+impl Default for Sep {
+    fn default() -> Self {
+        Sep::Nop
+    }
+}
+
 #[derive(Clone, Default, PartialEq)]
 pub(crate) struct Op(pub VecDeque<(MultiOp, Sep)>, pub MultiOp);
 
@@ -56,6 +62,18 @@ impl fmt::Debug for Op {
 
         write!(f, "{}", fmt_op(&self.1))
     }
+}
+
+#[cfg(test)]
+pub(crate) fn dummy_op() -> Op {
+    Op(
+        vec![
+            (op::x(0b110), Sep::Nop),
+            (op::h(0b111) * op::z(0b010), Sep::Measure(0, 0)),
+        ]
+        .into(),
+        op::y(0b011),
+    )
 }
 
 #[cfg(test)]
