@@ -7,6 +7,7 @@ pub enum Error {
     UnspecifiedPath,
     UnspecifiedInt,
     UnspecifiedTag,
+    ExistedTagName(String),
     WrongTagName(String),
 }
 
@@ -20,6 +21,7 @@ impl fmt::Display for Error {
                 write!(f, "Integer must be specified to loop over comands")
             }
             Error::UnspecifiedTag => write!(f, "Tag name as string must be specified"),
+            Error::ExistedTagName(s) => write!(f, "Tag name {s:?} already exists"),
             Error::WrongTagName(s) => write!(f, "There's no tag {s:?}"),
         }
     }

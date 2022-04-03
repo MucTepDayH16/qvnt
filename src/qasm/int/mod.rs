@@ -10,7 +10,6 @@ use {
     std::collections::{HashMap, VecDeque},
 };
 
-mod change;
 mod error;
 mod ext_op;
 mod gates;
@@ -18,11 +17,11 @@ mod macros;
 mod parse;
 
 use error::{Error, Result};
-use ext_op::{Op as ExtOp, Sep};
+pub use ext_op::{Op as ExtOp, Sep};
 use macros::Macro;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-enum MeasureOp {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MeasureOp {
     Set,
     Xor,
 }
@@ -33,13 +32,13 @@ impl Default for MeasureOp {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Int {
-    m_op: MeasureOp,
-    q_reg: (QReg, Vec<String>),
-    c_reg: (CReg, Vec<String>),
-    q_ops: ExtOp,
-    macros: HashMap<String, Macro>,
+    pub(in crate::qasm) m_op: MeasureOp,
+    pub(in crate::qasm) q_reg: Vec<String>,
+    pub(in crate::qasm) c_reg: Vec<String>,
+    pub(in crate::qasm) q_ops: ExtOp,
+    pub(in crate::qasm) macros: HashMap<String, Macro>,
 }
 
 impl Int {
@@ -49,8 +48,17 @@ impl Int {
         Ok(new)
     }
 
-    pub fn add(&mut self, ast: &Ast) -> Result<&mut Self> {
+    pub fn add_ast(&mut self, ast: &Ast) -> Result<&mut Self> {
         self.process_nodes(ast.iter().cloned())
+    }
+
+    pub fn add_int(&mut self, int: &mut Self) -> &mut Self {
+        self.m_op = int.m_op;
+        self.q_reg.append(&mut int.q_reg);
+        self.c_reg.append(&mut int.c_reg);
+        self.q_ops.append(&mut int.q_ops);
+        self.macros.extend(int.macros.clone());
+        self
     }
 
     pub fn xor(self) -> Self {
@@ -58,39 +66,6 @@ impl Int {
             m_op: MeasureOp::Xor,
             ..self
         }
-    }
-
-    pub fn finish(&mut self) -> &mut Self {
-        let ops = std::mem::take(&mut self.q_ops.0);
-        for (op, sep) in ops.iter() {
-            match sep {
-                Sep::Nop => {
-                    self.q_reg.0.apply(op);
-                }
-                Sep::Measure(q, c) => {
-                    self.q_reg.0.apply(op);
-                    self.measure(*q, *c);
-                }
-                Sep::IfBranch(c, v) => {
-                    if self.c_reg.0.get_by_mask(*c) == *v {
-                        self.q_reg.0.apply(op);
-                    }
-                }
-                Sep::Reset(q) => {
-                    self.q_reg.0.apply(op);
-                    self.q_reg.0.reset_by_mask(*q);
-                }
-            }
-        }
-        self.q_reg.0.apply(&self.q_ops.1);
-        self.q_ops.0 = ops;
-        self
-    }
-
-    pub fn reset(&mut self) -> &mut Self {
-        self.q_reg.0.reset(0);
-        self.c_reg.0.reset(0);
-        self
     }
 
     fn process_nodes<'a, I: Iterator<Item = AstNode>>(
@@ -115,15 +90,15 @@ impl Int {
     }
 
     fn process_qreg(&mut self, alias: String, q_num: N) -> Result<&mut Self> {
-        self.q_reg.0 *= QReg::new(q_num);
-        self.q_reg.1.resize(self.q_reg.1.len() + q_num, alias);
+        // self.q_reg.0 *= QReg::new(q_num);
+        self.q_reg.resize(self.q_reg.len() + q_num, alias);
 
         Ok(self)
     }
 
     fn process_creg(&mut self, alias: String, q_num: N) -> Result<&mut Self> {
-        self.c_reg.0 *= CReg::new(q_num);
-        self.c_reg.1.resize(self.c_reg.1.len() + q_num, alias);
+        // self.c_reg.0 *= CReg::new(q_num);
+        self.c_reg.resize(self.c_reg.len() + q_num, alias);
 
         Ok(self)
     }
@@ -217,14 +192,14 @@ impl Int {
     }
 
     fn get_idx_by_alias(&self, alias: &String) -> (N, N) {
-        let q_mask = self.q_reg.1.iter().enumerate().fold(0, |acc, (idx, name)| {
+        let q_mask = self.q_reg.iter().enumerate().fold(0, |acc, (idx, name)| {
             if name == alias {
                 acc | 1_usize.wrapping_shl(idx as u32)
             } else {
                 acc
             }
         });
-        let c_mask = self.c_reg.1.iter().enumerate().fold(0, |acc, (idx, name)| {
+        let c_mask = self.c_reg.iter().enumerate().fold(0, |acc, (idx, name)| {
             if name == alias {
                 acc | 1_usize.wrapping_shl(idx as u32)
             } else {
@@ -281,19 +256,6 @@ impl Int {
         }
     }
 
-    fn measure(&mut self, q_arg: N, c_arg: N) {
-        let mask = self.q_reg.0.measure_mask(q_arg);
-
-        match self.m_op {
-            MeasureOp::Set => BitsIter::from(q_arg)
-                .zip(BitsIter::from(c_arg))
-                .for_each(|(q, c)| self.c_reg.0.set(mask.get() & q != 0, c)),
-            MeasureOp::Xor => BitsIter::from(q_arg)
-                .zip(BitsIter::from(c_arg))
-                .for_each(|(q, c)| self.c_reg.0.xor(mask.get() & q != 0, c)),
-        };
-    }
-
     fn branch(&mut self, sep: Sep) {
         let ops = std::mem::take(&mut self.q_ops.1);
         if !ops.is_empty() {
@@ -306,28 +268,28 @@ impl Int {
         self.q_ops.0.push_back((ops, sep));
     }
 
-    pub fn get_class(&self) -> CReg {
-        self.c_reg.0.clone()
-    }
+    // pub fn get_class(&self) -> CReg {
+    //     self.c_reg.0.clone()
+    // }
 
-    pub fn get_polar_wavefunction(&self) -> Vec<(R, R)> {
-        self.q_reg.0.get_polar()
-    }
+    // pub fn get_polar_wavefunction(&self) -> Vec<(R, R)> {
+    //     self.q_reg.0.get_polar()
+    // }
 
-    pub fn get_probabilities(&self) -> Vec<R> {
-        self.q_reg.0.get_probabilities()
-    }
+    // pub fn get_probabilities(&self) -> Vec<R> {
+    //     self.q_reg.0.get_probabilities()
+    // }
 
     pub fn get_ops_tree(&self) -> String {
         format!("{:?}", self.q_ops)
     }
 
     pub fn get_q_alias(&self) -> String {
-        format!("{:?}", self.q_reg.1)
+        format!("{:?}", self.q_reg)
     }
 
     pub fn get_c_alias(&self) -> String {
-        format!("{:?}", self.c_reg.1)
+        format!("{:?}", self.c_reg)
     }
 }
 

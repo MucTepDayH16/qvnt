@@ -1,8 +1,8 @@
 use crate::{
     commands::{self, Command, Commands},
-    IntSet,
+    IntTree,
 };
-use qvnt::qasm::{Ast, Int};
+use qvnt::qasm::{Ast, Int, Sym};
 
 pub enum Error {
     Dyn(Box<dyn std::error::Error>),
@@ -32,77 +32,83 @@ pub fn handle_error(result: Result, dbg: bool) -> Option<i32> {
     }
 }
 
-pub fn process<'a>(int: &mut Int, int_set: &mut IntSet, line: String) -> Result {
+pub fn process<'a>(int_sym: &mut (Int, Sym), int_set: &mut IntTree, line: String) -> Result {
     match line.parse::<Commands>() {
-        Ok(cmds) => process_cmd(int, int_set, cmds.0.into_iter()),
-        Err(commands::Error::MissingCollon) => process_qasm(int, line),
+        Ok(cmds) => process_cmd(int_sym, int_set, cmds.0.into_iter()),
+        Err(commands::Error::MissingCollon) => process_qasm(int_sym, line),
         Err(err) => Err(err.into()),
     }
 }
 
-pub fn process_qasm(int: &mut Int, line: String) -> Result {
+pub fn process_qasm(int_sym: &mut (Int, Sym), line: String) -> Result {
     let line = "OPENQASM 2.0; ".to_string() + &line;
     let ast = Ast::from_source(line)?;
-    int.add(&ast)?;
+    int_sym.0.add_ast(&ast)?;
     Ok(())
 }
 
 pub fn process_cmd(
-    int: &mut Int,
-    int_set: &mut IntSet,
+    int_sym: &mut (Int, Sym),
+    int_tree: &mut IntTree,
     mut cmds: impl Iterator<Item = Command> + Clone,
 ) -> Result {
     while let Some(cmd) = cmds.next() {
         match cmd {
             Command::Loop(n) => {
                 for _ in 0..n {
-                    process_cmd(int, int_set, cmds.clone())?;
+                    process_cmd(int_sym, int_tree, cmds.clone())?;
                 }
                 break;
             }
             Command::Tags => {
                 println!(
                     "{:?}\n",
-                    int_set.map.keys().collect::<Vec<&(String, String)>>(),
+                    int_tree.keys(),
                 );
             }
             Command::Tag(tag) => {
-                if let Some(_) = int_set.tag(&tag, int) {
-                    println!("Replace tag {:?}\n", tag);
+                let int = std::mem::take(&mut int_sym.0);
+                if !int_tree.commit(&tag, int) {
+                    return Err(commands::Error::ExistedTagName(tag).into());
                 }
             }
             Command::Goto(tag) => {
-                if let Some(to_replace) = int_set.goto(&tag) {
-                    *int = to_replace.clone();
-                    println!("Goto tag {:?}\n", tag);
-                } else {
+                if !int_tree.checkout(&tag) {
                     return Err(commands::Error::WrongTagName(tag).into());
+                } else {
+                    int_sym.0 = int_tree.collect_from_head().unwrap();
                 }
             }
             Command::Go => {
-                int.reset().finish();
+                int_sym.1.update(&int_sym.0);
+                int_sym.1.reset();
+                int_sym.1.finish();
             }
             Command::Reset => {
-                *int = Int::default();
+                int_sym.0 = Int::default();
             }
             Command::Load(path) => {
                 let ast = Ast::from_file(&path)?;
-                *int = Int::new(&ast)?;
+                int_sym.0 = Int::new(&ast)?;
             }
             Command::Class => {
-                println!("CReg: {}\n", int.get_class().get())
+                int_sym.1.update(&int_sym.0);
+                println!("CReg: {}\n", int_sym.1.get_class().get())
             }
             Command::Polar => {
-                println!("QReg polar: {:.4?}\n", int.get_polar_wavefunction());
+                int_sym.1.update(&int_sym.0);
+                println!("QReg polar: {:.4?}\n", int_sym.1.get_polar_wavefunction());
             }
             Command::Probs => {
-                println!("QReg probabilities: {:.4?}\n", int.get_probabilities());
+                int_sym.1.update(&int_sym.0);
+                println!("QReg probabilities: {:.4?}\n", int_sym.1.get_probabilities());
             }
             Command::Ops => {
-                println!("Operations: {}\n", int.get_ops_tree());
+                int_sym.1.update(&int_sym.0);
+                println!("Operations: {}\n", int_sym.0.get_ops_tree());
             }
             Command::Names => {
-                println!("QReg: {}\nCReg: {}\n", int.get_q_alias(), int.get_c_alias());
+                println!("QReg: {}\nCReg: {}\n", int_sym.0.get_q_alias(), int_sym.0.get_c_alias());
             }
             Command::Help => {
                 println!("{}", commands::HELP);

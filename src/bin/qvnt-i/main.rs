@@ -1,6 +1,6 @@
 use {
     clap::{App, Arg},
-    int_tree::IntSet,
+    int_tree::IntTree,
     qvnt::prelude::*,
     rustyline::{error::ReadlineError, Editor},
 };
@@ -39,8 +39,11 @@ fn main() {
         .get_matches();
 
     let dbg = cli.is_present("debug");
-    let mut int = match int::from_cli(&cli) {
-        Ok(int) => int,
+    let mut int_tree = IntTree::with_root("");
+    let int = match int::from_cli(&cli) {
+        Ok(int) => {
+            int
+        },
         Err(err) => {
             if dbg {
                 eprintln!("{:?}\n", err);
@@ -50,7 +53,8 @@ fn main() {
             Int::default()
         }
     };
-    let mut int_set = IntSet::with_root("");
+    let sym = qvnt::qasm::Sym::new(int.clone());
+    let mut int_sym = (int, sym);
 
     print!("{}", PROLOGUE);
     let mut interact = Editor::<()>::new();
@@ -70,7 +74,7 @@ fn main() {
                     Some('}') if block.0 => {
                         block.1 += &line;
                         block.0 = false;
-                        if let Some(n) = handle_error(process_qasm(&mut int, block.1), dbg) {
+                        if let Some(n) = handle_error(process_qasm(&mut int_sym, block.1), dbg) {
                             break n;
                         }
                         block.1 = String::new();
@@ -79,7 +83,7 @@ fn main() {
                         block.1 += &line;
                     }
                     _ => {
-                        if let Some(n) = handle_error(process(&mut int, &mut int_set, line), dbg) {
+                        if let Some(n) = handle_error(process(&mut int_sym, &mut int_tree, line), dbg) {
                             break n;
                         }
                     }

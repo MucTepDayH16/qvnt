@@ -5,7 +5,7 @@ use crate::{
 use std::{collections::VecDeque, fmt, ops::MulAssign};
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum Sep {
+pub enum Sep {
     Nop,
     Measure(N, N),
     IfBranch(N, N),
@@ -19,7 +19,7 @@ impl Default for Sep {
 }
 
 #[derive(Clone, Default, PartialEq)]
-pub(crate) struct Op(pub VecDeque<(MultiOp, Sep)>, pub MultiOp);
+pub struct Op(pub VecDeque<(MultiOp, Sep)>, pub MultiOp);
 
 impl Op {
     pub(crate) fn is_empty(&self) -> bool {
