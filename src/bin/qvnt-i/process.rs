@@ -67,12 +67,12 @@ pub fn process_cmd(
                 );
             }
             Command::Tag(tag) => {
-                if let Some(_) = int_set.tag(&tag[..], int) {
+                if let Some(_) = int_set.tag(&tag, int) {
                     println!("Replace tag {:?}\n", tag);
                 }
             }
             Command::Goto(tag) => {
-                if let Some(to_replace) = int_set.goto(&tag[..]) {
+                if let Some(to_replace) = int_set.goto(&tag) {
                     *int = to_replace.clone();
                     println!("Goto tag {:?}\n", tag);
                 } else {

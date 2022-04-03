@@ -12,7 +12,7 @@ mod process;
 
 use process::*;
 
-const VERSION: &str = "0.3.3";
+const VERSION: &str = "0.4.0-beta";
 const SIGN: &str = "|Q> ";
 const BLCK: &str = "... ";
 
