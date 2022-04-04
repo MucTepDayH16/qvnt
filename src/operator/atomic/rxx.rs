@@ -66,7 +66,7 @@ fn matrix_repr() {
     };
 
     let op: SingleOp = Op::new(0b11, ANGLE).into();
-    assert_eq!(op.name(), "RXX3[1.23456]");
+    assert_eq!(op.name(), "RXX3(1.23456)");
     assert_eq!(
         op.matrix(2),
         [

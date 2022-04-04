@@ -112,3 +112,51 @@ fn main() {
 
     std::process::exit(code)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn main_loop() {
+        let mut int_tree = IntTree::with_root("");
+        let mut curr_process = Process::new(Int::default());
+        let mut block = (false, String::new());
+
+        let input = vec![
+            (":tags", "Int { m_op: Set, q_reg: [], c_reg: [], q_ops: , macros: {} }"),
+            ("qreg q[4];", "Int { m_op: Set, q_reg: [\"q\", \"q\", \"q\", \"q\"], c_reg: [], q_ops: , macros: {} }"),
+            (":tag reg", "Int { m_op: Set, q_reg: [\"q\", \"q\", \"q\", \"q\"], c_reg: [], q_ops: , macros: {} }"),
+            ("h q[2];", "Int { m_op: Set, q_reg: [\"q\", \"q\", \"q\", \"q\"], c_reg: [], q_ops:  -> [H4], macros: {} }"),
+            (":tag ops", "Int { m_op: Set, q_reg: [\"q\", \"q\", \"q\", \"q\"], c_reg: [], q_ops:  -> [H4], macros: {} }"),
+            (":goto reg", "Int { m_op: Set, q_reg: [\"q\", \"q\", \"q\", \"q\"], c_reg: [], q_ops: , macros: {} }"),
+            (":reset", "Int { m_op: Set, q_reg: [], c_reg: [], q_ops: , macros: {} }"),
+            ("gate OOO(a, b) x, y { h x; rx(a+b) y; }", "Int { m_op: Set, q_reg: [], c_reg: [], q_ops: , macros: {\"OOO\": Macro { regs: [\"x\", \"y\"], args: [\"a\", \"b\"], nodes: [(\"h\", [Register(\"x\")], []), (\"rx\", [Register(\"y\")], [\"a+b\"])] }} }"),
+            (":tag macro", "Int { m_op: Set, q_reg: [], c_reg: [], q_ops: , macros: {\"OOO\": Macro { regs: [\"x\", \"y\"], args: [\"a\", \"b\"], nodes: [(\"h\", [Register(\"x\")], []), (\"rx\", [Register(\"y\")], [\"a+b\"])] }} }"),
+        ];
+
+        for (line, expected_int) in input {
+            let line = line.to_string();
+            match line.chars().last() {
+                Some('{') => {
+                    block.1 += &line;
+                    block.0 = true;
+                }
+                Some('}') if block.0 => {
+                    block.1 += &line;
+                    block.0 = false;
+                    process_qasm(&mut curr_process, block.1).unwrap();
+                    block.1 = String::new();
+                }
+                _ if block.0 => {
+                    block.1 += &line;
+                }
+                _ => {
+                    process(&mut curr_process, &mut int_tree, line).unwrap();
+                }
+            }
+
+            assert_eq!(format!("{:?}", curr_process.int()), expected_int.to_string());
+        }
+    }
+}

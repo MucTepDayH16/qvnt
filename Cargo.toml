@@ -28,7 +28,7 @@ meval       = { version = "0.2.0", optional = true }
 criterion   = "0.3.5"
 
 [features]
-default     = ["cli"]
+default     = []
 cpu         = ["rayon", "lazy_static"]
 interpreter = ["qasm", "meval"]
 cli         = ["interpreter", "cpu", "clap", "rustyline"]

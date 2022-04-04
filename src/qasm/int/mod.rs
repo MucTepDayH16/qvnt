@@ -74,6 +74,12 @@ impl Int {
         *self = int;
     }
 
+    #[doc(hidden)]
+    #[cfg(test)]
+    pub fn as_tuple(&self) -> (&MeasureOp, &Vec<String>, &Vec<String>, &ExtOp, Vec<&String>) {
+        (&self.m_op, &self.q_reg, &self.c_reg, &self.q_ops, self.macros.keys().collect())
+    }
+
     pub fn xor(self) -> Self {
         Self {
             m_op: MeasureOp::Xor,

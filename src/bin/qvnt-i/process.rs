@@ -6,6 +6,7 @@ use crate::{
 };
 use qvnt::qasm::{Ast, Int, Sym};
 
+#[derive(Debug)]
 pub enum Error {
     Inner,
     Dyn(Box<dyn std::error::Error>),
@@ -33,6 +34,11 @@ impl Process {
             int: int.clone(),
             sym: Sym::new(int),
         }
+    }
+
+    #[cfg(test)]
+    pub fn int(&self) -> &Int {
+        &self.int
     }
 
     fn reset(&mut self, int: Int) {

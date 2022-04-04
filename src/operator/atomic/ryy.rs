@@ -70,7 +70,7 @@ fn matrix_repr() {
     };
 
     let op: SingleOp = Op::new(0b11, ANGLE).into();
-    assert_eq!(op.name(), "RYY3[1.23456]");
+    assert_eq!(op.name(), "RYY3(1.23456)");
     assert_eq!(
         op.matrix(2),
         [
@@ -82,7 +82,7 @@ fn matrix_repr() {
     );
 
     let op: SingleOp = Op::new(0b110, ANGLE).into();
-    assert_eq!(op.name(), "RYY6[1.23456]");
+    assert_eq!(op.name(), "RYY6(1.23456)");
     assert_eq!(
         op.matrix(3),
         [
@@ -98,7 +98,7 @@ fn matrix_repr() {
     );
 
     let op: SingleOp = Op::new(0b101, ANGLE).into();
-    assert_eq!(op.name(), "RYY5[1.23456]");
+    assert_eq!(op.name(), "RYY5(1.23456)");
     assert_eq!(
         op.matrix(3),
         [

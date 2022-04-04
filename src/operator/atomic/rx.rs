@@ -64,6 +64,6 @@ fn matrix_repr() {
     };
 
     let op: SingleOp = Op::new(0b1, ANGLE).into();
-    assert_eq!(op.name(), "RX1[1.23456]");
+    assert_eq!(op.name(), "RX1(1.23456)");
     assert_eq!(op.matrix(1), [[cos, -i_sin], [-i_sin, cos]]);
 }

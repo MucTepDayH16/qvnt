@@ -72,7 +72,7 @@ fn matrix_repr() {
     const i: C = C { re: 0.0, im: 1.0 };
 
     let op: SingleOp = Op::new(0b11).into();
-    assert_eq!(op.name(), "sqrt[iSWAP3]");
+    assert_eq!(op.name(), "sqrt(iSWAP3)");
     assert_eq!(
         op.matrix(2),
         [
