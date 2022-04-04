@@ -32,7 +32,9 @@ impl Ast {
         file.read_to_string(&mut source)
             .map_err(|_| Error::CannotRead(path.as_ref().to_path_buf()))?;
 
-        let source = qasm::process(&source, &std::env::current_dir().unwrap());
+        let curr_dir = std::env::current_dir().unwrap();
+        let ancestors = path.as_ref().parent().unwrap_or(&*curr_dir);
+        let source = qasm::process(&source, &ancestors);
         Self::from_source(source)
     }
 
