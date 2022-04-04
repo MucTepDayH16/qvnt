@@ -40,8 +40,12 @@ fn main() {
 
     let dbg = cli.is_present("debug");
     let mut int_tree = IntTree::with_root("");
+
     let int = match int::from_cli(&cli) {
-        Ok(int) => {
+        Ok((int, maybe_tag)) => {
+            if let Some(tag) = maybe_tag {
+                int_tree.commit(tag, int.clone());
+            }
             int
         },
         Err(err) => {
@@ -53,8 +57,8 @@ fn main() {
             Int::default()
         }
     };
-    let sym = qvnt::qasm::Sym::new(int.clone());
-    let mut int_sym = (int, sym);
+
+    let mut curr_process = Process::new(int);
 
     print!("{}", PROLOGUE);
     let mut interact = Editor::<()>::new();
@@ -74,7 +78,7 @@ fn main() {
                     Some('}') if block.0 => {
                         block.1 += &line;
                         block.0 = false;
-                        if let Some(n) = handle_error(process_qasm(&mut int_sym, block.1), dbg) {
+                        if let Some(n) = handle_error(process_qasm(&mut curr_process, block.1), dbg) {
                             break n;
                         }
                         block.1 = String::new();
@@ -83,7 +87,7 @@ fn main() {
                         block.1 += &line;
                     }
                     _ => {
-                        if let Some(n) = handle_error(process(&mut int_sym, &mut int_tree, line), dbg) {
+                        if let Some(n) = handle_error(process(&mut curr_process, &mut int_tree, line), dbg) {
                             break n;
                         }
                     }

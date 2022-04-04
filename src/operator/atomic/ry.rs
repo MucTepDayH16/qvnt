@@ -29,7 +29,7 @@ impl AtomicOp for Op {
     }
 
     fn name(&self) -> String {
-        format!("RY{}[{}]", self.a_mask, 2.0 * self.phase.arg())
+        format!("RY{}({})", self.a_mask, 2.0 * self.phase.arg())
     }
 
     fn is_valid(&self) -> bool {

@@ -39,7 +39,7 @@ impl AtomicOp for Op {
     }
 
     fn name(&self) -> String {
-        format!("sqrt[iSWAP{}]", self.ab_mask)
+        format!("sqrt(iSWAP{})", self.ab_mask)
     }
 
     fn is_valid(&self) -> bool {

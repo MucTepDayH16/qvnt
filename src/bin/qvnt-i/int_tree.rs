@@ -13,9 +13,13 @@ pub struct IntTree {
 
 impl IntTree {
     pub fn with_root<S: ToString>(root: S) -> Self {
+        let root = Rc::new(root.to_string());
+        let map = HashMap::from([
+            (Rc::clone(&root), (Weak::new(), Int::default())),
+            ]);
         Self {
-            head: RefCell::new(Some(Rc::new(root.to_string()))),
-            map: HashMap::new(),
+            head: RefCell::new(Some(root)),
+            map,
         }
     }
 
@@ -55,77 +59,18 @@ impl IntTree {
         }
     }
 
-    fn find_map<F: FnMut(&String) -> Option<R>, R>(&self, start: &String, mut f: F) -> Option<R> {
-        let mut start = Rc::new(start.to_string());
-        loop {
-            let curr = match self.map.get(&start) {
-                Some(curr) => curr,
-                None => break None,
-            };
-            if let Some(next) = Weak::upgrade(&curr.0) {
-                if let Some(r) = f(&*next) {
-                    break Some(r);
-                }
-                start = Rc::clone(&next);
-            } else {
-                return None;
-            }
-        }
-    }
-
-    fn common_commit(&self, a: &String, b: &String) -> Option<String> {
-        self.find_map(a, |from_a| {
-            self.find_map(b, |from_b| {
-                if from_a == from_b {
-                    Some(from_a.clone())
-                } else {
-                    None
-                }
-            })
-        })
-    }
-
-    pub fn collect_from_head(&self) -> Option<Int> {
+    pub fn collect_to_head(&self) -> Option<Int> {
         let mut start = Rc::clone(self.head.borrow().as_ref()?);
         let mut int_changes = Int::default();
 
         loop {
-            let mut curr = self.map.get(&start)?.clone();
-            int_changes.add_int(&mut curr.1);
+            let curr = self.map.get(&start)?.clone();
+            unsafe { int_changes.prepend_int(curr.1.clone()) };
             if let Some(next) = Weak::upgrade(&curr.0) {
                 start = Rc::clone(&next);
             } else {
                 break Some(int_changes);
             }
         }
-    }
-
-    fn collect(&self, start: &String, end: &String) -> Option<Int> {
-        let mut start = Rc::new(start.to_string());
-        let mut int_changes = Int::default();
-        loop {
-            let mut curr = self.map.get(&start)?.clone();
-            int_changes.add_int(&mut curr.1);
-            if let Some(next) = Weak::upgrade(&curr.0) {
-                if &*next == end {
-                    break;
-                }
-                start = Rc::clone(&next);
-            } else {
-                return None;
-            }
-        }
-
-        Some(int_changes)
-    }
-
-    fn route(&self, tag: &String) -> Option<(Int, Int)> {
-        let head = self.head.borrow();
-        let head = head.as_ref()?;
-        let common_commit = self.common_commit(head.as_ref(), tag)?;
-        Some((
-            self.collect(head.as_ref(), &common_commit)?,
-            self.collect(tag, &common_commit)?,
-        ))
     }
 }
