@@ -33,19 +33,20 @@ USAGE:
     : [COMMANDS...]
 
 COMMANDS:
-    watch|loop|l N          Repeat following commands N time
-    tags|t TAG              Create TAG with current state
-    goto TAG                Swap current state to TAG's state
-    exit|quit|q             Exit interpreter
-    class|c                 Show state of classical registers
-    polar                   Show state of quantum registers in polar form
-    prob|p                  Show state of quantum registers in probability form
-    ops|o                   Snow current quantum operations queue
-    finish|go|g             Start modulating quantum computer
-    reset|r                 Clear current state
-    names|alias|a           Show aliases for quantum and classical bits
-    load|file|qasm FILE     Load state from FILE according to QASM language script
-    help|h|?                Show this reference
+    loop|l N    Repeat following commands N time
+    tag TAG     Create TAG with current state
+    to TAG      Swap current state to TAG's state
+    tags        Show the list of previously created tags
+    quit|q      Exit interpreter
+    class|c     Show state of classical registers
+    polar       Show state of quantum registers in polar form
+    prob|p      Show state of quantum registers in probability form
+    ops|o       Snow current quantum operations queue
+    go|g        Start modulating quantum computer
+    reset|r     Clear current state
+    names|n     Show aliases for quantum and classical bits
+    load FILE   Load state from FILE according to QASM language script
+    help|h|?    Show this reference
 ";
 
 #[derive(Clone, Debug, PartialEq)]
@@ -81,7 +82,7 @@ impl Line {
 
         while let Some(cmd) = source.next() {
             match cmd {
-                "watch" | "loop" | "l" => {
+                "loop" | "l" => {
                     let int = source
                         .next()
                         .and_then(|int| int.parse().ok())
@@ -91,11 +92,11 @@ impl Line {
                 "tags" => {
                     cmds.push(Command::Tags);
                 }
-                "tag" | "t" => {
+                "tag" => {
                     let tag = source.next().ok_or(Error::UnspecifiedTag)?;
                     cmds.push(Command::Tag(tag.to_string()));
                 }
-                "goto" => {
+                "to" => {
                     let tag = source.next().ok_or(Error::UnspecifiedTag)?;
                     cmds.push(Command::Goto(tag.to_string()));
                 }
@@ -115,13 +116,13 @@ impl Line {
                 "ops" | "o" => {
                     cmds.push(Command::Ops);
                 }
-                "finish" | "go" | "g" => {
+                "go" | "g" => {
                     cmds.push(Command::Go);
                 }
                 "reset" | "r" => {
                     cmds.push(Command::Reset);
                 }
-                "names" | "alias" | "a" => {
+                "names" | "n" => {
                     cmds.push(Command::Names);
                 }
                 "load" | "file" | "qasm" => {

@@ -98,10 +98,89 @@ let _ = op::x(0b001).c(0b001).unwrap();
 ```
 
 ___
-## In work
-1. Implementing vectorized operations;
-2. Developpement of *QASM* Interpreter;
-3. Writing documentation for all modules;
+## QVNT interpreter
+### About
+It is REPL interpreter, that could be used to process quantum operation without compiling code.
+### Installation:
+```
+cargo install qvnt-i
+```
+
+### How to
+Now, you are able to _'run'_ quantum simulator with OpenQASM language.
+`*.qasm` files should be passed to interpreter via cli:
+```
+qvnt-i --input ./cirquit.qasm
+|Q> :go
+```
+or via interpreter:
+```
+qvnt-i
+|Q> :load ./cirquit.qasm
+|Q> :go
+```
+
+Another way of running simulator is writing cirquit on OpenQASM language directly in REPL:
+```
+qvnt-i
+|Q> qreg q[4];
+|Q> creg c[4];
+|Q> h q;
+|Q> measure q -> c;
+|Q> :go
+|Q> :class
+```
+* `:go` - process the simulation;
+* `:class` - acquire the result from classical register.
+
+REPL is _lazy_: it only starts computation, if it encounters `:go`.
+This example will shows the single number every time:
+```
+|Q> qreg q[4];
+|Q> creg c[4];
+|Q> h q;
+|Q> measure q -> c;
+|Q> :go
+|Q> :class
+|Q> :class
+|Q> :class
+|Q> :class
+...
+```
+Unlike that, repeating `:go` will proceed with different result every time:
+```
+|Q> qreg q[4];
+|Q> creg c[4];
+|Q> h q;
+|Q> measure q -> c;
+|Q> :go
+|Q> :class
+|Q> :go
+|Q> :class
+|Q> :go
+|Q> :class
+...
+```
+### Commands
+All commands should be preceeded with `:`.
+Otherwise, REPL considers to parse line as OpenQASM source.
+The full list of commands:
+```
+loop N     Repeat following commands N time
+tags TAG   Create TAG with current state
+goto TAG   Swap current state to TAG's state
+class      Show state of classical registers
+polar      Show state of quantum registers in polar form
+prob       Show state of quantum registers in probability form
+ops        Snow current quantum operations queue
+go         Start modulating quantum computer
+reset      Clear current state
+names      Show aliases for quantum and classical bits
+load FILE  Load state from FILE according to QASM language script
+help       Show this reference
+quit       Exit interpreter
+```
+
 
 ___
 ## License
