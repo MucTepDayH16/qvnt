@@ -14,9 +14,7 @@ pub struct IntTree {
 impl IntTree {
     pub fn with_root<S: ToString>(root: S) -> Self {
         let root = Rc::new(root.to_string());
-        let map = HashMap::from([
-            (Rc::clone(&root), (Weak::new(), Int::default())),
-            ]);
+        let map = HashMap::from([(Rc::clone(&root), (Weak::new(), Int::default()))]);
         Self {
             head: RefCell::new(Some(root)),
             map,
@@ -24,9 +22,10 @@ impl IntTree {
     }
 
     pub fn keys(&self) -> Vec<(Rc<String>, Rc<String>)> {
-        self.map.iter().filter_map(|(a, (b, _))| {
-            Some((Rc::clone(a), Weak::upgrade(b)?))
-        }).collect()
+        self.map
+            .iter()
+            .filter_map(|(a, (b, _))| Some((Rc::clone(a), Weak::upgrade(b)?)))
+            .collect()
     }
 
     pub fn commit<S: AsRef<str>>(&mut self, tag: S, change: Int) -> bool {

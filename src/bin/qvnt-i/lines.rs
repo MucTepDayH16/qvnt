@@ -73,7 +73,9 @@ pub enum Line {
 }
 
 impl Line {
-    fn parse_command<'a, I: Iterator<Item = &'a str>>(mut source: I) -> Result<Vec<Command>, Error> {
+    fn parse_command<'a, I: Iterator<Item = &'a str>>(
+        mut source: I,
+    ) -> Result<Vec<Command>, Error> {
         let size_hint = source.size_hint();
         let mut cmds = Vec::with_capacity(size_hint.1.unwrap_or(size_hint.0));
 

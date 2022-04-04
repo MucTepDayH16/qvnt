@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use crate::{
+    int_tree::IntTree,
     lines::{self, Command, Line},
-    IntTree,
 };
 use qvnt::qasm::{Ast, Int, Sym};
 
@@ -114,10 +114,7 @@ pub fn process_cmd(
                 break;
             }
             Command::Tags => {
-                println!(
-                    "{:?}\n",
-                    int_tree.keys(),
-                );
+                println!("{:?}\n", int_tree.keys(),);
             }
             Command::Tag(tag) => {
                 if !int_tree.commit(&tag, std::mem::take(&mut curr_process.head)) {
@@ -161,17 +158,27 @@ pub fn process_cmd(
             }
             Command::Polar => {
                 curr_process.sym_update();
-                println!("QReg polar: {:.4?}\n", curr_process.sym.get_polar_wavefunction());
+                println!(
+                    "QReg polar: {:.4?}\n",
+                    curr_process.sym.get_polar_wavefunction()
+                );
             }
             Command::Probs => {
                 curr_process.sym_update();
-                println!("QReg probabilities: {:.4?}\n", curr_process.sym.get_probabilities());
+                println!(
+                    "QReg probabilities: {:.4?}\n",
+                    curr_process.sym.get_probabilities()
+                );
             }
             Command::Ops => {
                 println!("Operations: {}\n", curr_process.int.get_ops_tree());
             }
             Command::Names => {
-                println!("QReg: {}\nCReg: {}\n", curr_process.int.get_q_alias(), curr_process.int.get_c_alias());
+                println!(
+                    "QReg: {}\nCReg: {}\n",
+                    curr_process.int.get_q_alias(),
+                    curr_process.int.get_c_alias()
+                );
             }
             Command::Help => {
                 println!("{}", lines::HELP);

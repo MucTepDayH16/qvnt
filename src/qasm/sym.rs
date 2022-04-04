@@ -1,5 +1,8 @@
-use crate::{register::{CReg, QReg}, math::{N, bits_iter::BitsIter, R}};
 use super::int::*;
+use crate::{
+    math::{bits_iter::BitsIter, N, R},
+    register::{CReg, QReg},
+};
 
 #[derive(Clone, Debug)]
 pub struct Sym {
@@ -27,7 +30,7 @@ impl Sym {
         self.q_reg.reset(0);
         self.c_reg.reset(0);
     }
-    
+
     pub fn finish(&mut self) -> &mut Self {
         for (op, sep) in self.int.q_ops.0.iter() {
             match *sep {
@@ -48,7 +51,7 @@ impl Sym {
                             .for_each(|(q, c)| c_reg.xor(mask.get() & q != 0, c)),
                     };
                     self.c_reg = c_reg;
-                },
+                }
                 Sep::IfBranch(c, v) => {
                     if self.c_reg.get_by_mask(c) == v {
                         self.q_reg.apply(op);

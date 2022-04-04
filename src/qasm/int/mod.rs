@@ -74,12 +74,6 @@ impl Int {
         *self = int;
     }
 
-    #[doc(hidden)]
-    #[cfg(test)]
-    pub fn as_tuple(&self) -> (&MeasureOp, &Vec<String>, &Vec<String>, &ExtOp, Vec<&String>) {
-        (&self.m_op, &self.q_reg, &self.c_reg, &self.q_ops, self.macros.keys().collect())
-    }
-
     pub fn xor(self) -> Self {
         Self {
             m_op: MeasureOp::Xor,
@@ -102,19 +96,33 @@ impl Int {
             AstNode::Barrier(_) => self.process_barrier(changes),
             AstNode::Reset(ref reg) => self.process_reset(changes, reg),
             AstNode::Measure(ref q_arg, ref c_arg) => self.process_measure(changes, q_arg, c_arg),
-            AstNode::ApplyGate(name, regs, args) => self.process_apply_gate(changes, name, regs, args),
+            AstNode::ApplyGate(name, regs, args) => {
+                self.process_apply_gate(changes, name, regs, args)
+            }
             AstNode::Opaque(_, _, _) => self.process_opaque(changes),
-            AstNode::Gate(name, regs, args, nodes) => self.process_gate(changes, name, regs, args, nodes),
+            AstNode::Gate(name, regs, args, nodes) => {
+                self.process_gate(changes, name, regs, args, nodes)
+            }
             AstNode::If(lhs, rhs, if_block) => self.process_if(changes, lhs, rhs as N, if_block),
         }
     }
 
-    fn process_qreg<'a>(&self, changes: &'a mut Self, alias: String, q_num: N) -> Result<&'a mut Self> {
+    fn process_qreg<'a>(
+        &self,
+        changes: &'a mut Self,
+        alias: String,
+        q_num: N,
+    ) -> Result<&'a mut Self> {
         changes.q_reg.append(&mut vec![alias; q_num]);
         Ok(changes)
     }
 
-    fn process_creg<'a>(&self, changes: &'a mut Self, alias: String, q_num: N) -> Result<&'a mut Self> {
+    fn process_creg<'a>(
+        &self,
+        changes: &'a mut Self,
+        alias: String,
+        q_num: N,
+    ) -> Result<&'a mut Self> {
         changes.c_reg.append(&mut vec![alias; q_num]);
         Ok(changes)
     }
@@ -130,10 +138,15 @@ impl Int {
         Ok(changes)
     }
 
-    fn process_measure<'a>(&self, changes: &'a mut Self, q_arg: &Argument, c_arg: &Argument) -> Result<&'a mut Self> {
+    fn process_measure<'a>(
+        &self,
+        changes: &'a mut Self,
+        q_arg: &Argument,
+        c_arg: &Argument,
+    ) -> Result<&'a mut Self> {
         let q_arg = self.get_q_idx_with_context(changes, q_arg)?;
         let c_arg = self.get_c_idx_with_context(changes, c_arg)?;
-        
+
         if q_arg.count_ones() != c_arg.count_ones() {
             return Err(Error::UnmatchedRegSize(
                 q_arg.count_ones() as N,
@@ -195,7 +208,13 @@ impl Int {
         }
     }
 
-    fn process_if<'a>(&self, changes: &'a mut Self, lhs: String, rhs: N, if_block: Box<AstNode>) -> Result<&'a mut Self> {
+    fn process_if<'a>(
+        &self,
+        changes: &'a mut Self,
+        lhs: String,
+        rhs: N,
+        if_block: Box<AstNode>,
+    ) -> Result<&'a mut Self> {
         match *if_block {
             if_block @ AstNode::ApplyGate(_, _, _) => {
                 changes.branch(Sep::Nop);
