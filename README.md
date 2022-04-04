@@ -102,26 +102,26 @@ ___
 ### About
 It is REPL interpreter, that could be used to process quantum operation without compiling code.
 ### Installation:
-```
+```shell
 cargo install qvnt-i
 ```
 
 ### How to
 Now, you are able to _'run'_ quantum simulator with OpenQASM language.
 `*.qasm` files should be passed to interpreter via cli:
-```
+```shell
 qvnt-i --input ./cirquit.qasm
 |Q> :go
 ```
 or via interpreter:
-```
+```shell
 qvnt-i
 |Q> :load ./cirquit.qasm
 |Q> :go
 ```
 
 Another way of running simulator is writing cirquit on OpenQASM language directly in REPL:
-```
+```shell
 qvnt-i
 |Q> qreg q[4];
 |Q> creg c[4];
@@ -135,7 +135,7 @@ qvnt-i
 
 REPL is _lazy_: it only starts computation, if it encounters `:go`.
 This example will shows the single number every time:
-```
+```shell
 |Q> qreg q[4];
 |Q> creg c[4];
 |Q> h q;
@@ -148,7 +148,7 @@ This example will shows the single number every time:
 ...
 ```
 Unlike that, repeating `:go` will proceed with different result every time:
-```
+```shell
 |Q> qreg q[4];
 |Q> creg c[4];
 |Q> h q;
@@ -165,7 +165,7 @@ Unlike that, repeating `:go` will proceed with different result every time:
 All commands should be preceeded with `:`.
 Otherwise, REPL considers to parse line as OpenQASM source.
 The full list of commands:
-```
+```ignore
 loop N     Repeat following commands N time
 tags TAG   Create TAG with current state
 goto TAG   Swap current state to TAG's state

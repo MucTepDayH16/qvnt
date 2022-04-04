@@ -165,7 +165,7 @@ mod tests {
         assert_eq!("a b c d".parse::<Line>(), Ok(Line::Qasm));
         assert_eq!(
             ":a b c d".parse::<Line>(),
-            Err(Error::UnknownCommand("b".to_string()))
+            Err(Error::UnknownCommand("a".to_string()))
         );
     }
 
