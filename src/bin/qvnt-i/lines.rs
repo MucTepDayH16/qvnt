@@ -2,7 +2,6 @@ use std::{fmt, path::PathBuf, str::FromStr};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Error {
-    MissingCollon,
     UnknownCommand(String),
     UnspecifiedPath,
     UnspecifiedInt,
@@ -14,7 +13,6 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::MissingCollon => unreachable!(),
             Error::UnknownCommand(s) => write!(f, "Unknown command: {s}"),
             Error::UnspecifiedPath => write!(f, "Path to load file must be specified"),
             Error::UnspecifiedInt => {
@@ -69,10 +67,13 @@ pub enum Command {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Commands(pub Vec<Command>);
+pub enum Line {
+    Commands(Vec<Command>),
+    Qasm,
+}
 
-impl Commands {
-    fn parse<'a, I: Iterator<Item = &'a str>>(mut source: I) -> Result<Self, Error> {
+impl Line {
+    fn parse_command<'a, I: Iterator<Item = &'a str>>(mut source: I) -> Result<Vec<Command>, Error> {
         let size_hint = source.size_hint();
         let mut cmds = Vec::with_capacity(size_hint.1.unwrap_or(size_hint.0));
 
@@ -135,19 +136,19 @@ impl Commands {
             }
         }
 
-        Ok(Self(cmds))
+        Ok(cmds)
     }
 }
 
-impl FromStr for Commands {
+impl FromStr for Line {
     type Err = Error;
 
     fn from_str(source: &str) -> Result<Self, Error> {
         if let Some((_, ':')) = source.char_indices().nth(0) {
             let source = source.split_at(1).1.split_ascii_whitespace();
-            Commands::parse(source)
+            Line::parse_command(source).map(Line::Commands)
         } else {
-            Err(Error::MissingCollon)
+            Ok(Line::Qasm)
         }
     }
 }
@@ -158,9 +159,9 @@ mod tests {
 
     #[test]
     fn parse_cmd() {
-        assert_eq!("a b c d".parse::<Commands>(), Err(Error::MissingCollon));
+        assert_eq!("a b c d".parse::<Line>(), Ok(Line::Qasm));
         assert_eq!(
-            ":a b c d".parse::<Commands>(),
+            ":a b c d".parse::<Line>(),
             Err(Error::UnknownCommand("b".to_string()))
         );
     }

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::{
-    commands::{self, Command, Commands},
+    lines::{self, Command, Line},
     IntTree,
 };
 use qvnt::qasm::{Ast, Int, Sym};
@@ -88,9 +88,9 @@ pub fn handle_error(result: Result, dbg: bool) -> Option<i32> {
 }
 
 pub fn process<'a>(curr_process: &mut Process, int_set: &mut IntTree, line: String) -> Result {
-    match line.parse::<Commands>() {
-        Ok(cmds) => process_cmd(curr_process, int_set, cmds.0.into_iter()),
-        Err(commands::Error::MissingCollon) => process_qasm(curr_process, line),
+    match line.parse::<Line>() {
+        Ok(Line::Qasm) => process_qasm(curr_process, line),
+        Ok(Line::Commands(cmds)) => process_cmd(curr_process, int_set, cmds.into_iter()),
         Err(err) => Err(err.into()),
     }
 }
@@ -121,12 +121,12 @@ pub fn process_cmd(
             }
             Command::Tag(tag) => {
                 if !int_tree.commit(&tag, std::mem::take(&mut curr_process.head)) {
-                    return Err(commands::Error::ExistedTagName(tag).into());
+                    return Err(lines::Error::ExistedTagName(tag).into());
                 }
             }
             Command::Goto(tag) => {
                 if !int_tree.checkout(&tag) {
-                    return Err(commands::Error::WrongTagName(tag).into());
+                    return Err(lines::Error::WrongTagName(tag).into());
                 } else {
                     let new_int = int_tree.collect_to_head().ok_or(Error::Inner)?;
                     curr_process.reset(new_int);
@@ -136,7 +136,9 @@ pub fn process_cmd(
                 curr_process.sym_go();
             }
             Command::Reset => {
-                assert!(int_tree.checkout(""));
+                if !int_tree.checkout("") {
+                    return Err(Error::Inner);
+                }
                 curr_process.reset(Int::default());
             }
             Command::Load(path) => {
@@ -147,7 +149,9 @@ pub fn process_cmd(
                     let ast = Ast::from_file(&path)?;
                     int_tree.checkout("");
                     let int = Int::new(&ast)?;
-                    assert!(int_tree.commit(&path_tag, int.clone()));
+                    if !int_tree.commit(&path_tag, int.clone()) {
+                        return Err(Error::Inner);
+                    }
                     curr_process.reset(int);
                 }
             }
@@ -170,7 +174,7 @@ pub fn process_cmd(
                 println!("QReg: {}\nCReg: {}\n", curr_process.int.get_q_alias(), curr_process.int.get_c_alias());
             }
             Command::Help => {
-                println!("{}", commands::HELP);
+                println!("{}", lines::HELP);
             }
             Command::Quit => {
                 return Err(Error::Quit(0));

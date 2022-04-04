@@ -5,7 +5,7 @@ use {
     rustyline::{error::ReadlineError, Editor},
 };
 
-mod commands;
+mod lines;
 mod int;
 mod int_tree;
 mod process;
