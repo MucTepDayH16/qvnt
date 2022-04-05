@@ -182,6 +182,9 @@ impl Reg {
     }
 
     pub(crate) fn reset_by_mask(&mut self, mask: N) {
+        if mask & self.q_mask == self.q_mask {
+            return self.reset(0);
+        }
         match self.th {
             Model::Single => {
                 self.psi
@@ -199,6 +202,7 @@ impl Reg {
                     .for_each(|(_, psi)| *psi = C_ZERO);
             }),
         }
+        self.normalize();
     }
 
     /// Initialize state of qubits.
@@ -396,7 +400,14 @@ impl Reg {
     }
 
     fn normalize(&mut self) -> &mut Self {
-        let norm = 1. / self.get_absolute().sqrt();
+        let norm = self.get_absolute().sqrt();
+        if norm <= 1e-15 {
+            self.reset(0);
+            return self;
+        } else if 1. - norm <= 1e-9 {
+            return self;
+        }
+        let norm = 1. / norm;
         match self.th {
             Model::Single => self.psi.iter_mut().for_each(|v| *v *= norm),
             #[cfg(feature = "cpu")]
@@ -429,17 +440,19 @@ impl Reg {
         match self.th {
             Model::Single => {
                 let abs: R = self.psi.iter().map(|z| z.norm_sqr()).sum();
+                let abs = 1. / abs;
                 self.psi[..(1 << self.q_num)]
                     .iter()
-                    .map(|z| z.norm_sqr() / abs)
+                    .map(|z| z.norm_sqr() * abs)
                     .collect()
             }
             #[cfg(feature = "cpu")]
             Model::Multi(n) => crate::threads::global_install(n, || {
                 let abs: R = self.psi.par_iter().map(|z| z.norm_sqr()).sum();
+                let abs = 1. / abs;
                 self.psi[..(1 << self.q_num)]
                     .par_iter()
-                    .map(|z| z.norm_sqr() / abs)
+                    .map(|z| z.norm_sqr() * abs)
                     .collect()
             }),
         }

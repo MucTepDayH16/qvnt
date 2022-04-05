@@ -16,6 +16,22 @@ macro_rules! gate {
             Ok(op::$op(regs))
         }
     }};
+    (dgr $op:ident $regs:expr , $args:expr) => {{
+        let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg);
+        if regs == 0 {
+            Err(Error::WrongRegNumber(
+                stringify!($op).to_string() + "_dgr",
+                0,
+            ))
+        } else if $args.len() != 0 {
+            Err(Error::WrongArgNumber(
+                stringify!($op).to_string() + "_dgr",
+                $args.len(),
+            ))
+        } else {
+            Ok(op::$op(regs))
+        }
+    }};
     (2 $op:ident $regs:expr , $args:expr) => {{
         let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg);
         if crate::math::count_bits(regs) != 2 {
@@ -129,7 +145,9 @@ where
         "y" => gate!(any y regs , args),
         "z" => gate!(any z regs , args),
         "s" => gate!(any s regs , args),
+        "sdg" => gate!(dgr s regs , args),
         "t" => gate!(any t regs , args),
+        "tdg" => gate!(dgr t regs , args),
 
         "h" => gate!(any h regs , args),
         "qft" => gate!(any qft regs , args),

@@ -12,19 +12,20 @@ mod tests {
     use crate::register::CReg;
 
     #[test]
-    fn circuit() {
-        let ast = Ast::from_file(&"./src/qasm/examples/test.qasm".to_string()).unwrap();
-        let int = Int::new(&ast).unwrap();
-        let mut sym = Sym::new(int);
+    fn circuits() {
+        for source in glob::glob("./qasm-rust/tests/source/*.qasm").unwrap() {
+            let source = source.unwrap();
+            let file_name = source.file_name().and_then(|f| f.to_str()).unwrap();
+            if file_name == "qelib1.qasm" {
+                continue;
+            }
 
-        let mut hist = vec![0; 4];
+            let ast = Ast::from_file(&source).unwrap();
+            let int = Int::new(&ast).unwrap();
+            let mut sym = Sym::new(int);
 
-        for _ in 0..1000 {
             sym.reset();
             sym.finish();
-            hist[sym.get_class().get_by_mask(0b11)] += 1;
         }
-
-        println!("{:?}", hist);
     }
 }

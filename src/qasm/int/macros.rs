@@ -16,6 +16,7 @@ pub enum Error {
     DisallowedRegister(String, N),
     UnknownReg(String),
     UnknownArg(String),
+    RecursiveMacro(String),
 }
 
 impl fmt::Display for Error {
@@ -33,6 +34,9 @@ impl fmt::Display for Error {
             }
             Error::UnknownArg(arg) => {
                 write!(f, "No such argument ({arg:?}) in this scope")
+            }
+            Error::RecursiveMacro(name) => {
+                write!(f, "Recursive macro calls ({name:?}) is not allowed")
             }
         }
     }
@@ -107,6 +111,7 @@ impl Macro {
         name: String,
         regs: Vec<N>,
         args: Vec<R>,
+        macros: &HashMap<String, Macro>,
     ) -> super::Result<MultiOp> {
         if regs.len() != self.regs.len() {
             return Err(super::Error::WrongRegNumber(name, regs.len()));
@@ -120,7 +125,7 @@ impl Macro {
 
         self.nodes
             .iter()
-            .try_fold(MultiOp::default(), |op, (name, regs_i, args_i)| {
+            .try_fold(MultiOp::default(), |op, (name_i, regs_i, args_i)| {
                 let regs_i = regs_i
                     .iter()
                     .map(|reg_i| regs[&argument_name(reg_i)])
@@ -131,9 +136,18 @@ impl Macro {
                     .cloned()
                     .map(|arg_i| parse::eval_extended(arg_i, &args))
                     .collect::<parse::Result<Vec<_>>>()
-                    .map_err(|e| super::Error::UnevaluatedArgument(name.clone(), e))?;
+                    .map_err(|e| super::Error::UnevaluatedArgument(name_i.clone(), e))?;
 
-                Ok(op * gates::process(name.clone(), regs_i, args_i)?)
+                let op_res = match macros.get(&*name_i) {
+                    Some(_macro) => {
+                        if &name == name_i {
+                            return Err(Error::RecursiveMacro(name_i.clone()).into());
+                        }
+                        _macro.process(name_i.clone(), regs_i, args_i, macros)?
+                    }
+                    None => gates::process(name_i.clone(), regs_i, args_i)?,
+                };
+                Ok(op * op_res)
             })
     }
 }

@@ -178,8 +178,10 @@ impl Int {
             })
             .collect::<Result<Vec<_>>>()?;
 
-        changes.q_ops.1 *= match self.macros.get(&name).or_else(|| changes.macros.get(&name)) {
-            Some(_macro) => _macro.process(name, regs, args)?,
+        let mut macros = self.macros.clone();
+        macros.extend(changes.macros.clone());
+        changes.q_ops.1 *= match macros.get(&name) {
+            Some(_macro) => _macro.process(name, regs, args, &macros)?,
             None => gates::process(name.to_lowercase(), regs, args)?,
         };
 
