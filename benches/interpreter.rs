@@ -3,7 +3,7 @@ use qvnt::{prelude::*, qasm::Sym};
 use std::path::PathBuf;
 
 fn run_interpreter(source: &PathBuf) {
-    let ast = Ast::from_file(source).unwrap();
+    let ast = Ast::from_file(source, None).unwrap();
     let int = Int::new(&ast).unwrap();
     let mut sym = Sym::new(int);
 

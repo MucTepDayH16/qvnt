@@ -1,4 +1,4 @@
-use std::slice::Iter;
+use std::path::PathBuf;
 use {
     qasm::{self, AstNode},
     std::{fs::File, io::Read, path::Path},
@@ -13,8 +13,10 @@ pub struct Ast {
 }
 
 impl Ast {
-    pub fn from_source<S: ToString>(source: S) -> Result<Self> {
-        let mut tokens = qasm::lex(&source.to_string());
+    pub fn from_source<S: AsRef<str>>(source: S) -> Result<Self> {
+        let source = qasm::process(source.as_ref(), Vec::<PathBuf>::new()).unwrap();
+
+        let mut tokens = qasm::lex(&source);
         if tokens.is_empty() {
             Err(Error::EmptySource)
         } else {
@@ -25,16 +27,23 @@ impl Ast {
         }
     }
 
-    pub fn from_file<P: AsRef<Path>>(path: &P) -> Result<Self> {
+    pub fn from_file<P, Cwds>(path: &P, includes: Cwds) -> Result<Self>
+    where
+        P: AsRef<Path>,
+        Cwds: IntoIterator<Item = PathBuf>,
+    {
         let mut source = "".to_string();
         let mut file =
             File::open(path).map_err(|_| Error::NoSuchFile(path.as_ref().to_path_buf()))?;
         file.read_to_string(&mut source)
             .map_err(|_| Error::CannotRead(path.as_ref().to_path_buf()))?;
 
-        let curr_dir = std::env::current_dir().unwrap();
-        let ancestors = path.as_ref().parent().unwrap_or(&*curr_dir);
-        let source = qasm::process(&source, &ancestors);
+        let mut includes = includes.into_iter().collect::<Vec<_>>();
+        if let Some(parent) = path.as_ref().parent() {
+            includes.push(parent.to_path_buf());
+        }
+        let source = qasm::process(&source, includes)
+            .map_err(|filename| Error::NoSuchFile(PathBuf::from(filename)))?;
         Self::from_source(source)
     }
 
@@ -97,11 +106,43 @@ mod tests {
 
     #[test]
     fn ast_from_file() {
-        let _ = Ast::from_file(&"./src/qasm/examples/test.qasm".to_string()).unwrap();
+        use qasm::Argument::*;
+        use AstNode::*;
+
+        assert_eq!(
+            Ast::from_file(&"./src/qasm/examples/test.qasm".to_string(), None),
+            Ok(Ast {
+                ast: vec![
+                    QReg("q".to_string(), 2),
+                    CReg("c".to_string(), 2),
+                    Gate(
+                        "foo".to_string(),
+                        vec!["a".to_string(), "b".to_string()],
+                        vec!["x".to_string(), "y".to_string()],
+                        vec![ApplyGate(
+                            "rx".to_string(),
+                            vec![Register("a".to_string())],
+                            vec!["x".to_string()]
+                        )]
+                    ),
+                    ApplyGate("h".to_string(), vec![Qubit("q".to_string(), 0)], vec![]),
+                    ApplyGate(
+                        "cx".to_string(),
+                        vec![Qubit("q".to_string(), 0), Qubit("q".to_string(), 1)],
+                        vec![]
+                    ),
+                    ApplyGate(
+                        "foo".to_string(),
+                        vec![Qubit("q".to_string(), 0), Qubit("q".to_string(), 1)],
+                        vec!["3.1415927".to_string(), "0".to_string()]
+                    )
+                ]
+            }),
+        );
 
         let p = Path::new("./src/qasm/examples/not_test.qasm");
         assert_eq!(
-            Ast::from_file(&p).unwrap_err(),
+            Ast::from_file(&p, None).unwrap_err(),
             Error::NoSuchFile(p.to_path_buf())
         );
     }

@@ -143,7 +143,7 @@ pub fn process_cmd(
                 if int_tree.checkout(&path_tag) {
                     curr_process.reset(int_tree.collect_to_head().ok_or(Error::Inner)?);
                 } else {
-                    let ast = Ast::from_file(&path)?;
+                    let ast = Ast::from_file(&path, None)?;
                     int_tree.checkout("");
                     let int = Int::new(&ast)?;
                     if !int_tree.commit(&path_tag, int.clone()) {

@@ -20,7 +20,7 @@ mod tests {
                 continue;
             }
 
-            let ast = Ast::from_file(&source).unwrap();
+            let ast = Ast::from_file(&source, None).unwrap();
             let int = Int::new(&ast).unwrap();
             let mut sym = Sym::new(int);
 

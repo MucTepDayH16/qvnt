@@ -26,7 +26,7 @@ impl Program {
             match input {
                 Some(input) => {
                     let path = PathBuf::from(input);
-                    let ast = Ast::from_file(&path)?;
+                    let ast = Ast::from_file(&path, None)?;
 
                     let path_tag = crate::process::file_tag(&path);
                     Ok((Int::new(&ast)?, Some(path_tag)))
