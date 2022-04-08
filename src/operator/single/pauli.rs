@@ -28,6 +28,7 @@ pub fn t(a_mask: N) -> SingleOp {
     atomic::t::Op::new(a_mask).into()
 }
 
+#[deprecated(note = "it is overhead, use `rz` instead")]
 #[inline(always)]
 pub fn phi(phases: Vec<(R, N)>) -> SingleOp {
     atomic::phi::Op::new(phases).into()

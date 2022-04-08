@@ -369,6 +369,8 @@ pub fn rzz(phase: R, ab_mask: N) -> MultiOp {
 ///     <tr><th>&nbsp;&nbsp;1&nbsp;&nbsp;</sup></th><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th></tr>
 ///     <tr><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>e<sup> <i>i</i>a</sup></th></tr>
 /// </table>
+#[deprecated(note = "it is overhead, use chain of `rz` instead")]
+#[allow(deprecated)]
 #[inline(always)]
 pub fn phi(phases: Vec<(R, N)>) -> MultiOp {
     pauli::phi(phases).into()
@@ -559,7 +561,7 @@ pub(crate) fn bench_circuit() -> MultiOp {
         * h(0b100).c(0b001).unwrap()
         * x(0b001).c(0b110).unwrap()
         * rx(1.2, 0b100)
-        * phi(vec![(1.0, 0b010)]).c(0b001).unwrap()
+        * rz(1.0, 0b010).c(0b001).unwrap()
         * h(0b001).c(0b100).unwrap()
         * z(0b010)
         * rxx(crate::math::FRAC_PI_6, 0b101)

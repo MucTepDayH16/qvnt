@@ -210,7 +210,7 @@ mod tests {
         let pend_ops = op::id()
             * op::h(0b001).c(0b010).unwrap()
             * op::x(0b011).c(0b100).unwrap()
-            * op::phi(vec![(5.0, 0b001)]);
+            * op::rz(5.0, 0b001);
 
         assert_eq!(pend_ops.len(), 3);
     }
