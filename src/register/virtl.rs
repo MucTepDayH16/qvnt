@@ -1,6 +1,4 @@
 use crate::math::{bits_iter, C, N, R};
-use std::ops::Deref;
-use std::slice::SliceIndex;
 use std::{
     cell::RefCell,
     ops::{Index, RangeFull},

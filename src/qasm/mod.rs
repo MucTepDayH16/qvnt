@@ -9,7 +9,6 @@ pub use sym::Sym;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::register::CReg;
 
     #[test]
     fn circuits() {

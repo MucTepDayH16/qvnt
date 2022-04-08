@@ -4,10 +4,9 @@ use {
         math::{C, N, R},
         operator::{self as op, Applicable, MultiOp},
         qasm::ast::Ast,
-        register::{CReg, QReg},
     },
     qasm::{Argument, AstNode},
-    std::collections::{HashMap, VecDeque},
+    std::collections::HashMap,
 };
 
 mod error;

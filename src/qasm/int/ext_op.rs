@@ -1,8 +1,8 @@
 use crate::{
     math::{C, N, R},
-    operator::{self as op, Applicable, MultiOp},
+    operator::{self as op, MultiOp},
 };
-use std::{collections::VecDeque, fmt, ops::MulAssign};
+use std::{collections::VecDeque, fmt};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Sep {
