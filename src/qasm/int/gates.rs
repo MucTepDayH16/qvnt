@@ -119,7 +119,7 @@ where
     S: Deref<Target = str>,
 {
     match &*name {
-        s if &s[..1] == "c" => {
+        s if matches!(&s[..1], "c" | "C") => {
             let (&ctrl, regs) = regs
                 .split_first()
                 .ok_or(Error::WrongRegNumber(name.to_string(), 0))?;
@@ -141,33 +141,33 @@ where
                 }),
             }
         }
-        "x" => gate!(any x regs , args),
-        "y" => gate!(any y regs , args),
-        "z" => gate!(any z regs , args),
-        "s" => gate!(any s regs , args),
-        "sdg" => gate!(dgr s regs , args),
-        "t" => gate!(any t regs , args),
-        "tdg" => gate!(dgr t regs , args),
+        "x" | "X" => gate!(any x regs , args),
+        "y" | "Y" => gate!(any y regs , args),
+        "z" | "Z" => gate!(any z regs , args),
+        "s" | "S" => gate!(any s regs , args),
+        "sdg" | "SDG" => gate!(dgr s regs , args),
+        "t" | "T" => gate!(any t regs , args),
+        "tdg" | "TDG" => gate!(dgr t regs , args),
 
-        "h" => gate!(any h regs , args),
-        "qft" => gate!(any qft regs , args),
+        "h" | "H" => gate!(any h regs , args),
+        "qft" | "QFT" => gate!(any qft regs , args),
 
-        "rx" => gate!(r(1) rx regs , args),
-        "ry" => gate!(r(1) ry regs , args),
-        "rz" => gate!(r(1) rz regs , args),
+        "rx" | "RX" => gate!(r(1) rx regs , args),
+        "ry" | "RY" => gate!(r(1) ry regs , args),
+        "rz" | "RZ" => gate!(r(1) rz regs , args),
 
-        "rxx" => gate!(r(2) rxx regs , args),
-        "ryy" => gate!(r(2) ryy regs , args),
-        "rzz" => gate!(r(2) rzz regs , args),
+        "rxx" | "RXX" => gate!(r(2) rxx regs , args),
+        "ryy" | "RYY" => gate!(r(2) ryy regs , args),
+        "rzz" | "RZZ" => gate!(r(2) rzz regs , args),
 
-        "swap" => gate!(2 swap regs , args),
-        "sqrt_swap" => gate!(2 sqrt_swap regs , args),
-        "i_swap" => gate!(2 i_swap regs , args),
-        "sqrt_i_swap" => gate!(2 sqrt_i_swap regs , args),
+        "swap" | "SWAP" => gate!(2 swap regs , args),
+        "sqrt_swap" | "SQRT_SWAP" => gate!(2 sqrt_swap regs , args),
+        "i_swap" | "I_SWAP" => gate!(2 i_swap regs , args),
+        "sqrt_i_swap" | "SQRT_I_SWAP" => gate!(2 sqrt_i_swap regs , args),
 
-        "u1" => gate!(u1 regs , args),
-        "u2" => gate!(u2 regs , args),
-        "u3" => gate!(u3 regs , args),
+        "u1" | "U1" => gate!(u1 regs , args),
+        "u2" | "U2" => gate!(u2 regs , args),
+        "u3" | "U3" => gate!(u3 regs , args),
 
         _ => Err(Error::UnknownGate(name.to_string())),
     }
