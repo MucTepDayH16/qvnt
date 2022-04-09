@@ -20,9 +20,9 @@ impl Sym {
         }
     }
 
-    pub fn update(&mut self, int: &Int) {
-        if int != &*self.int {
-            *self = Self::new(int.clone());
+    pub fn init(&mut self, int: Int) {
+        if &int != &*self.int {
+            *self = Self::new(int);
         }
     }
 

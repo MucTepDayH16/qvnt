@@ -36,9 +36,10 @@ impl Process {
         }
     }
 
-    #[cfg(test)]
-    pub fn int(&self) -> &Int {
-        &self.int
+    pub fn int(&self) -> Int {
+        let mut int = self.int.clone();
+        unsafe { int.append_int(self.head.clone()) };
+        int
     }
 
     fn reset(&mut self, int: Int) {
@@ -47,14 +48,12 @@ impl Process {
     }
 
     fn add_ast(&mut self, ast: &Ast) -> Result {
-        let changes = self.int.ast_changes(ast)?;
-        unsafe { self.head.append_int(changes.clone()) };
-        unsafe { self.int.append_int(changes) };
+        self.int.ast_changes(&mut self.head, ast)?;
         Ok(())
     }
 
     fn sym_update(&mut self) {
-        self.sym.update(&self.int);
+        self.sym.init(self.int());
     }
 
     fn sym_go(&mut self) {
@@ -117,8 +116,14 @@ pub fn process_cmd(
                 println!("{:?}\n", int_tree.keys(),);
             }
             Command::Tag(tag) => {
-                if !int_tree.commit(&tag, std::mem::take(&mut curr_process.head)) {
+                if !int_tree.commit(&tag, curr_process.head.clone()) {
                     return Err(lines::Error::ExistedTagName(tag).into());
+                } else {
+                    unsafe {
+                        curr_process
+                            .int
+                            .append_int(std::mem::take(&mut curr_process.head))
+                    };
                 }
             }
             Command::Goto(tag) => {
@@ -171,13 +176,13 @@ pub fn process_cmd(
                 );
             }
             Command::Ops => {
-                println!("Operations: {}\n", curr_process.int.get_ops_tree());
+                println!("Operations: {}\n", curr_process.int().get_ops_tree());
             }
             Command::Names => {
                 println!(
                     "QReg: {}\nCReg: {}\n",
-                    curr_process.int.get_q_alias(),
-                    curr_process.int.get_c_alias()
+                    curr_process.int().get_q_alias(),
+                    curr_process.int().get_c_alias()
                 );
             }
             Command::Help => {
