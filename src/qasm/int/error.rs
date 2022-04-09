@@ -4,6 +4,8 @@ use {super::macros, qasm::AstNode, std::fmt};
 pub enum Error {
     NoQReg(String),
     NoCReg(String),
+    DupQReg(String, usize),
+    DupCReg(String, usize),
     IdxOutOfRange(String, usize),
     UnknownGate(String),
     InvalidControlMask(usize, usize),
@@ -28,11 +30,15 @@ impl fmt::Display for Error {
             Error::NoQReg(name) =>
                 write!(f, "There's no quantum register, called {name:?}. Ensure to add this code: qreg {name}[SIZE]"),
             Error::NoCReg(name) =>
-                write!(f, "there's no classical register, called {name:?}. Ensure to add this code: creg {name}[*SIZE*]"),
+                write!(f, "There's no classical register, called {name:?}. Ensure to add this code: creg {name}[*SIZE*]"),
+            Error::DupQReg(name, size) =>
+                write!(f, "Quantum register with a similar name {name:?}  already defined with \"qreg {name}[{size}]\""),
+            Error::DupCReg(name, size) =>
+                write!(f, "Classical register with a similar name {name:?}  already defined with \"creg {name}[{size}]\""),
             Error::IdxOutOfRange(name, idx) =>
-                write!(f, "index (={idx}) is out of bounds for register: {name}[{idx}]"),
+                write!(f, "Index (={idx}) is out of bounds for register: {name}[{idx}]"),
             Error::UnknownGate(name) =>
-                write!(f, "there's no quantum gate, called {name:?}"),
+                write!(f, "There's no quantum gate, called {name:?}"),
             Error::InvalidControlMask(ctrl, act) =>
                 write!(f, "Control mask ({ctrl}) should not overlap with operators' qubits ({act})"),
             Error::UnevaluatedArgument(arg, err) =>
@@ -43,10 +49,10 @@ impl fmt::Display for Error {
                 write!(f, "Gate {name:?} cannot receive [{num}] arguments"),
             Error::UnmatchedRegSize(q_num, c_num) =>
                 write!(f, "Cannot measure [{q_num}] quantum registers into [{c_num}] classical registers"),
-                Error::MacroError(err) =>
-                    write!(f, "{err}"),
-                Error::MacroAlreadyDefined(name) =>
-                    write!(f, "Macro with name {name:?} already defined"),
+            Error::MacroError(err) =>
+                write!(f, "{err}"),
+            Error::MacroAlreadyDefined(name) =>
+                write!(f, "Macro with name {name:?} already defined"),
             Error::DisallowedNodeInIf(node) =>
                 write!(f, "Operation {node:?} isn't allowed in If block")
         }
