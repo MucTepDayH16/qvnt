@@ -44,9 +44,9 @@ pub mod swap;
 /// into simple ones and apply them *insequentially*.
 #[derive(Clone, PartialEq)]
 pub struct SingleOp {
-    pub(crate) act: N,
-    pub(crate) ctrl: N,
-    pub(crate) func: dispatch::AtomicOpDispatch,
+    act: N,
+    ctrl: N,
+    func: dispatch::AtomicOpDispatch,
 }
 
 impl SingleOp {
@@ -79,16 +79,6 @@ impl SingleOp {
             format!("C{}_", self.ctrl) + &self.func.name()
         } else {
             self.func.name()
-        }
-    }
-}
-
-impl<Op: AtomicOp> From<Op> for SingleOp {
-    fn from(op: Op) -> Self {
-        Self {
-            act: op.acts_on(),
-            ctrl: 0,
-            func: op.this(),
         }
     }
 }
@@ -127,6 +117,16 @@ impl Applicable for SingleOp {
                 ctrl: self.ctrl | c,
                 ..self
             })
+        }
+    }
+}
+
+impl<Op: AtomicOp> From<Op> for SingleOp {
+    fn from(op: Op) -> Self {
+        Self {
+            act: op.acts_on(),
+            ctrl: 0,
+            func: op.this(),
         }
     }
 }

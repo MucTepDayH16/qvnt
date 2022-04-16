@@ -30,11 +30,27 @@ impl Op {
         let Op(ref mut vec_0, ref mut last_0) = self;
         let Op(vec_1, last_1) = std::mem::take(other);
 
-        let last = std::mem::replace(last_0, last_1);
+        let mut last = std::mem::replace(last_0, last_1);
         if !last.is_empty() {
-            vec_0.push_back((last, Sep::Nop));
+            if let Some((last_0, Sep::Nop)) = vec_0.back_mut() {
+                last_0.append(&mut *last);
+            } else {
+                vec_0.push_back((last, Sep::Nop));
+            }
         }
         vec_0.extend(vec_1);
+    }
+
+    pub(crate) fn push(&mut self, other: MultiOp) {
+        if self.1.is_empty() {
+            if let Some((last, Sep::Nop)) = self.0.back_mut() {
+                *last *= other;
+            } else {
+                self.1 = other;
+            }
+        } else {
+            self.1 *= other;
+        }
     }
 
     pub(crate) fn ends_with(&self, suffix: &Self) -> bool {
@@ -76,16 +92,27 @@ impl fmt::Debug for Op {
             }
         }
 
-        for (op, sep) in self.0.iter() {
+        let mut it = self.0.iter();
+        if let Some((op, sep)) = it.next() {
             match sep {
-                Sep::Nop => write!(f, "{}", fmt_op(op)),
-                Sep::Measure(q, c) => write!(f, "{} -> Measure({:b} => {:b})", fmt_op(op), q, c),
+                Sep::Nop => write!(f, "{:?}", op),
+                Sep::Measure(q, c) => write!(f, "{:?} -> Measure({:b} => {:b})", op, q, c),
                 Sep::IfBranch(c, v) => write!(f, " -> if c[{:b}] == {:b} {{ {:?} }}", c, v, op),
-                Sep::Reset(r) => write!(f, "{} -> Reset({:b})", fmt_op(op), r),
+                Sep::Reset(r) => write!(f, "{:?} -> Reset({:b})", op, r),
             }?;
-        }
+            for (op, sep) in it {
+                match sep {
+                    Sep::Nop => write!(f, "{}", fmt_op(op)),
+                    Sep::Measure(q, c) => write!(f, "{} -> Measure({:b} => {:b})", fmt_op(op), q, c),
+                    Sep::IfBranch(c, v) => write!(f, " -> if c[{:b}] == {:b} {{ {:?} }}", c, v, op),
+                    Sep::Reset(r) => write!(f, "{} -> Reset({:b})", fmt_op(op), r),
+                }?;
+            }
 
-        write!(f, "{}", fmt_op(&self.1))
+            write!(f, "{}", fmt_op(&self.1))
+        } else {
+            write!(f, "{:?}", self.1)
+        }
     }
 }
 
@@ -117,8 +144,7 @@ mod tests {
 
         let expected = Op(
             vec![
-                (op::x(0b110), Sep::Nop),
-                (op::h(0b111), Sep::Nop),
+                (op::x(0b110) * op::h(0b111), Sep::Nop),
                 (op::z(0b010), Sep::Measure(0, 0)),
             ]
             .into(),

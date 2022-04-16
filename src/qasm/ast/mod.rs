@@ -1,54 +1,50 @@
-use std::path::PathBuf;
-use {
-    qasm::{self, AstNode},
-    std::{fs::File, io::Read, path::Path},
-};
+use qasm::{self, AstNode};
 
 mod error;
 pub use error::*;
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Ast {
-    ast: Vec<AstNode>,
+pub struct Ast<'t> {
+    source: &'t str,
+    ast: Vec<AstNode<'t>>,
 }
 
-impl Ast {
-    pub fn from_source<S: AsRef<str>>(source: S) -> Result<Self> {
-        let source = qasm::process(source.as_ref(), Vec::<PathBuf>::new()).unwrap();
+impl<'t> super::utils::DropExt for Ast<'t> {
+    fn drop(self) {
+        unsafe {
+            std::mem::drop(Box::from_raw(self.source as *const str as *mut str));
+        }
+    }
+}
 
-        let mut tokens = qasm::lex(&source);
-        if tokens.is_empty() {
+impl<'t> Ast<'t> {
+    pub fn from_source(source: &'t str) -> Result<'t, Self> {
+        let processed = qasm::pre_process(source);
+        let token_tree = qasm::lex(processed);
+        if token_tree.is_empty() {
             Err(Error::EmptySource)
         } else {
-            match qasm::parse(&mut tokens) {
-                Ok(ast) => Ok(Self { ast }),
+            match qasm::parse(token_tree) {
+                Ok(ast) => Ok(Self {
+                    source,
+                    ast,
+                }),
                 Err(err) => Err(Error::ParseError(err)),
             }
         }
     }
 
-    pub fn from_file<P, Cwds>(path: &P, includes: Cwds) -> Result<Self>
-    where
-        P: AsRef<Path>,
-        Cwds: IntoIterator<Item = PathBuf>,
-    {
-        let mut source = "".to_string();
-        let mut file =
-            File::open(path).map_err(|_| Error::NoSuchFile(path.as_ref().to_path_buf()))?;
-        file.read_to_string(&mut source)
-            .map_err(|_| Error::CannotRead(path.as_ref().to_path_buf()))?;
-
-        let mut includes = includes.into_iter().collect::<Vec<_>>();
-        if let Some(parent) = path.as_ref().parent() {
-            includes.push(parent.to_path_buf());
-        }
-        let source = qasm::process(&source, includes)
-            .map_err(|filename| Error::NoSuchFile(PathBuf::from(filename)))?;
-        Self::from_source(source)
-    }
-
-    pub(crate) fn iter(&self) -> impl Iterator<Item = &AstNode> {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = &AstNode<'t>> {
         self.ast.iter()
+    }
+}
+
+impl<'t> IntoIterator for Ast<'t> {
+    type Item = AstNode<'t>;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.ast.into_iter()
     }
 }
 
@@ -65,15 +61,13 @@ mod tests {
         assert_eq!(
             Ast::from_source("OPENQASM 2.0; qreg a[3]; rx(pi, sqrt(2.0)) a[0], a[1];"),
             Ok(Ast {
+                source: "OPENQASM 2.0; qreg a[3]; rx(pi, sqrt(2.0)) a[0], a[1];",
                 ast: vec![
-                    QReg("a".to_string(), 3),
+                    QReg("a", 3),
                     ApplyGate(
-                        "rx".to_string(),
-                        vec![
-                            Argument::Qubit("a".to_string(), 0),
-                            Argument::Qubit("a".to_string(), 1),
-                        ],
-                        vec!["pi".to_string(), "sqrt(2)".to_string(),]
+                        "rx",
+                        vec![Argument::Qubit("a", 0), Argument::Qubit("a", 1),],
+                        vec!["pi", "sqrt(2.0)",]
                     ),
                 ]
             }),
@@ -83,7 +77,8 @@ mod tests {
         assert_eq!(
             Ast::from_source("qreg a[3];"),
             Ok(Ast {
-                ast: vec![QReg("a".to_string(), 3)]
+                source: "qreg a[3];",
+                ast: vec![QReg("a", 3)]
             }),
         );
         assert_eq!(
@@ -109,41 +104,30 @@ mod tests {
         use qasm::Argument::*;
         use AstNode::*;
 
+        let source = std::fs::read_to_string("./src/qasm/examples/test.qasm").unwrap();
+
         assert_eq!(
-            Ast::from_file(&"./src/qasm/examples/test.qasm".to_string(), None),
+            Ast::from_source(&source[..]),
             Ok(Ast {
+                source: include_str!("../examples/test.qasm"),
                 ast: vec![
-                    QReg("q".to_string(), 2),
-                    CReg("c".to_string(), 2),
+                    QReg("q", 2),
+                    CReg("c", 2),
                     Gate(
-                        "foo".to_string(),
-                        vec!["a".to_string(), "b".to_string()],
-                        vec!["x".to_string(), "y".to_string()],
-                        vec![ApplyGate(
-                            "rx".to_string(),
-                            vec![Register("a".to_string())],
-                            vec!["x".to_string()]
-                        )]
+                        "foo",
+                        vec!["a", "b"],
+                        vec!["x", "y"],
+                        vec![ApplyGate("rx", vec![Register("a")], vec!["x"])]
                     ),
-                    ApplyGate("h".to_string(), vec![Qubit("q".to_string(), 0)], vec![]),
+                    ApplyGate("h", vec![Qubit("q", 0)], vec![]),
+                    ApplyGate("cx", vec![Qubit("q", 0), Qubit("q", 1)], vec![]),
                     ApplyGate(
-                        "cx".to_string(),
-                        vec![Qubit("q".to_string(), 0), Qubit("q".to_string(), 1)],
-                        vec![]
-                    ),
-                    ApplyGate(
-                        "foo".to_string(),
-                        vec![Qubit("q".to_string(), 0), Qubit("q".to_string(), 1)],
-                        vec!["3.1415927".to_string(), "0".to_string()]
+                        "foo",
+                        vec![Qubit("q", 0), Qubit("q", 1)],
+                        vec!["3.141592653589793", "0"]
                     )
                 ]
             }),
-        );
-
-        let p = Path::new("./src/qasm/examples/not_test.qasm");
-        assert_eq!(
-            Ast::from_file(&p, None).unwrap_err(),
-            Error::NoSuchFile(p.to_path_buf())
         );
     }
 }

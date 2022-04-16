@@ -1,10 +1,10 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, collections::HashMap};
 
 use crate::{
     int_tree::IntTree,
     lines::{self, Command, Line},
 };
-use qvnt::qasm::{Ast, Int, Sym};
+use qvnt::qasm::{Ast, Int, Sym, utils::ToOwnedError};
 
 #[derive(Debug)]
 pub enum Error {
@@ -19,41 +19,38 @@ impl<E: std::error::Error + 'static> From<E> for Error {
     }
 }
 
-type Result = std::result::Result<(), Error>;
+pub type Result<T = ()> = std::result::Result<T, Error>;
 
-pub struct Process {
-    head: Int,
-    int: Int,
+pub struct Process<'t> {
+    head: Int<'t>,
+    int: Int<'t>,
     sym: Sym,
+    storage: HashMap<PathBuf, Ast<'t>>,
 }
 
-impl Process {
-    pub fn new(int: Int) -> Self {
+impl<'t> Process<'t> {
+    pub fn new(int: Int<'t>) -> Self {
         Self {
             head: Int::default(),
             int: int.clone(),
             sym: Sym::new(int),
+            storage: HashMap::new(),
         }
     }
 
-    pub fn int(&self) -> Int {
-        let mut int = self.int.clone();
-        unsafe { int.append_int(self.head.clone()) };
-        int
+    pub fn int(&self) -> Int<'t> {
+        let int = self.int.clone();
+        unsafe { int.append_int(self.head.clone()) }
     }
 
-    fn reset(&mut self, int: Int) {
+    fn reset(&mut self, int: Int<'t>) {
         self.head = Int::default();
         self.int = int;
     }
 
-    fn add_ast(&mut self, ast: &Ast) -> Result {
-        self.int.ast_changes(&mut self.head, ast)?;
-        Ok(())
-    }
-
     fn sym_update(&mut self) {
-        self.sym.init(self.int());
+        let int = self.int();
+        self.sym.init(int);
     }
 
     fn sym_go(&mut self) {
@@ -61,138 +58,128 @@ impl Process {
         self.sym.reset();
         self.sym.finish();
     }
-}
 
-pub fn file_tag(path: &PathBuf) -> String {
-    format!("file://{}", path.display())
-}
-
-pub fn handle_error(result: Result, dbg: bool) -> Option<i32> {
-    match result {
-        Ok(()) => None,
-        Err(Error::Inner) => {
-            eprintln!("Internal Error: Please report this to the developer.");
-            Some(0xDE)
+    pub fn process(&mut self, int_set: &mut IntTree<'t>, line: String) -> Result {
+        match line.parse::<Line>() {
+            Ok(Line::Qasm) => self.process_qasm(crate::program::leak_string(line, false)),
+            Ok(Line::Commands(cmds)) => self.process_cmd(int_set, cmds.into_iter()),
+            Err(err) => Err(err.into()),
         }
-        Err(Error::Dyn(err)) => {
-            if dbg {
-                eprintln!("{:?}\n", err);
-            } else {
-                eprintln!("{}\n", err);
-            }
-            None
-        }
-        Err(Error::Quit(n)) => Some(n),
     }
-}
 
-pub fn process<'a>(curr_process: &mut Process, int_set: &mut IntTree, line: String) -> Result {
-    match line.parse::<Line>() {
-        Ok(Line::Qasm) => process_qasm(curr_process, line),
-        Ok(Line::Commands(cmds)) => process_cmd(curr_process, int_set, cmds.into_iter()),
-        Err(err) => Err(err.into()),
+    pub fn process_qasm(&mut self, line: &'t str) -> Result {
+        let ast: Ast<'t> = Ast::from_source(line).map_err(ToOwnedError::own)?;
+        self.int = self.int.clone().ast_changes(&mut self.head, ast).map_err(ToOwnedError::own)?;
+        Ok(())
     }
-}
 
-pub fn process_qasm(curr_process: &mut Process, line: String) -> Result {
-    let ast = Ast::from_source(line)?;
-    curr_process.add_ast(&ast)
-}
-
-pub fn process_cmd(
-    curr_process: &mut Process,
-    int_tree: &mut IntTree,
-    mut cmds: impl Iterator<Item = Command> + Clone,
-) -> Result {
-    while let Some(cmd) = cmds.next() {
-        match cmd {
-            Command::Loop(n) => {
-                for _ in 0..n {
-                    process_cmd(curr_process, int_tree, cmds.clone())?;
+    pub fn process_cmd(
+        &mut self,
+        int_tree: &mut IntTree<'t>,
+        mut cmds: impl Iterator<Item = Command> + Clone,
+    ) -> Result {
+        while let Some(cmd) = cmds.next() {
+            match cmd {
+                Command::Loop(n) => {
+                    for _ in 0..n {
+                        self.process_cmd(int_tree, cmds.clone())?;
+                    }
+                    break;
                 }
-                break;
-            }
-            Command::Tags => {
-                println!("{:?}\n", int_tree.keys(),);
-            }
-            Command::Tag(tag) => {
-                if !int_tree.commit(&tag, curr_process.head.clone()) {
-                    return Err(lines::Error::ExistedTagName(tag).into());
-                } else {
-                    unsafe {
-                        curr_process
-                            .int
-                            .append_int(std::mem::take(&mut curr_process.head))
-                    };
+                Command::Tags => {
+                    println!("{:?}\n", int_tree.keys(),);
                 }
-            }
-            Command::Goto(tag) => {
-                if !int_tree.checkout(&tag) {
-                    return Err(lines::Error::WrongTagName(tag).into());
-                } else {
-                    let new_int = int_tree.collect_to_head().ok_or(Error::Inner)?;
-                    curr_process.reset(new_int);
+                Command::Tag(tag) => {
+                    if !int_tree.commit(&tag, self.head.clone()) {
+                        return Err(lines::Error::ExistedTagName(tag).into());
+                    } else {
+                        unsafe {
+                            self.int = self
+                                .int
+                                .clone()
+                                .append_int(std::mem::take(&mut self.head))
+                        };
+                    }
                 }
-            }
-            Command::Go => {
-                curr_process.sym_go();
-            }
-            Command::Reset => {
-                if !int_tree.checkout("") {
-                    return Err(Error::Inner);
+                Command::Goto(tag) => {
+                    if !int_tree.checkout(&tag) {
+                        return Err(lines::Error::WrongTagName(tag).into());
+                    } else {
+                        let new_int = int_tree.collect_to_head().ok_or(Error::Inner)?;
+                        self.reset(new_int);
+                    }
                 }
-                curr_process.reset(Int::default());
-            }
-            Command::Load(path) => {
-                let path_tag = file_tag(&path);
-                if int_tree.checkout(&path_tag) {
-                    curr_process.reset(int_tree.collect_to_head().ok_or(Error::Inner)?);
-                } else {
-                    let ast = Ast::from_file(&path, None)?;
-                    int_tree.checkout("");
-                    let int = Int::new(&ast)?;
-                    if !int_tree.commit(&path_tag, int.clone()) {
+                Command::Go => {
+                    self.sym_go();
+                }
+                Command::Reset => {
+                    if !int_tree.checkout("") {
                         return Err(Error::Inner);
                     }
-                    curr_process.reset(int);
+                    self.reset(Int::default());
+                }
+                Command::Load(path) => {
+                    self.load_qasm(int_tree, path)?;
+                }
+                Command::Class => {
+                    self.sym_update();
+                    println!("CReg: {}\n", self.sym.get_class().get())
+                }
+                Command::Polar => {
+                    self.sym_update();
+                    println!(
+                        "QReg polar: {:.4?}\n",
+                        self.sym.get_polar_wavefunction()
+                    );
+                }
+                Command::Probs => {
+                    self.sym_update();
+                    println!(
+                        "QReg probabilities: {:.4?}\n",
+                        self.sym.get_probabilities()
+                    );
+                }
+                Command::Ops => {
+                    println!("Operations: {}\n", self.int().get_ops_tree());
+                }
+                Command::Names => {
+                    println!(
+                        "QReg: {}\nCReg: {}\n",
+                        self.int().get_q_alias(),
+                        self.int().get_c_alias()
+                    );
+                }
+                Command::Help => {
+                    println!("{}", lines::HELP);
+                }
+                Command::Quit => {
+                    return Err(Error::Quit(0));
                 }
             }
-            Command::Class => {
-                curr_process.sym_update();
-                println!("CReg: {}\n", curr_process.sym.get_class().get())
-            }
-            Command::Polar => {
-                curr_process.sym_update();
-                println!(
-                    "QReg polar: {:.4?}\n",
-                    curr_process.sym.get_polar_wavefunction()
-                );
-            }
-            Command::Probs => {
-                curr_process.sym_update();
-                println!(
-                    "QReg probabilities: {:.4?}\n",
-                    curr_process.sym.get_probabilities()
-                );
-            }
-            Command::Ops => {
-                println!("Operations: {}\n", curr_process.int().get_ops_tree());
-            }
-            Command::Names => {
-                println!(
-                    "QReg: {}\nCReg: {}\n",
-                    curr_process.int().get_q_alias(),
-                    curr_process.int().get_c_alias()
-                );
-            }
-            Command::Help => {
-                println!("{}", lines::HELP);
-            }
-            Command::Quit => {
-                return Err(Error::Quit(0));
-            }
         }
+    
+        Ok(())
     }
 
-    Ok(())
+    pub fn load_qasm(&mut self, int_tree: &mut IntTree<'t>, path: PathBuf) -> Result {
+        let path_tag = format!("file://{}", path.display());
+        if int_tree.checkout(&path_tag) {
+            self.reset(int_tree.collect_to_head().ok_or(Error::Inner)?);
+        } else {
+            let default_ast = {
+                let source = std::fs::read_to_string(path.clone())?;
+                let source = crate::program::leak_string(source, false);
+                eprintln!("Leakage {{ ptr: {:?}, len: {} }}", source as *const _, source.len());
+                Ast::from_source(source).map_err(ToOwnedError::own)?
+            };
+            let ast = self.storage.entry(path).or_insert(default_ast).clone();
+            int_tree.checkout("");
+            let int = Int::new(ast).map_err(ToOwnedError::own)?;
+            if !int_tree.commit(&path_tag, int.clone()) {
+                return Err(Error::Inner);
+            }
+            self.reset(int);
+        }
+        Ok(())
+    }
 }

@@ -6,22 +6,24 @@ use crate::{
 
 #[derive(Clone, Debug)]
 pub struct Sym {
+    m_op: MeasureOp,
     q_reg: QReg,
     c_reg: CReg,
-    int: Box<Int>,
+    q_ops: ExtOp,
 }
 
 impl Sym {
-    pub fn new(int: Int) -> Self {
+    pub fn new<'t>(int: Int<'t>) -> Self {
         Self {
+            m_op: int.m_op,
             q_reg: QReg::new(int.q_reg.len()).init_state(0),
             c_reg: CReg::new(int.c_reg.len()).init_state(0),
-            int: Box::new(int),
+            q_ops: int.q_ops.clone(),
         }
     }
 
-    pub fn init(&mut self, int: Int) {
-        if &int != &*self.int {
+    pub fn init<'t>(&mut self, int: Int<'t>) {
+        if self.m_op != int.m_op || self.q_ops != int.q_ops || self.q_reg.num() != int.q_reg.len() || self.c_reg.num() != int.c_reg.len() {
             *self = Self::new(int);
         }
     }
@@ -32,7 +34,7 @@ impl Sym {
     }
 
     pub fn finish(&mut self) -> &mut Self {
-        for (op, sep) in self.int.q_ops.0.iter() {
+        for (op, sep) in self.q_ops.0.iter() {
             match *sep {
                 Sep::Nop => {
                     self.q_reg.apply(op);
@@ -42,7 +44,7 @@ impl Sym {
 
                     let mask = self.q_reg.measure_mask(q_arg);
                     let mut c_reg = self.c_reg.clone();
-                    match self.int.m_op {
+                    match self.m_op {
                         MeasureOp::Set => BitsIter::from(q_arg)
                             .zip(BitsIter::from(c_arg))
                             .for_each(|(q, c)| c_reg.set(mask.get() & q != 0, c)),
@@ -63,14 +65,14 @@ impl Sym {
                 }
             }
         }
-        self.q_reg.apply(&self.int.q_ops.1);
+        self.q_reg.apply(&self.q_ops.1);
         self
     }
 
     pub fn measure(&mut self, q_arg: N, c_arg: N) {
         let mask = self.q_reg.measure_mask(q_arg);
 
-        match self.int.m_op {
+        match self.m_op {
             MeasureOp::Set => BitsIter::from(q_arg)
                 .zip(BitsIter::from(c_arg))
                 .for_each(|(q, c)| self.c_reg.set(mask.get() & q != 0, c)),

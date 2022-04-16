@@ -6,12 +6,12 @@ use std::{
 };
 
 #[derive(Debug)]
-pub struct IntTree {
+pub struct IntTree<'t> {
     head: RefCell<Option<Rc<String>>>,
-    map: HashMap<Rc<String>, (Weak<String>, Int)>,
+    map: HashMap<Rc<String>, (Weak<String>, Int<'t>)>,
 }
 
-impl IntTree {
+impl<'t> IntTree<'t> where Self: 't {
     pub fn with_root<S: ToString>(root: S) -> Self {
         let root = Rc::new(root.to_string());
         let map = HashMap::from([(Rc::clone(&root), (Weak::new(), Int::default()))]);
@@ -28,7 +28,7 @@ impl IntTree {
             .collect()
     }
 
-    pub fn commit<S: AsRef<str>>(&mut self, tag: S, change: Int) -> bool {
+    pub fn commit<S: AsRef<str>>(&mut self, tag: S, change: Int<'t>) -> bool {
         let tag = tag.as_ref().to_string();
 
         if self.map.contains_key(&tag) {
@@ -58,13 +58,13 @@ impl IntTree {
         }
     }
 
-    pub fn collect_to_head(&self) -> Option<Int> {
+    pub fn collect_to_head(&self) -> Option<Int<'t>> {
         let mut start = Rc::clone(self.head.borrow().as_ref()?);
-        let mut int_changes = Int::default();
+        let mut int_changes = Int::<'t>::default();
 
         loop {
             let curr = self.map.get(&start)?.clone();
-            unsafe { int_changes.prepend_int(curr.1.clone()) };
+            int_changes = unsafe { int_changes.prepend_int(curr.1.clone()) };
             if let Some(next) = Weak::upgrade(&curr.0) {
                 start = Rc::clone(&next);
             } else {

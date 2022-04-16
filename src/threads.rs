@@ -2,8 +2,6 @@ use lazy_static::*;
 use rayon::*;
 use std::sync::RwLock;
 
-const DEFAULT_NUM_THREADS: usize = 1;
-
 lazy_static! {
     static ref GLOBAL_POOL: RwLock<Option<(usize, ThreadPool)>> = RwLock::new(None);
 }

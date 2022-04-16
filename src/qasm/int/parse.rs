@@ -1,10 +1,5 @@
 use crate::math::*;
 use meval::*;
-use std::ops::Deref;
-
-pub(crate) fn eval<S: Deref<Target = str>>(expr: S) -> Option<R> {
-    expr.trim().parse::<R>().ok()
-}
 
 thread_local! {
     static EXAUSTIVE_CONTEXT: Context<'static> = {
@@ -31,17 +26,13 @@ thread_local! {
 pub use meval::Error;
 pub type Result<T> = std::result::Result<T, meval::Error>;
 
-pub(crate) fn eval_extended<
-    'a,
-    S: Deref<Target = str>,
-    V: IntoIterator<Item = &'a (String, f64)>,
->(
-    expr: S,
+pub(crate) fn eval_extended<'t, V: IntoIterator<Item = (&'t str, f64)>>(
+    expr: &'t str,
     vars: V,
 ) -> Result<R> {
     let mut ctx = EXAUSTIVE_CONTEXT.with(|ctx| ctx.clone());
     for (var, value) in vars {
-        ctx.var(var, *value);
+        ctx.var(var, value);
     }
 
     expr.parse::<Expr>()?.eval_with_context(ctx)

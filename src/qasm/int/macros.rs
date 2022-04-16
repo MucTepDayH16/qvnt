@@ -11,15 +11,15 @@ use {
 };
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum Error {
-    DisallowedNodeInMacro(AstNode),
-    DisallowedRegister(String, N),
-    UnknownReg(String),
+pub enum Error<'t> {
+    DisallowedNodeInMacro(AstNode<'t>),
+    DisallowedRegister(&'t str, N),
+    UnknownReg(&'t str),
     UnknownArg(String),
-    RecursiveMacro(String),
+    RecursiveMacro(&'t str),
 }
 
-impl fmt::Display for Error {
+impl<'t> fmt::Display for Error<'t> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::DisallowedNodeInMacro(node) => {
@@ -42,42 +42,88 @@ impl fmt::Display for Error {
     }
 }
 
-impl std::error::Error for Error {}
+impl<'t> crate::qasm::utils::ToOwnedError for Error<'t> {
+    type OwnedError = OwnedError;
 
-pub(crate) type Result<T> = std::result::Result<T, Error>;
+    fn own(self) -> OwnedError {
+        match self {
+            Error::DisallowedNodeInMacro(node) => OwnedError::DisallowedNodeInMacro(format!("{node:?}")),
+            Error::DisallowedRegister(reg, idx) => OwnedError::DisallowedRegister(reg.to_string(), idx),
+            Error::UnknownReg(reg) => OwnedError::UnknownReg(reg.to_string()),
+            Error::UnknownArg(arg) => OwnedError::UnknownArg(arg),
+            Error::RecursiveMacro(name) => OwnedError::RecursiveMacro(name.to_string()),
+        }
+    }
+}
 
-fn argument_name(reg: &Argument) -> String {
+impl<'t> std::error::Error for Error<'t> {}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum OwnedError {
+    DisallowedNodeInMacro(String),
+    DisallowedRegister(String, N),
+    UnknownReg(String),
+    UnknownArg(String),
+    RecursiveMacro(String),
+}
+
+impl fmt::Display for OwnedError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            OwnedError::DisallowedNodeInMacro(node) => {
+                write!(f, "Operation {node:?} isn't allowed in Gate definition")
+            }
+            OwnedError::DisallowedRegister(reg, idx) => write!(
+                f,
+                "Indexing qubits ({reg}[{idx}]) isn't allowed in Gate definition"
+            ),
+            OwnedError::UnknownReg(reg) => {
+                write!(f, "No such register ({reg:?}) in this scope")
+            }
+            OwnedError::UnknownArg(arg) => {
+                write!(f, "No such argument ({arg:?}) in this scope")
+            }
+            OwnedError::RecursiveMacro(name) => {
+                write!(f, "Recursive macro calls ({name:?}) is not allowed")
+            }
+        }
+    }
+}
+
+impl std::error::Error for OwnedError {}
+
+pub(crate) type Result<'t, T> = std::result::Result<T, Error<'t>>;
+
+fn argument_name<'t>(reg: Argument<'t>) -> &'t str {
     match reg {
-        Argument::Qubit(name, _) | Argument::Register(name) => name.clone(),
+        Argument::Qubit(name, _) | Argument::Register(name) => name,
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct Macro {
-    regs: Vec<String>,
-    args: Vec<String>,
-    nodes: Vec<(String, Vec<Argument>, Vec<String>)>,
+pub(crate) struct Macro<'t> {
+    regs: Vec<&'t str>,
+    args: Vec<&'t str>,
+    nodes: Vec<(&'t str, Vec<Argument<'t>>, Vec<&'t str>)>,
 }
 
-impl Macro {
+impl<'t> Macro<'t> {
     pub(crate) fn new(
-        regs: Vec<String>,
-        args: Vec<String>,
-        nodes: Vec<AstNode>,
-    ) -> super::Result<Self> {
+        regs: Vec<&'t str>,
+        args: Vec<&'t str>,
+        nodes: Vec<AstNode<'t>>,
+    ) -> super::Result<'t, Self> {
         let nodes = nodes
             .into_iter()
             .map(|node| match node {
                 AstNode::ApplyGate(name, regs_a, args_a) => {
                     for reg_a in &regs_a {
-                        match reg_a {
+                        match reg_a.clone() {
                             Argument::Qubit(name, idx) => {
-                                return Err(
-                                    Error::DisallowedRegister(name.clone(), *idx as N).into()
-                                )
+                                return Err(Error::DisallowedRegister(name, idx as N).into())
                             }
-                            Argument::Register(name) if !regs.contains(name) => {
-                                return Err(Error::UnknownReg(name.clone()).into())
+                            Argument::Register(name) if !regs.contains(&name) => {
+                                return Err(Error::UnknownReg(name).into())
                             }
                             _ => continue,
                         };
@@ -85,7 +131,7 @@ impl Macro {
 
                     for arg_a in &args_a {
                         match super::parse::eval_extended(arg_a.clone(), None) {
-                            Err(parse::Error::UnknownVariable(arg)) if !args.contains(&arg) => {
+                            Err(parse::Error::UnknownVariable(arg)) if !args.contains(&&*arg) => {
                                 return Err(Error::UnknownArg(arg).into())
                             }
                             Err(
@@ -108,11 +154,11 @@ impl Macro {
 
     pub(crate) fn process(
         &self,
-        name: String,
+        name: &'t str,
         regs: Vec<N>,
         args: Vec<R>,
-        macros: &HashMap<String, Macro>,
-    ) -> super::Result<MultiOp> {
+        macros: &HashMap<&'t str, Macro<'t>>,
+    ) -> super::Result<'t, MultiOp> {
         if regs.len() != self.regs.len() {
             return Err(super::Error::WrongRegNumber(name, regs.len()));
         }
@@ -120,32 +166,33 @@ impl Macro {
             return Err(super::Error::WrongArgNumber(name, args.len()));
         }
 
-        let regs: HashMap<String, N> = self.regs.iter().cloned().zip(regs).collect();
-        let args: Vec<(String, R)> = self.args.iter().cloned().zip(args).collect();
+        let regs: HashMap<&'t str, N> = self.regs.iter().cloned().zip(regs).collect();
+        let args: Vec<(&'t str, R)> = self.args.iter().cloned().zip(args).collect();
 
         self.nodes
             .iter()
             .try_fold(MultiOp::default(), |op, (name_i, regs_i, args_i)| {
                 let regs_i = regs_i
                     .iter()
+                    .cloned()
                     .map(|reg_i| regs[&argument_name(reg_i)])
                     .collect::<Vec<_>>();
 
                 let args_i = args_i
                     .iter()
                     .cloned()
-                    .map(|arg_i| parse::eval_extended(arg_i, &args))
+                    .map(|arg_i| parse::eval_extended(arg_i, args.clone()))
                     .collect::<parse::Result<Vec<_>>>()
-                    .map_err(|e| super::Error::UnevaluatedArgument(name_i.clone(), e))?;
+                    .map_err(|e| super::Error::UnevaluatedArgument(name_i, e))?;
 
-                let op_res = match macros.get(&*name_i) {
+                let op_res = match macros.get(*name_i) {
                     Some(_macro) => {
                         if &name == name_i {
-                            return Err(Error::RecursiveMacro(name_i.clone()).into());
+                            return Err(Error::RecursiveMacro(*name_i).into());
                         }
-                        _macro.process(name_i.clone(), regs_i, args_i, macros)?
+                        _macro.process(*name_i, regs_i, args_i, macros)?
                     }
-                    None => gates::process(name_i.clone(), regs_i, args_i)?,
+                    None => gates::process(*name_i, regs_i, args_i)?,
                 };
                 Ok(op * op_res)
             })
@@ -153,21 +200,13 @@ impl Macro {
 }
 
 #[cfg(test)]
-pub(crate) fn dummy_macro() -> Macro {
+pub(crate) fn dummy_macro() -> Macro<'static> {
     Macro {
-        regs: vec!["a".to_string(), "b".to_string()],
-        args: vec!["x".to_string(), "y".to_string()],
+        regs: vec!["a", "b"],
+        args: vec!["x", "y"],
         nodes: vec![
-            (
-                "h".to_string(),
-                vec![Argument::Register("x".to_string())],
-                vec![],
-            ),
-            (
-                "x".to_string(),
-                vec![Argument::Register("x".to_string())],
-                vec![],
-            ),
+            ("h", vec![Argument::Register("x")], vec![]),
+            ("x", vec![Argument::Register("x")], vec![]),
         ],
     }
 }

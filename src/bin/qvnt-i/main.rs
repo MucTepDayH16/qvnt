@@ -6,5 +6,6 @@ mod program;
 
 fn main() -> Result<(), ()> {
     let cli = cli::CliArgs::new();
-    program::Program::new(cli).run()
+    program::Program::new(cli)?.run()?;
+    Ok(())
 }
