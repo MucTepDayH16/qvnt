@@ -9,14 +9,6 @@ pub struct Ast<'t> {
     ast: Vec<AstNode<'t>>,
 }
 
-impl<'t> super::utils::DropExt for Ast<'t> {
-    fn drop(self) {
-        unsafe {
-            std::mem::drop(Box::from_raw(self.source as *const str as *mut str));
-        }
-    }
-}
-
 impl<'t> Ast<'t> {
     pub fn from_source(source: &'t str) -> Result<'t, Self> {
         let processed = qasm::pre_process(source);
@@ -25,13 +17,14 @@ impl<'t> Ast<'t> {
             Err(Error::EmptySource)
         } else {
             match qasm::parse(token_tree) {
-                Ok(ast) => Ok(Self {
-                    source,
-                    ast,
-                }),
+                Ok(ast) => Ok(Self { source, ast }),
                 Err(err) => Err(Error::ParseError(err)),
             }
         }
+    }
+
+    pub fn source(&self) -> &'t str {
+        self.source
     }
 
     pub(crate) fn iter(&self) -> impl Iterator<Item = &AstNode<'t>> {

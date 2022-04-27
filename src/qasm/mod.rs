@@ -1,7 +1,6 @@
 pub mod ast;
 pub mod int;
 pub mod sym;
-pub mod utils;
 
 pub use ast::Ast;
 pub use int::Int;

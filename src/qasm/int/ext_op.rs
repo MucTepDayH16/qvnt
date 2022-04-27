@@ -103,7 +103,9 @@ impl fmt::Debug for Op {
             for (op, sep) in it {
                 match sep {
                     Sep::Nop => write!(f, "{}", fmt_op(op)),
-                    Sep::Measure(q, c) => write!(f, "{} -> Measure({:b} => {:b})", fmt_op(op), q, c),
+                    Sep::Measure(q, c) => {
+                        write!(f, "{} -> Measure({:b} => {:b})", fmt_op(op), q, c)
+                    }
                     Sep::IfBranch(c, v) => write!(f, " -> if c[{:b}] == {:b} {{ {:?} }}", c, v, op),
                     Sep::Reset(r) => write!(f, "{} -> Reset({:b})", fmt_op(op), r),
                 }?;

@@ -42,55 +42,7 @@ impl<'t> fmt::Display for Error<'t> {
     }
 }
 
-impl<'t> crate::qasm::utils::ToOwnedError for Error<'t> {
-    type OwnedError = OwnedError;
-
-    fn own(self) -> OwnedError {
-        match self {
-            Error::DisallowedNodeInMacro(node) => OwnedError::DisallowedNodeInMacro(format!("{node:?}")),
-            Error::DisallowedRegister(reg, idx) => OwnedError::DisallowedRegister(reg.to_string(), idx),
-            Error::UnknownReg(reg) => OwnedError::UnknownReg(reg.to_string()),
-            Error::UnknownArg(arg) => OwnedError::UnknownArg(arg),
-            Error::RecursiveMacro(name) => OwnedError::RecursiveMacro(name.to_string()),
-        }
-    }
-}
-
 impl<'t> std::error::Error for Error<'t> {}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum OwnedError {
-    DisallowedNodeInMacro(String),
-    DisallowedRegister(String, N),
-    UnknownReg(String),
-    UnknownArg(String),
-    RecursiveMacro(String),
-}
-
-impl fmt::Display for OwnedError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            OwnedError::DisallowedNodeInMacro(node) => {
-                write!(f, "Operation {node:?} isn't allowed in Gate definition")
-            }
-            OwnedError::DisallowedRegister(reg, idx) => write!(
-                f,
-                "Indexing qubits ({reg}[{idx}]) isn't allowed in Gate definition"
-            ),
-            OwnedError::UnknownReg(reg) => {
-                write!(f, "No such register ({reg:?}) in this scope")
-            }
-            OwnedError::UnknownArg(arg) => {
-                write!(f, "No such argument ({arg:?}) in this scope")
-            }
-            OwnedError::RecursiveMacro(name) => {
-                write!(f, "Recursive macro calls ({name:?}) is not allowed")
-            }
-        }
-    }
-}
-
-impl std::error::Error for OwnedError {}
 
 pub(crate) type Result<'t, T> = std::result::Result<T, Error<'t>>;
 

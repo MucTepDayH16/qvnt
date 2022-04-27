@@ -23,7 +23,11 @@ impl Sym {
     }
 
     pub fn init<'t>(&mut self, int: Int<'t>) {
-        if self.m_op != int.m_op || self.q_ops != int.q_ops || self.q_reg.num() != int.q_reg.len() || self.c_reg.num() != int.c_reg.len() {
+        if self.m_op != int.m_op
+            || self.q_ops != int.q_ops
+            || self.q_reg.num() != int.q_reg.len()
+            || self.c_reg.num() != int.c_reg.len()
+        {
             *self = Self::new(int);
         }
     }

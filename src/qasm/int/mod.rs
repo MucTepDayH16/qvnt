@@ -12,7 +12,7 @@ use {
 mod error;
 mod ext_op;
 mod gates;
-mod macros;
+pub mod macros;
 mod parse;
 
 use std::fmt;
@@ -55,12 +55,6 @@ impl<'t> fmt::Debug for Int<'t> {
     }
 }
 
-impl<'t> super::utils::DropExt for Int<'t> {
-    fn drop(self) {
-        self.asts.into_iter().for_each(super::utils::DropExt::drop);
-    }
-}
-
 impl<'t> Int<'t> {
     pub fn new(ast: Ast<'t>) -> Result<'t, Self> {
         Self::default().add_ast(ast)
@@ -76,9 +70,17 @@ impl<'t> Int<'t> {
             Ok(mut ok) => {
                 ok.asts.push(ast);
                 Ok(ok)
-            },
+            }
             Err(err) => Err(err),
         }
+    }
+
+    pub fn iter_ast(&self) -> impl Iterator<Item = &Ast<'t>> {
+        self.asts.iter()
+    }
+
+    pub fn into_iter_ast(self) -> impl Iterator<Item = Ast<'t>> {
+        self.asts.into_iter()
     }
 
     pub unsafe fn append_int(mut self, mut int: Self) -> Self {
