@@ -5,8 +5,9 @@ pub enum Error {
     UnknownCommand(String),
     UnspecifiedPath,
     UnspecifiedInt,
-    UnspecifiedTag,
+    TagError(crate::int_tree::Error),
     ExistedTagName(String),
+    TagIsParent(String),
     WrongTagName(String),
 }
 
@@ -15,11 +16,10 @@ impl fmt::Display for Error {
         match self {
             Error::UnknownCommand(s) => write!(f, "Unknown command: {s}"),
             Error::UnspecifiedPath => write!(f, "Path to load file must be specified"),
-            Error::UnspecifiedInt => {
-                write!(f, "Integer must be specified to loop over comands")
-            }
-            Error::UnspecifiedTag => write!(f, "Tag name as string must be specified"),
+            Error::UnspecifiedInt => write!(f, "Integer must be specified for loop"),
+            Error::TagError(e) => write!(f, "Tag error: {e}"),
             Error::ExistedTagName(s) => write!(f, "Tag name {s:?} already exists"),
+            Error::TagIsParent(s) => write!(f, "Tag {s:?} is parent and could not be removed"),
             Error::WrongTagName(s) => write!(f, "There's no tag {s:?}"),
         }
     }
@@ -52,9 +52,7 @@ COMMANDS:
 #[derive(Clone, Debug, PartialEq)]
 pub enum Command {
     Loop(usize),
-    Tags,
-    Tag(String),
-    Goto(String),
+    Tags(crate::int_tree::Command),
     Go,
     Reset,
     Load(PathBuf),
@@ -89,16 +87,10 @@ impl Line {
                         .ok_or(Error::UnspecifiedInt)?;
                     cmds.push(Command::Loop(int));
                 }
-                "tags" => {
-                    cmds.push(Command::Tags);
-                }
                 "tag" => {
-                    let tag = source.next().ok_or(Error::UnspecifiedTag)?;
-                    cmds.push(Command::Tag(tag.to_string()));
-                }
-                "to" => {
-                    let tag = source.next().ok_or(Error::UnspecifiedTag)?;
-                    cmds.push(Command::Goto(tag.to_string()));
+                    cmds.push(Command::Tags(crate::int_tree::Command::parse_command(
+                        &mut source,
+                    )?));
                 }
                 "exit" | "quit" | "q" => {
                     cmds.push(Command::Quit);

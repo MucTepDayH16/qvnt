@@ -93,62 +93,28 @@ impl<'t> Process<'t> {
                     }
                     break;
                 }
-                Command::Tags => {
-                    println!("{:?}\n", int_tree.keys(),);
-                }
-                Command::Tag(tag) => {
-                    if !int_tree.commit(&tag, self.head.clone()) {
-                        return Err(lines::Error::ExistedTagName(tag).into());
-                    } else {
-                        unsafe {
-                            self.int = self
-                                .int
-                                .clone()
-                                .append_int(std::mem::take(&mut self.head))
-                        };
-                    }
-                }
-                Command::Goto(tag) => {
-                    if !int_tree.checkout(&tag) {
-                        return Err(lines::Error::WrongTagName(tag).into());
-                    } else {
-                        let new_int = int_tree.collect_to_head().ok_or(Error::Inner)?;
-                        self.reset(new_int);
-                    }
-                }
-                Command::Go => {
-                    self.sym_go();
-                }
+                Command::Tags(tag_cmd) => self.process_tag_cmd(int_tree, tag_cmd)?,
+                Command::Go => self.sym_go(),
                 Command::Reset => {
                     if !int_tree.checkout("") {
                         return Err(Error::Inner);
                     }
                     self.reset(Int::default());
                 }
-                Command::Load(path) => {
-                    self.load_qasm(int_tree, path)?;
-                }
+                Command::Load(path) => self.load_qasm(int_tree, path)?,
                 Command::Class => {
                     self.sym_update();
                     println!("CReg: {}\n", self.sym.get_class().get())
                 }
                 Command::Polar => {
                     self.sym_update();
-                    println!(
-                        "QReg polar: {:.4?}\n",
-                        self.sym.get_polar_wavefunction()
-                    );
+                    println!("QReg polar: {:.4?}\n", self.sym.get_polar_wavefunction());
                 }
                 Command::Probs => {
                     self.sym_update();
-                    println!(
-                        "QReg probabilities: {:.4?}\n",
-                        self.sym.get_probabilities()
-                    );
+                    println!("QReg probabilities: {:.4?}\n", self.sym.get_probabilities());
                 }
-                Command::Ops => {
-                    println!("Operations: {}\n", self.int().get_ops_tree());
-                }
+                Command::Ops => println!("Operations: {}\n", self.int().get_ops_tree()),
                 Command::Names => {
                     println!(
                         "QReg: {}\nCReg: {}\n",
@@ -156,15 +122,46 @@ impl<'t> Process<'t> {
                         self.int().get_c_alias()
                     );
                 }
-                Command::Help => {
-                    println!("{}", lines::HELP);
-                }
-                Command::Quit => {
-                    return Err(Error::Quit(0));
-                }
+                Command::Help => println!("{}", lines::HELP),
+                Command::Quit => return Err(Error::Quit(0)),
             }
         }
-    
+
+        Ok(())
+    }
+
+    pub fn process_tag_cmd(
+        &mut self,
+        int_tree: &mut IntTree<'t>,
+        tag_cmd: crate::int_tree::Command,
+    ) -> Result {
+        use crate::int_tree::Command;
+        match tag_cmd {
+            Command::List => println!("{:?}\n", int_tree.keys()),
+            Command::Create(tag) => {
+                if !int_tree.commit(&tag, self.head.clone()) {
+                    return Err(lines::Error::ExistedTagName(tag).into());
+                } else {
+                    unsafe {
+                        self.int = self.int.clone().append_int(std::mem::take(&mut self.head))
+                    };
+                }
+            }
+            Command::Remove(tag) => {
+                if !int_tree.remove(&tag) {
+                    return Err(lines::Error::TagIsParent(tag).into());
+                }
+            }
+            Command::Checkout(tag) => {
+                if int_tree.checkout(&tag) {
+                    return Err(lines::Error::WrongTagName(tag).into());
+                } else {
+                    let new_int = int_tree.collect_to_head().ok_or(Error::Inner)?;
+                    self.reset(new_int);
+                }
+            }
+            Command::Help => println!("{}", crate::int_tree::HELP),
+        }
         Ok(())
     }
 
