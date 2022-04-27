@@ -64,7 +64,7 @@ impl<'t> Process<'t> {
 
     pub fn process(&mut self, int_set: &mut IntTree<'t>, line: String) -> Result {
         match line.parse::<Line>() {
-            Ok(Line::Qasm) => self.process_qasm(crate::program::leak_string(line, false)),
+            Ok(Line::Qasm) => self.process_qasm(crate::program::leak_string(line)),
             Ok(Line::Commands(cmds)) => self.process_cmd(int_set, cmds.into_iter()),
             Err(err) => Err(err.into()),
         }
@@ -72,10 +72,10 @@ impl<'t> Process<'t> {
 
     pub fn process_qasm(&mut self, line: &'t str) -> Result {
         let ast: Ast<'t> = Ast::from_source(line).map_err(ToOwnedError::own)?;
-        self.int = self
-            .int
+        self.head = self
+            .head
             .clone()
-            .ast_changes(&mut self.head, ast)
+            .ast_changes(&mut self.int, ast)
             .map_err(ToOwnedError::own)?;
         Ok(())
     }
@@ -95,12 +95,6 @@ impl<'t> Process<'t> {
                 }
                 Command::Tags(tag_cmd) => self.process_tag_cmd(int_tree, tag_cmd)?,
                 Command::Go => self.sym_go(),
-                Command::Reset => {
-                    if !int_tree.checkout("") {
-                        return Err(Error::Inner);
-                    }
-                    self.reset(Int::default());
-                }
                 Command::Load(path) => self.load_qasm(int_tree, path)?,
                 Command::Class => {
                     self.sym_update();
@@ -148,16 +142,27 @@ impl<'t> Process<'t> {
                 }
             }
             Command::Remove(tag) => {
-                if !int_tree.remove(&tag) {
-                    return Err(lines::Error::TagIsParent(tag).into());
+                use crate::int_tree::RemoveStatus::*;
+                match int_tree.remove(&tag) {
+                    Removed => {},
+                    NotFound => return Err(lines::Error::WrongTagName(tag).into()),
+                    IsParent => return Err(lines::Error::TagIsParent(tag).into()),
+                    IsHead => return Err(lines::Error::TagIsHead(tag).into()),
                 }
             }
             Command::Checkout(tag) => {
-                if int_tree.checkout(&tag) {
+                if !int_tree.checkout(&tag) {
                     return Err(lines::Error::WrongTagName(tag).into());
                 } else {
                     let new_int = int_tree.collect_to_head().ok_or(Error::Inner)?;
                     self.reset(new_int);
+                }
+            }
+            Command::Reset => {
+                if !int_tree.checkout("") {
+                    return Err(Error::Inner);
+                } else {
+                    self.reset(Int::default());
                 }
             }
             Command::Help => println!("{}", crate::int_tree::HELP),
@@ -172,7 +177,7 @@ impl<'t> Process<'t> {
         } else {
             let default_ast = {
                 let source = std::fs::read_to_string(path.clone())?;
-                let source = crate::program::leak_string(source, false);
+                let source = crate::program::leak_string(source);
                 Ast::from_source(source).map_err(ToOwnedError::own)?
             };
             let ast = self.storage.entry(path).or_insert(default_ast).clone();

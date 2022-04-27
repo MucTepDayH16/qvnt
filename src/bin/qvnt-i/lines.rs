@@ -8,6 +8,7 @@ pub enum Error {
     TagError(crate::int_tree::Error),
     ExistedTagName(String),
     TagIsParent(String),
+    TagIsHead(String),
     WrongTagName(String),
 }
 
@@ -19,7 +20,8 @@ impl fmt::Display for Error {
             Error::UnspecifiedInt => write!(f, "Integer must be specified for loop"),
             Error::TagError(e) => write!(f, "Tag error: {e}"),
             Error::ExistedTagName(s) => write!(f, "Tag name {s:?} already exists"),
-            Error::TagIsParent(s) => write!(f, "Tag {s:?} is parent and could not be removed"),
+            Error::TagIsParent(s) => write!(f, "Tag {s:?} is parent and cannot be removed"),
+            Error::TagIsHead(s) => write!(f, "Tag {s:?} is head and cannot be removed"),
             Error::WrongTagName(s) => write!(f, "There's no tag {s:?}"),
         }
     }
@@ -54,7 +56,6 @@ pub enum Command {
     Loop(usize),
     Tags(crate::int_tree::Command),
     Go,
-    Reset,
     Load(PathBuf),
     Class,
     Polar,
@@ -110,9 +111,6 @@ impl Line {
                 }
                 "go" | "g" => {
                     cmds.push(Command::Go);
-                }
-                "reset" | "r" => {
-                    cmds.push(Command::Reset);
                 }
                 "names" | "n" => {
                     cmds.push(Command::Names);

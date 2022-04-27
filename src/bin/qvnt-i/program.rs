@@ -6,11 +6,9 @@ use crate::{
 use qvnt::prelude::Int;
 use rustyline::{error::ReadlineError, Editor};
 
-pub fn leak_string<'t>(s: String, dbg: bool) -> &'t str {
+pub fn leak_string<'t>(s: String) -> &'t str {
     let s = Box::leak(s.into_boxed_str()) as &'t str;
-    if dbg {
-        eprintln!("Leakage {{ ptr: {:?}, len: {} }}", s as *const _, s.len());
-    }
+    // eprintln!("Leakage {{ ptr: {:?}, len: {} }}", s as *const _, s.len());
     s
 }
 
@@ -87,7 +85,7 @@ impl<'t> Program<'t> {
                         Some('}') if block.0 => {
                             block.1 += &line;
                             block.0 = false;
-                            let line = leak_string(std::mem::take(&mut block.1), self.dbg);
+                            let line = leak_string(std::mem::take(&mut block.1));
                             if let Some(n) =
                                 handle_error(self.curr_process.process_qasm(line), self.dbg)
                             {
@@ -169,7 +167,7 @@ mod tests {
                 Some('}') if block.0 => {
                     block.1 += &line;
                     block.0 = false;
-                    let line = leak_string(block.1, false);
+                    let line = leak_string(block.1);
                     curr_process.process_qasm(line).unwrap();
                     block.1 = String::new();
                 }

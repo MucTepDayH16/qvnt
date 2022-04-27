@@ -14,6 +14,13 @@ pub struct IntTree<'t> {
     map: HashMap<Rc<String>, (Weak<String>, Int<'t>)>,
 }
 
+pub enum RemoveStatus {
+    Removed,
+    NotFound,
+    IsParent,
+    IsHead,
+}
+
 impl<'t> IntTree<'t>
 where
     Self: 't,
@@ -79,35 +86,33 @@ where
         }
     }
 
-    pub fn remove<S: AsRef<str>>(&mut self, tag: S) -> bool {
+    pub fn remove<S: AsRef<str>>(&mut self, tag: S) -> RemoveStatus {
         let tag = tag.as_ref().to_string();
 
-        let mut is_presented = false;
+        if self.head.borrow().as_deref() == Some(&tag) {
+            return RemoveStatus::IsHead;
+        }
 
+        let mut is_presented = false;
         for tags in self.map.iter() {
             if &**tags.0 == &tag {
                 is_presented = true;
             }
             if let Some(par_tag) = Weak::upgrade(&tags.1 .0) {
                 if &**par_tag == &tag {
-                    return false;
+                    return RemoveStatus::IsParent;
                 }
             }
         }
 
         if !is_presented {
-            return true;
-        }
-
-        if self.head.borrow().as_deref() == Some(&tag) {
-            let pre_head = self.map.get_key_value(&tag).unwrap().0;
-            self.checkout(pre_head.as_ref());
+            return RemoveStatus::NotFound;
         }
 
         let removed = self.map.remove(&tag).unwrap().1;
         <Int<'t> as utils::drop_leakage::DropExt>::drop(removed);
 
-        true
+        RemoveStatus::Removed
     }
 }
 
@@ -153,6 +158,7 @@ pub enum Command {
     Create(String),
     Remove(String),
     Checkout(String),
+    Reset,
     Help,
 }
 
@@ -174,6 +180,7 @@ impl Command {
                 Some(arg) => Ok(Command::Checkout(arg.to_string())),
                 None => Err(Error::UnspecifiedTag),
             },
+            Some("reset") => Ok(Command::Reset),
             Some("help" | "h" | "?") => Ok(Command::Help),
             Some(cmd) => Err(Error::UnknownTagCmd(cmd.to_string())),
         }

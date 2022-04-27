@@ -12,7 +12,7 @@ impl<'t> DropExt for qvnt::qasm::Ast<'t> {
     fn drop(self) {
         unsafe {
             let s = self.source();
-            eprintln!("Unleak {{ ptr: {:?}, len: {} }}", s as *const _, s.len());
+            // eprintln!("Unleak {{ ptr: {:?}, len: {} }}", s as *const _, s.len());
             std::mem::drop(Box::from_raw(s as *const str as *mut str));
         }
     }
