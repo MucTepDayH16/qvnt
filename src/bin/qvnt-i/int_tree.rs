@@ -11,7 +11,10 @@ pub struct IntTree<'t> {
     map: HashMap<Rc<String>, (Weak<String>, Int<'t>)>,
 }
 
-impl<'t> IntTree<'t> where Self: 't {
+impl<'t> IntTree<'t>
+where
+    Self: 't,
+{
     pub fn with_root<S: ToString>(root: S) -> Self {
         let root = Rc::new(root.to_string());
         let map = HashMap::from([(Rc::clone(&root), (Weak::new(), Int::default()))]);

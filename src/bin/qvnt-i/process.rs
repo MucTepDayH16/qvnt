@@ -1,14 +1,17 @@
-use std::{path::PathBuf, collections::HashMap};
+use std::{collections::HashMap, path::PathBuf};
 
 use crate::{
     int_tree::IntTree,
     lines::{self, Command, Line},
+    utils::owned_errors::ToOwnedError,
 };
-use qvnt::qasm::{Ast, Int, Sym, utils::ToOwnedError};
+use qvnt::qasm::{Ast, Int, Sym};
 
 #[derive(Debug)]
 pub enum Error {
     Inner,
+    #[allow(dead_code)]
+    Unimplemented,
     Dyn(Box<dyn std::error::Error>),
     Quit(i32),
 }
@@ -69,7 +72,11 @@ impl<'t> Process<'t> {
 
     pub fn process_qasm(&mut self, line: &'t str) -> Result {
         let ast: Ast<'t> = Ast::from_source(line).map_err(ToOwnedError::own)?;
-        self.int = self.int.clone().ast_changes(&mut self.head, ast).map_err(ToOwnedError::own)?;
+        self.int = self
+            .int
+            .clone()
+            .ast_changes(&mut self.head, ast)
+            .map_err(ToOwnedError::own)?;
         Ok(())
     }
 
@@ -169,7 +176,11 @@ impl<'t> Process<'t> {
             let default_ast = {
                 let source = std::fs::read_to_string(path.clone())?;
                 let source = crate::program::leak_string(source, false);
-                eprintln!("Leakage {{ ptr: {:?}, len: {} }}", source as *const _, source.len());
+                eprintln!(
+                    "Leakage {{ ptr: {:?}, len: {} }}",
+                    source as *const _,
+                    source.len()
+                );
                 Ast::from_source(source).map_err(ToOwnedError::own)?
             };
             let ast = self.storage.entry(path).or_insert(default_ast).clone();

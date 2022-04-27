@@ -1,7 +1,7 @@
 use crate::{
     cli::CliArgs,
     int_tree::IntTree,
-    process::{Result, Error, Process},
+    process::{Error, Process, Result},
 };
 use qvnt::prelude::Int;
 use rustyline::{error::ReadlineError, Editor};
@@ -24,7 +24,7 @@ pub(crate) struct Program<'t> {
 fn handle_error(result: Result, dbg: bool) -> Option<i32> {
     match result {
         Ok(()) => None,
-        Err(Error::Inner) => {
+        Err(Error::Inner | Error::Unimplemented) => {
             eprintln!("Internal Error: Please report this to the developer.");
             Some(0xDE)
         }
@@ -56,7 +56,10 @@ impl<'t> Program<'t> {
         };
 
         if let Some(path) = cli.input {
-            if let Some(n) = handle_error(new.curr_process.load_qasm(&mut new.int_tree, path.into()), new.dbg) {
+            if let Some(n) = handle_error(
+                new.curr_process.load_qasm(&mut new.int_tree, path.into()),
+                new.dbg,
+            ) {
                 if n != 0 {
                     return Err(());
                 }
@@ -85,10 +88,9 @@ impl<'t> Program<'t> {
                             block.1 += &line;
                             block.0 = false;
                             let line = leak_string(std::mem::take(&mut block.1), self.dbg);
-                            if let Some(n) = handle_error(
-                                self.curr_process.process_qasm(line),
-                                self.dbg,
-                            ) {
+                            if let Some(n) =
+                                handle_error(self.curr_process.process_qasm(line), self.dbg)
+                            {
                                 if n == 0 {
                                     break Ok(());
                                 } else {
