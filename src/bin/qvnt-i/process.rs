@@ -173,11 +173,6 @@ impl<'t> Process<'t> {
             let default_ast = {
                 let source = std::fs::read_to_string(path.clone())?;
                 let source = crate::program::leak_string(source, false);
-                eprintln!(
-                    "Leakage {{ ptr: {:?}, len: {} }}",
-                    source as *const _,
-                    source.len()
-                );
                 Ast::from_source(source).map_err(ToOwnedError::own)?
             };
             let ast = self.storage.entry(path).or_insert(default_ast).clone();
