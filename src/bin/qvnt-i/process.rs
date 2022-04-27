@@ -72,10 +72,10 @@ impl<'t> Process<'t> {
 
     pub fn process_qasm(&mut self, line: &'t str) -> Result {
         let ast: Ast<'t> = Ast::from_source(line).map_err(ToOwnedError::own)?;
-        self.head = self
-            .head
+        self.int = self
+            .int
             .clone()
-            .ast_changes(&mut self.int, ast)
+            .ast_changes(&mut self.head, ast)
             .map_err(ToOwnedError::own)?;
         Ok(())
     }
@@ -144,7 +144,7 @@ impl<'t> Process<'t> {
             Command::Remove(tag) => {
                 use crate::int_tree::RemoveStatus::*;
                 match int_tree.remove(&tag) {
-                    Removed => {},
+                    Removed => {}
                     NotFound => return Err(lines::Error::WrongTagName(tag).into()),
                     IsParent => return Err(lines::Error::TagIsParent(tag).into()),
                     IsHead => return Err(lines::Error::TagIsHead(tag).into()),
@@ -158,8 +158,8 @@ impl<'t> Process<'t> {
                     self.reset(new_int);
                 }
             }
-            Command::Reset => {
-                if !int_tree.checkout("") {
+            Command::Root => {
+                if !int_tree.checkout(crate::program::ROOT_TAG) {
                     return Err(Error::Inner);
                 } else {
                     self.reset(Int::default());

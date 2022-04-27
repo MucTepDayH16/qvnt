@@ -149,6 +149,7 @@ SUBCOMMANDS:
     mk TAG      Create TAG with current state
     ch TAG      Swap current state to TAG's state
     rm TAG      Remove TAG from tree
+    root        Swap current state to default state
     help|h|?    Show this reference
 ";
 
@@ -158,7 +159,7 @@ pub enum Command {
     Create(String),
     Remove(String),
     Checkout(String),
-    Reset,
+    Root,
     Help,
 }
 
@@ -180,7 +181,7 @@ impl Command {
                 Some(arg) => Ok(Command::Checkout(arg.to_string())),
                 None => Err(Error::UnspecifiedTag),
             },
-            Some("reset") => Ok(Command::Reset),
+            Some("root") => Ok(Command::Root),
             Some("help" | "h" | "?") => Ok(Command::Help),
             Some(cmd) => Err(Error::UnknownTagCmd(cmd.to_string())),
         }
