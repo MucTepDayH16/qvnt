@@ -103,7 +103,7 @@ ___
 It is REPL interpreter, that could be used to process quantum operation without compiling code.
 ### Installation:
 ```shell
-cargo install qvnt-i
+cargo install qvnt --bin qvnt-i --features=cli
 ```
 
 ### How to
