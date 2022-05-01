@@ -57,7 +57,7 @@ impl Reg {
     /// Create classical register with a given number of bits.
     /// Initial value will be 0.
     pub fn new(q_num: N) -> Self {
-        let q_mask = 1_usize.wrapping_shl(q_num as u32).wrapping_add(!0_usize);
+        let q_mask = 1_usize.wrapping_shl(q_num as u32).wrapping_sub(1_usize);
 
         Self {
             value: 0,
@@ -66,11 +66,38 @@ impl Reg {
         }
     }
 
+    pub fn num(&self) -> N {
+        self.q_num
+    }
+
+    pub fn set_num(&mut self, q_num: N) {
+        self.q_num = q_num;
+        self.q_mask = 1_usize.wrapping_shl(q_num as u32).wrapping_sub(1_usize);
+    }
+
     /// Initialize a value of register.
     pub fn init_state(self, i_state: N) -> Self {
         Self {
             value: i_state & self.q_mask,
             ..self
+        }
+    }
+
+    pub(crate) fn reset(&mut self, i_state: N) {
+        self.value = i_state & self.q_mask;
+    }
+
+    pub fn set(&mut self, bit: bool, mask: N) {
+        if bit {
+            self.value |= mask;
+        } else {
+            self.value &= !mask;
+        }
+    }
+
+    pub fn xor(&mut self, bit: bool, mask: N) {
+        if bit {
+            self.value ^= mask;
         }
     }
 
@@ -84,6 +111,18 @@ impl Reg {
     /// This number will always be less than 2<sup>N</sup>, where N is the number of bits, given in [`CReg::new()`](Reg::new).
     pub fn get(&self) -> N {
         self.value
+    }
+
+    pub(crate) fn get_by_mask(&self, mask: N) -> N {
+        crate::math::bits_iter::BitsIter::from(mask & self.q_mask)
+            .enumerate()
+            .fold(0, |mask, (idx, val)| {
+                if self.value & val != 0 {
+                    mask | (1usize << idx)
+                } else {
+                    mask
+                }
+            })
     }
 }
 

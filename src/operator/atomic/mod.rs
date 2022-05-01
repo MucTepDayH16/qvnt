@@ -1,7 +1,4 @@
-use super::single::SingleOp;
 use crate::math::{C, N, R};
-use std::boxed::Box as Ptr;
-use std::ops::Deref;
 
 pub(crate) mod id;
 
@@ -30,4 +27,4 @@ pub(crate) mod sqrt_swap;
 pub(crate) mod swap;
 
 pub(crate) mod dispatch;
-pub use dispatch::*;
+pub(crate) use dispatch::*;

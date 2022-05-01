@@ -13,6 +13,9 @@ mod threads;
 pub mod operator;
 pub mod register;
 
+#[cfg(feature = "interpreter")]
+pub mod qasm;
+
 #[doc(hidden)]
 pub mod prelude {
     pub use crate::{
@@ -20,4 +23,7 @@ pub mod prelude {
         operator::{Applicable, MultiOp, SingleOp},
         register::*,
     };
+
+    #[cfg(feature = "interpreter")]
+    pub use crate::qasm::{Ast, Int};
 }

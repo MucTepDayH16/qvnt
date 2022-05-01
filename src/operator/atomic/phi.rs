@@ -1,14 +1,14 @@
 use super::*;
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 #[derive(Clone, PartialEq)]
 pub struct Op {
-    phases: BTreeMap<N, C>,
+    phases: HashMap<N, C>,
 }
 
 impl Op {
     pub fn new(phases_vec: Vec<(R, N)>) -> Self {
-        let mut phases = BTreeMap::new();
+        let mut phases = HashMap::new();
         for (val, idx) in phases_vec.iter() {
             let mut jdx = 1;
             while jdx <= *idx {

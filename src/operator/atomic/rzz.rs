@@ -25,7 +25,7 @@ impl AtomicOp for Op {
     }
 
     fn name(&self) -> String {
-        format!("RZZ{}[{}]", self.ab_mask, 2.0 * self.phase.arg())
+        format!("RZZ{}({})", self.ab_mask, 2.0 * self.phase.arg())
     }
 
     fn is_valid(&self) -> bool {
@@ -62,7 +62,7 @@ fn matrix_repr() {
     };
 
     let op: SingleOp = Op::new(0b11, ANGLE).into();
-    assert_eq!(op.name(), "RZZ3[1.23456]");
+    assert_eq!(op.name(), "RZZ3(1.23456)");
     assert_eq!(
         op.matrix(2),
         [

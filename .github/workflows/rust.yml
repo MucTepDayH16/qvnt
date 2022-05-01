@@ -1,6 +1,6 @@
 name: Rust
 
-on: [push, pull_request]
+on: [push]
 
 env:
   CARGO_TERM_COLOR:
@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout master
+      - name: Checkout branch
         uses: actions/checkout@v2
       - name: Init submodules
         uses: snickerbockers/submodules-init@v4
@@ -19,10 +19,9 @@ jobs:
       - name: Clean space
         run: cargo clean --package qvnt
       - name: Build crate
-        run: cargo build --release --package qvnt --features=${{ matrix.features }}
+        run: cargo build --release --package qvnt --all-features
       - name: Test crate
-        run: cargo test --quiet --release --package qvnt --features=${{ matrix.features }}
+        run: cargo test --quiet --release --package qvnt --all-features
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        features: [default, cpu]
+        os: [ubuntu-latest, windows-latest]

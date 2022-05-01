@@ -126,6 +126,35 @@ impl Reg {
         }
     }
 
+    pub fn num(&self) -> N {
+        self.q_num
+    }
+
+    pub fn set_num(&mut self, q_num: N) {
+        let q_size = 1_usize << q_num;
+        self.q_num = q_num;
+        self.q_mask = q_size.wrapping_sub(1_usize);
+        self.psi.resize(q_size, C_ZERO);
+
+        if q_num < self.q_num {
+            self.reset(0);
+        }
+    }
+
+    #[doc(hidden)]
+    pub(crate) fn set_num_no_realloc(&mut self, q_num: N) {
+        let q_size = 1_usize << q_num;
+        self.q_num = q_num;
+        self.q_mask = q_size.wrapping_sub(1_usize);
+
+        if q_num < self.q_num {
+            self.reset(0);
+            unsafe { self.psi.set_len(q_size) };
+        } else {
+            self.psi.resize(q_size, C_ZERO);
+        }
+    }
+
     /// __This method available with "cpu" feature enabled.__
     ///
     /// Set specified number of threads for a given quantum register.
@@ -150,6 +179,30 @@ impl Reg {
     pub(crate) fn reset(&mut self, i_state: N) {
         self.psi = vec![C_ZERO; self.psi.len()];
         self.psi[self.q_mask & i_state] = C_ONE;
+    }
+
+    pub(crate) fn reset_by_mask(&mut self, mask: N) {
+        if mask & self.q_mask == self.q_mask {
+            return self.reset(0);
+        }
+        match self.th {
+            Model::Single => {
+                self.psi
+                    .iter_mut()
+                    .enumerate()
+                    .filter(|(idx, _)| idx & mask != 0)
+                    .for_each(|(_, psi)| *psi = C_ZERO);
+            }
+            #[cfg(feature = "cpu")]
+            Model::Multi(n) => crate::threads::global_install(n, || {
+                self.psi
+                    .par_iter_mut()
+                    .enumerate()
+                    .filter(|(idx, _)| idx & mask != 0)
+                    .for_each(|(_, psi)| *psi = C_ZERO);
+            }),
+        }
+        self.normalize();
     }
 
     /// Initialize state of qubits.
@@ -347,7 +400,14 @@ impl Reg {
     }
 
     fn normalize(&mut self) -> &mut Self {
-        let norm = 1. / self.get_absolute().sqrt();
+        let norm = self.get_absolute().sqrt();
+        if norm <= 1e-15 {
+            self.reset(0);
+            return self;
+        } else if 1. - norm <= 1e-9 {
+            return self;
+        }
+        let norm = 1. / norm;
         match self.th {
             Model::Single => self.psi.iter_mut().for_each(|v| *v *= norm),
             #[cfg(feature = "cpu")]
@@ -380,17 +440,19 @@ impl Reg {
         match self.th {
             Model::Single => {
                 let abs: R = self.psi.iter().map(|z| z.norm_sqr()).sum();
+                let abs = 1. / abs;
                 self.psi[..(1 << self.q_num)]
                     .iter()
-                    .map(|z| z.norm_sqr() / abs)
+                    .map(|z| z.norm_sqr() * abs)
                     .collect()
             }
             #[cfg(feature = "cpu")]
             Model::Multi(n) => crate::threads::global_install(n, || {
                 let abs: R = self.psi.par_iter().map(|z| z.norm_sqr()).sum();
+                let abs = 1. / abs;
                 self.psi[..(1 << self.q_num)]
                     .par_iter()
-                    .map(|z| z.norm_sqr() / abs)
+                    .map(|z| z.norm_sqr() * abs)
                     .collect()
             }),
         }

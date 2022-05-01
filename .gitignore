@@ -2,8 +2,10 @@
 
 *.xlsx
 
+.venv
+.vscode
 .idea
+.history
 
 __pycache__
 media
-.venv

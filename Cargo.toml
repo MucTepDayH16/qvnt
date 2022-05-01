@@ -1,6 +1,6 @@
 [package]
 name        = "qvnt"
-version     = "0.3.3"
+version     = "0.4.0-beta"
 description = "Advanced quantum computation simulator."
 keywords    = ["theoretical", "quantum-computing", "quantum-simulator", "quantum", "qubits", ]
 categories  = ["concurrency", "simulation", "mathematics", "science", ]
@@ -11,10 +11,6 @@ repository  = "https://github.com/MucTepDayH16/qvnt/"
 readme      = "README.md"
 license     = "MIT OR Apache-2.0"
 
-[features]
-default     = []
-cpu         = ["rayon", "lazy_static"]
-
 [dependencies]
 lazy_static = { version = "1.4.0", optional = true }
 num-complex = "0.4.0"
@@ -23,11 +19,33 @@ rand        = "0.8.4"
 rand_distr  = "0.4.3"
 rayon       = { version = "1.5.1", optional = true }
 enum_dispatch = "0.3.8"
+rustyline   = { version = "9.1.2", optional = true }
+clap        = { version = "3.1.8", optional = true, features = ["derive"] }
+qasm        = { path = "./qasm-rust", optional = true, features = ["no-check-ver"] }
+meval       = { version = "0.2.0", optional = true }
 
 [dev-dependencies]
 criterion   = "0.3.5"
+glob        = "0.3.0"
+
+[features]
+default     = []
+cpu         = ["rayon", "lazy_static"]
+interpreter = ["qasm", "meval"]
+cli         = ["interpreter", "cpu", "clap", "rustyline"]
 
 [[bench]]
-name        = "performance"
-harness     = false
-required-features = ["cpu"]
+name                = "performance"
+harness             = false
+required-features   = ["cpu"]
+
+[[bench]]
+name                = "interpreter"
+harness             = false
+required-features   = ["cli"]
+
+[[bin]]
+name                = "qvnt-i"
+required-features   = ["cli"]
+test                = true
+bench               = false
