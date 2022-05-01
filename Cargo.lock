@@ -624,13 +624,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "qasm"
-version = "0.1.0"
-dependencies = [
- "regex 0.2.11",
-]
-
-[[package]]
 name = "quote"
 version = "1.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -641,7 +634,7 @@ dependencies = [
 
 [[package]]
 name = "qvnt"
-version = "0.4.0-beta"
+version = "0.4.0"
 dependencies = [
  "clap 3.1.8",
  "criterion",
@@ -651,11 +644,20 @@ dependencies = [
  "lazy_static",
  "meval",
  "num-complex",
- "qasm",
+ "qvnt-qasm",
  "rand",
  "rand_distr",
  "rayon",
  "rustyline",
+]
+
+[[package]]
+name = "qvnt-qasm"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23022a85b69747cec6b835cb5c46feeb1509882ca42d6b651f0af874f0e06220"
+dependencies = [
+ "regex 0.2.11",
 ]
 
 [[package]]
