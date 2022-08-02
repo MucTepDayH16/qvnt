@@ -17,7 +17,7 @@ jobs:
       - name: Set stable channel
         run: rustup default stable
       - name: Add nightly channel
-        run: rustup install nightly
+        run: rustup install nightly && rustup +nightly component add rustfmt
       - name: Rustfmt check
         run: cargo +nightly fmt --check
       - name: Clean space
