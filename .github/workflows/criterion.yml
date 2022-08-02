@@ -16,5 +16,3 @@ jobs:
         uses: snickerbockers/submodules-init@v4
       - name: Benchmark crate (performance)
         run: cargo bench --quiet --package qvnt --bench performance --features=cpu
-      - name: Benchmark crate (interpreter)
-        run: cargo bench --quiet --package qvnt --bench interpreter --features=cli
