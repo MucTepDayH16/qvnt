@@ -21,7 +21,7 @@ type ISwap = i_swap::Op;
 type SqrtSwap = sqrt_swap::Op;
 type SqrtISwap = sqrt_i_swap::Op;
 
-#[enum_dispatch::enum_dispatch(AtomicOpDispatch)]
+#[::dispatch::enum_dispatch(AtomicOpDispatch)]
 pub(crate) trait AtomicOp: Clone + PartialEq + Sync + Send {
     fn atomic_op(&self, psi: &[C], idx: N) -> C;
 
@@ -75,7 +75,7 @@ pub(crate) trait AtomicOp: Clone + PartialEq + Sync + Send {
     fn dgr(self) -> AtomicOpDispatch;
 }
 
-#[enum_dispatch::enum_dispatch]
+#[::dispatch::enum_dispatch]
 #[derive(Clone, PartialEq)]
 pub(crate) enum AtomicOpDispatch {
     Id,

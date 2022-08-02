@@ -27,4 +27,4 @@ pub(crate) mod sqrt_swap;
 pub(crate) mod swap;
 
 pub(crate) mod dispatch;
-pub(crate) use dispatch::*;
+pub(crate) use self::dispatch::*;

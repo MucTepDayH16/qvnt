@@ -18,9 +18,7 @@ float-cmp   = { version = "0.8.0", optional = true }
 rand        = "0.8.4"
 rand_distr  = "0.4.3"
 rayon       = { version = "1.5.1", optional = true }
-enum_dispatch = "0.3.8"
-rustyline   = { version = "9.1.2", optional = true }
-clap        = { version = "3.1.8", optional = true, features = ["derive"] }
+dispatch    = { package = "enum_dispatch", version = "0.3.8" }
 qasm        = { package = "qvnt-qasm", version = "0.2.0", optional = true, features = ["no-check-ver"] }
 meval       = { version = "0.2.0", optional = true }
 
@@ -32,20 +30,8 @@ glob        = "0.3.0"
 default     = []
 cpu         = ["rayon", "lazy_static"]
 interpreter = ["qasm", "meval"]
-cli         = ["interpreter", "cpu", "clap", "rustyline"]
 
 [[bench]]
 name                = "performance"
 harness             = false
 required-features   = ["cpu"]
-
-[[bench]]
-name                = "interpreter"
-harness             = false
-required-features   = ["cli"]
-
-[[bin]]
-name                = "qvnt-i"
-required-features   = ["cli"]
-test                = true
-bench               = false
