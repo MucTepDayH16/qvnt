@@ -3,40 +3,40 @@ use qasm::{self, AstNode};
 mod error;
 pub use error::*;
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct Ast<'t> {
+#[derive(Clone, Debug, PartialEq,)]
+pub struct Ast<'t,> {
     source: &'t str,
-    ast: Vec<AstNode<'t>>,
+    ast: Vec<AstNode<'t,>,>,
 }
 
-impl<'t> Ast<'t> {
-    pub fn from_source(source: &'t str) -> Result<'t, Self> {
-        let processed = qasm::pre_process(source);
-        let token_tree = qasm::lex(processed);
+impl<'t,> Ast<'t,> {
+    pub fn from_source(source: &'t str,) -> Result<'t, Self,> {
+        let processed = qasm::pre_process(source,);
+        let token_tree = qasm::lex(processed,);
         if token_tree.is_empty() {
-            Err(Error::EmptySource)
+            Err(Error::EmptySource,)
         } else {
-            match qasm::parse(token_tree) {
-                Ok(ast) => Ok(Self { source, ast }),
-                Err(err) => Err(Error::ParseError(err)),
+            match qasm::parse(token_tree,) {
+                Ok(ast,) => Ok(Self { source, ast, },),
+                Err(err,) => Err(Error::ParseError(err,),),
             }
         }
     }
 
-    pub fn source(&self) -> &'t str {
+    pub fn source(&self,) -> &'t str {
         self.source
     }
 
-    pub(crate) fn iter(&self) -> impl Iterator<Item = &AstNode<'t>> {
+    pub(crate) fn iter(&self,) -> impl Iterator<Item = &AstNode<'t,>,> {
         self.ast.iter()
     }
 }
 
-impl<'t> IntoIterator for Ast<'t> {
-    type Item = AstNode<'t>;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
+impl<'t,> IntoIterator for Ast<'t,> {
+    type Item = AstNode<'t,>;
+    type IntoIter = std::vec::IntoIter<Self::Item,>;
 
-    fn into_iter(self) -> Self::IntoIter {
+    fn into_iter(self,) -> Self::IntoIter {
         self.ast.into_iter()
     }
 }
@@ -97,7 +97,7 @@ mod tests {
         use qasm::Argument::*;
         use AstNode::*;
 
-        let source = std::fs::read_to_string("./src/qasm/examples/test.qasm").unwrap();
+        let source = std::fs::read_to_string("./src/qasm/examples/test.qasm",).unwrap();
 
         assert_eq!(
             Ast::from_source(&source[..]),

@@ -4,7 +4,6 @@
 //! * [`QReg`] - quantum register;
 //! * [`CReg`] - classical register;
 //! * [`VReg`] - *vurtual* register.
-//!
 
 pub(crate) mod class;
 pub(crate) mod quant;

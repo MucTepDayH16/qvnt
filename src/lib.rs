@@ -18,12 +18,11 @@ pub mod qasm;
 
 #[doc(hidden)]
 pub mod prelude {
+    #[cfg(feature = "interpreter")]
+    pub use crate::qasm::{Ast, Int};
     pub use crate::{
         operator as op,
         operator::{Applicable, MultiOp, SingleOp},
         register::*,
     };
-
-    #[cfg(feature = "interpreter")]
-    pub use crate::qasm::{Ast, Int};
 }

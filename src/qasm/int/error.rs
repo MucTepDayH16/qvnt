@@ -1,31 +1,35 @@
-use {super::macros, qasm::AstNode, std::fmt};
+use std::fmt;
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum Error<'t> {
-    NoQReg(&'t str),
-    NoCReg(&'t str),
-    DupQReg(&'t str, usize),
-    DupCReg(&'t str, usize),
-    IdxOutOfRange(&'t str, usize),
-    UnknownGate(&'t str),
-    InvalidControlMask(usize, usize),
-    UnevaluatedArgument(&'t str, meval::Error),
-    WrongRegNumber(&'t str, usize),
-    WrongArgNumber(&'t str, usize),
-    UnmatchedRegSize(usize, usize),
-    MacroError(macros::Error<'t>),
-    MacroAlreadyDefined(&'t str),
-    DisallowedNodeInIf(AstNode<'t>),
+use qasm::AstNode;
+
+use super::macros;
+
+#[derive(Debug, PartialEq, Clone,)]
+pub enum Error<'t,> {
+    NoQReg(&'t str,),
+    NoCReg(&'t str,),
+    DupQReg(&'t str, usize,),
+    DupCReg(&'t str, usize,),
+    IdxOutOfRange(&'t str, usize,),
+    UnknownGate(&'t str,),
+    InvalidControlMask(usize, usize,),
+    UnevaluatedArgument(&'t str, meval::Error,),
+    WrongRegNumber(&'t str, usize,),
+    WrongArgNumber(&'t str, usize,),
+    UnmatchedRegSize(usize, usize,),
+    MacroError(macros::Error<'t,>,),
+    MacroAlreadyDefined(&'t str,),
+    DisallowedNodeInIf(AstNode<'t,>,),
 }
 
-impl<'t> From<macros::Error<'t>> for Error<'t> {
-    fn from(err: macros::Error<'t>) -> Self {
-        Error::MacroError(err)
+impl<'t,> From<macros::Error<'t,>,> for Error<'t,> {
+    fn from(err: macros::Error<'t,>,) -> Self {
+        Error::MacroError(err,)
     }
 }
 
-impl<'t> fmt::Display for Error<'t> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl<'t,> fmt::Display for Error<'t,> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_,>,) -> fmt::Result {
         match self {
             Error::NoQReg(name) =>
                 write!(f, "There's no quantum register, called {name:?}. Ensure to add this code: qreg {name}[SIZE]"),
@@ -59,6 +63,6 @@ impl<'t> fmt::Display for Error<'t> {
     }
 }
 
-impl<'t> std::error::Error for Error<'t> {}
+impl<'t,> std::error::Error for Error<'t,> {}
 
-pub type Result<'t, T> = std::result::Result<T, Error<'t>>;
+pub type Result<'t, T,> = std::result::Result<T, Error<'t,>,>;

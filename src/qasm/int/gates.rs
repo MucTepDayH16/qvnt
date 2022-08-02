@@ -2,93 +2,93 @@ use super::*;
 
 macro_rules! gate {
     ($name:expr, any, $op:ident, $regs:expr, $args:expr) => {{
-        let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg);
+        let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg,);
         if regs == 0 {
-            Err(Error::WrongRegNumber($name, 0))
+            Err(Error::WrongRegNumber($name, 0,),)
         } else if $args.len() != 0 {
-            Err(Error::WrongArgNumber($name, $args.len()))
+            Err(Error::WrongArgNumber($name, $args.len(),),)
         } else {
-            Ok(op::$op(regs))
+            Ok(op::$op(regs,),)
         }
     }};
     ($name:expr, dgr, $op:ident, $regs:expr, $args:expr) => {{
-        let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg);
+        let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg,);
         if regs == 0 {
-            Err(Error::WrongRegNumber($name, 0))
+            Err(Error::WrongRegNumber($name, 0,),)
         } else if $args.len() != 0 {
-            Err(Error::WrongArgNumber($name, $args.len()))
+            Err(Error::WrongArgNumber($name, $args.len(),),)
         } else {
-            Ok(op::$op(regs))
+            Ok(op::$op(regs,),)
         }
     }};
     ($name:expr, 2, $op:ident, $regs:expr, $args:expr) => {{
-        let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg);
-        if crate::math::count_bits(regs) != 2 {
-            Err(Error::WrongRegNumber($name, crate::math::count_bits(regs)))
+        let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg,);
+        if crate::math::count_bits(regs,) != 2 {
+            Err(Error::WrongRegNumber($name, crate::math::count_bits(regs,),),)
         } else if $args.len() != 0 {
-            Err(Error::WrongArgNumber($name, $args.len()))
+            Err(Error::WrongArgNumber($name, $args.len(),),)
         } else {
-            Ok(op::$op(regs))
+            Ok(op::$op(regs,),)
         }
     }};
     ($name:expr, r($num:expr), $op:ident, $regs:expr, $args:expr) => {{
-        let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg);
-        if crate::math::count_bits(regs) != $num {
-            Err(Error::WrongRegNumber($name, crate::math::count_bits(regs)))
+        let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg,);
+        if crate::math::count_bits(regs,) != $num {
+            Err(Error::WrongRegNumber($name, crate::math::count_bits(regs,),),)
         } else if $args.len() != 1 {
-            Err(Error::WrongArgNumber($name, $args.len()))
+            Err(Error::WrongArgNumber($name, $args.len(),),)
         } else {
-            Ok(op::$op($args[0], regs))
+            Ok(op::$op($args[0], regs,),)
         }
     }};
     ($name:expr, u1, $regs:expr, $args:expr) => {{
-        let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg);
-        if crate::math::count_bits(regs) != 1 {
-            Err(Error::WrongRegNumber($name, crate::math::count_bits(regs)))
+        let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg,);
+        if crate::math::count_bits(regs,) != 1 {
+            Err(Error::WrongRegNumber($name, crate::math::count_bits(regs,),),)
         } else if $args.len() != 1 {
-            Err(Error::WrongArgNumber($name, $args.len()))
+            Err(Error::WrongArgNumber($name, $args.len(),),)
         } else {
-            Ok(op::u1($args[0], regs))
+            Ok(op::u1($args[0], regs,),)
         }
     }};
     ($name:expr, u2, $regs:expr, $args:expr) => {{
-        let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg);
-        if crate::math::count_bits(regs) != 1 {
-            Err(Error::WrongRegNumber($name, crate::math::count_bits(regs)))
+        let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg,);
+        if crate::math::count_bits(regs,) != 1 {
+            Err(Error::WrongRegNumber($name, crate::math::count_bits(regs,),),)
         } else if $args.len() != 2 {
-            Err(Error::WrongArgNumber($name, $args.len()))
+            Err(Error::WrongArgNumber($name, $args.len(),),)
         } else {
-            Ok(op::u2($args[0], $args[1], regs))
+            Ok(op::u2($args[0], $args[1], regs,),)
         }
     }};
     ($name:expr, u3, $regs:expr, $args:expr) => {{
-        let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg);
-        if crate::math::count_bits(regs) != 1 {
-            Err(Error::WrongRegNumber($name, crate::math::count_bits(regs)))
+        let regs = $regs.into_iter().fold(0, |acc, reg| acc | reg,);
+        if crate::math::count_bits(regs,) != 1 {
+            Err(Error::WrongRegNumber($name, crate::math::count_bits(regs,),),)
         } else if $args.len() != 3 {
-            Err(Error::WrongArgNumber($name, $args.len()))
+            Err(Error::WrongArgNumber($name, $args.len(),),)
         } else {
-            Ok(op::u3($args[0], $args[1], $args[2], regs))
+            Ok(op::u3($args[0], $args[1], $args[2], regs,),)
         }
     }};
 }
 
-pub(crate) fn process<'t>(name: &'t str, regs: Vec<N>, args: Vec<R>) -> Result<'t, MultiOp> {
+pub(crate) fn process<'t,>(name: &'t str, regs: Vec<N,>, args: Vec<R,>,) -> Result<'t, MultiOp,> {
     match &*name {
         s if matches!(&s[..1], "c" | "C") => {
-            let (&ctrl, regs) = regs.split_first().ok_or(Error::WrongRegNumber(name, 0))?;
+            let (&ctrl, regs,) = regs.split_first().ok_or(Error::WrongRegNumber(name, 0,),)?;
 
-            match process(&name[1..], regs.into(), args) {
-                Ok(op) => {
+            match process(&name[1..], regs.into(), args,) {
+                Ok(op,) => {
                     let act = op.act_on();
-                    op.c(ctrl).ok_or(Error::InvalidControlMask(ctrl, act))
+                    op.c(ctrl,).ok_or(Error::InvalidControlMask(ctrl, act,),)
                 }
-                Err(err) => Err(match err {
-                    Error::WrongRegNumber(_, num) => Error::WrongRegNumber(name, 1 + num),
-                    Error::WrongArgNumber(_, num) => Error::WrongArgNumber(name, num),
-                    Error::UnknownGate(_) => Error::UnknownGate(name),
+                Err(err,) => Err(match err {
+                    Error::WrongRegNumber(_, num,) => Error::WrongRegNumber(name, 1 + num,),
+                    Error::WrongArgNumber(_, num,) => Error::WrongArgNumber(name, num,),
+                    Error::UnknownGate(_,) => Error::UnknownGate(name,),
                     e => e,
-                }),
+                },),
             }
         }
         "x" | "X" => gate!(name, any, x, regs, args),
@@ -119,7 +119,7 @@ pub(crate) fn process<'t>(name: &'t str, regs: Vec<N>, args: Vec<R>) -> Result<'
         "u2" | "U2" => gate!(name, u2, regs, args),
         "u3" | "U3" => gate!(name, u3, regs, args),
 
-        _ => Err(Error::UnknownGate(name)),
+        _ => Err(Error::UnknownGate(name,),),
     }
 }
 

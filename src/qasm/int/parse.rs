@@ -1,5 +1,6 @@
-use crate::math::*;
 use meval::*;
+
+use crate::math::*;
 
 thread_local! {
     static EXAUSTIVE_CONTEXT: Context<'static> = {
@@ -24,18 +25,18 @@ thread_local! {
 }
 
 pub use meval::Error;
-pub type Result<T> = std::result::Result<T, meval::Error>;
+pub type Result<T,> = std::result::Result<T, meval::Error,>;
 
-pub(crate) fn eval_extended<'t, V: IntoIterator<Item = (&'t str, f64)>>(
+pub(crate) fn eval_extended<'t, V: IntoIterator<Item = (&'t str, f64,),>,>(
     expr: &'t str,
     vars: V,
-) -> Result<R> {
-    let mut ctx = EXAUSTIVE_CONTEXT.with(|ctx| ctx.clone());
-    for (var, value) in vars {
-        ctx.var(var, value);
+) -> Result<R,> {
+    let mut ctx = EXAUSTIVE_CONTEXT.with(|ctx| ctx.clone(),);
+    for (var, value,) in vars {
+        ctx.var(var, value,);
     }
 
-    expr.parse::<Expr>()?.eval_with_context(ctx)
+    expr.parse::<Expr>()?.eval_with_context(ctx,)
 }
 
 #[cfg(test)]

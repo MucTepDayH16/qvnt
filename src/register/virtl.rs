@@ -1,11 +1,12 @@
-use crate::math::{bits_iter, C, N, R};
 use std::{
     cell::RefCell,
     ops::{Index, RangeFull},
     rc::Rc,
 };
 
-type Ptr<T> = Rc<RefCell<T>>;
+use crate::math::{bits_iter, C, N, R};
+
+type Ptr<T,> = Rc<RefCell<T,>,>;
 
 /// [`Virtual register`](Reg)
 ///
@@ -16,14 +17,14 @@ type Ptr<T> = Rc<RefCell<T>>;
 /// ```rust
 /// # use qvnt::prelude::*;
 ///
-/// let mut q = QReg::new(8).init_state(0b00111000);
-/// let gate = op::h(0b01010101) * op::x(0b10101010);
+/// let mut q = QReg::new(8,).init_state(0b00111000,);
+/// let gate = op::h(0b01010101,) * op::x(0b10101010,);
 ///
-/// q.apply(&gate);
+/// q.apply(&gate,);
 ///
 /// // this is equivalent to just q.measure()
 /// // but e.g.
-/// let c = q.measure_mask(0b11111111);
+/// let c = q.measure_mask(0b11111111,);
 /// println!("{}", c.get());
 /// ```
 ///
@@ -33,15 +34,15 @@ type Ptr<T> = Rc<RefCell<T>>;
 ///
 /// ```rust
 /// # use qvnt::prelude::*;
-/// fn even(i: usize) -> bool {
+/// fn even(i: usize,) -> bool {
 ///     i % 2 == 0
 /// }
 ///
 /// // Create virtual register with same amount of qubits
-/// let v = VReg::new(8);
+/// let v = VReg::new(8,);
 /// // mask 0b00011000 acts on qubits 4, 5 and 6, so...
 /// # assert_eq!(v[[3, 4, 5]], 0b00111000);
-/// let mut q = QReg::new(8).init_state(v[[3, 4, 5]]);
+/// let mut q = QReg::new(8,).init_state(v[[3, 4, 5,]],);
 /// // indexing with fn
 /// # assert_eq!(v[even], 0b01010101);
 /// # assert_eq!(v[|i| i % 2 != 0], 0b10101010);
@@ -49,10 +50,10 @@ type Ptr<T> = Rc<RefCell<T>>;
 /// // indexing with closure
 ///     * op::h(v[|i| i % 2 != 0]);
 ///
-/// q.apply(&gate);
+/// q.apply(&gate,);
 ///
 /// # assert_eq!(v[..], 0b11111111);
-/// let c = q.measure_mask(v[..]);
+/// let c = q.measure_mask(v[..],);
 /// println!("{}", c.get());
 /// ```
 ///
@@ -60,7 +61,7 @@ type Ptr<T> = Rc<RefCell<T>>;
 ///
 /// ```rust
 /// # use qvnt::prelude::*;
-/// let q = QReg::new(10);
+/// let q = QReg::new(10,);
 /// let v = q.get_vreg();
 /// ```
 ///
@@ -68,90 +69,90 @@ type Ptr<T> = Rc<RefCell<T>>;
 ///
 /// ```rust
 /// # use qvnt::prelude::*;
-/// let v = VReg::new(8);
+/// let v = VReg::new(8,);
 /// // e represents all even qubits of register q
-/// let e = VReg::from(v[|i| i % 2 == 0]);
+/// let e = VReg::from(v[|i| i % 2 == 0],);
 /// // o represents all odd qubits of register q
-/// let o = VReg::from(v[|i| i % 2 != 0]);
+/// let o = VReg::from(v[|i| i % 2 != 0],);
 /// # assert_eq!(e[..], 0b01010101);
 /// # assert_eq!(o[..], 0b10101010);
-/// let gate = op::h(e[..]) * op::x(o[..]);
+/// let gate = op::h(e[..],) * op::x(o[..],);
 ///
-/// let mut q = QReg::new(8);
-/// q.apply(&gate);
+/// let mut q = QReg::new(8,);
+/// q.apply(&gate,);
 /// ```
-#[derive(Clone, Default)]
-pub struct Reg(pub(crate) Ptr<N>, pub(crate) Vec<N>);
+#[derive(Clone, Default,)]
+pub struct Reg(pub(crate) Ptr<N,>, pub(crate) Vec<N,>,);
 
 impl Reg {
     /// Create virtual register with a given number of qubits.
-    pub fn new(num: N) -> Self {
-        Self::new_with_mask(1usize.wrapping_shl(num as u32).wrapping_add(!0usize))
+    pub fn new(num: N,) -> Self {
+        Self::new_with_mask(1usize.wrapping_shl(num as u32,).wrapping_add(!0usize,),)
     }
 
-    pub(crate) fn new_with_mask(mask: N) -> Self {
-        let bi = bits_iter::BitsIter::from(mask);
-        super::VReg(Ptr::new(0.into()), bi.collect())
+    pub(crate) fn new_with_mask(mask: N,) -> Self {
+        let bi = bits_iter::BitsIter::from(mask,);
+        super::VReg(Ptr::new(0.into(),), bi.collect(),)
     }
 }
 
-impl From<N> for Reg {
-    fn from(mask: N) -> Self {
-        Self::new_with_mask(mask)
+impl From<N,> for Reg {
+    fn from(mask: N,) -> Self {
+        Self::new_with_mask(mask,)
     }
 }
 
 impl std::fmt::Debug for Reg {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_,>,) -> std::fmt::Result {
         write!(f, "{:032x?}", self.1)
     }
 }
 
-impl Index<N> for Reg {
+impl Index<N,> for Reg {
     type Output = N;
 
     #[inline]
-    fn index(&self, idx: N) -> &Self::Output {
+    fn index(&self, idx: N,) -> &Self::Output {
         &self.1[idx]
     }
 }
 
-impl<F> Index<F> for Reg
+impl<F,> Index<F,> for Reg
 where
-    F: Fn(N) -> bool,
+    F: Fn(N,) -> bool,
 {
     type Output = N;
 
     #[inline]
-    fn index(&self, f: F) -> &Self::Output {
+    fn index(&self, f: F,) -> &Self::Output {
         let tmp = self
             .1
             .iter()
             .enumerate()
-            .filter_map(|(i, j)| if f(i) { Some(*j) } else { None })
-            .fold(0, |acc, idx| acc | idx);
-        self.0.replace(tmp);
+            .filter_map(|(i, j,)| if f(i,) { Some(*j,) } else { None },)
+            .fold(0, |acc, idx| acc | idx,);
+        self.0.replace(tmp,);
         unsafe { self.0.as_ptr().as_ref().unwrap() }
     }
 }
 
-impl<const X: usize> Index<[N; X]> for Reg {
+impl<const X: usize,> Index<[N; X],> for Reg {
     type Output = N;
 
-    fn index(&self, slice: [N; X]) -> &Self::Output {
-        &self[move |i| slice.contains(&i)]
+    fn index(&self, slice: [N; X],) -> &Self::Output {
+        &self[move |i| slice.contains(&i,)]
     }
 }
 
-impl Index<RangeFull> for Reg {
+impl Index<RangeFull,> for Reg {
     type Output = N;
 
     #[inline]
-    fn index(&self, _: RangeFull) -> &Self::Output {
-        fn all(_: N) -> bool {
+    fn index(&self, _: RangeFull,) -> &Self::Output {
+        fn all(_: N,) -> bool {
             true
         }
-        self.index(all)
+        self.index(all,)
     }
 }
 
@@ -161,15 +162,15 @@ mod tests {
 
     #[test]
     fn index() {
-        fn even(i: N) -> bool {
+        fn even(i: N,) -> bool {
             i % 2 == 0
         }
 
-        fn odd(i: N) -> bool {
+        fn odd(i: N,) -> bool {
             i % 2 != 0
         }
 
-        let v = Reg::new(8);
+        let v = Reg::new(8,);
         assert_eq!(v[3], 0b00001000);
         assert_eq!(v[even], 0b01010101);
         assert_eq!(v[odd], 0b10101010);
@@ -182,17 +183,17 @@ mod tests {
     fn virtual_regs() {
         use crate::prelude::*;
 
-        let mut reg = QReg::new(0);
+        let mut reg = QReg::new(0,);
 
         //  qreg    x[3];
-        reg *= QReg::new(3);
+        reg *= QReg::new(3,);
         //  qreg    a[2];
-        reg *= QReg::new(2);
+        reg *= QReg::new(2,);
 
         let r = reg.get_vreg();
-        let m = reg.get_vreg_by(0b01101).unwrap();
-        let x = reg.get_vreg_by(0b00111).unwrap();
-        let y = reg.get_vreg_by(0b11000).unwrap();
+        let m = reg.get_vreg_by(0b01101,).unwrap();
+        let x = reg.get_vreg_by(0b00111,).unwrap();
+        let y = reg.get_vreg_by(0b11000,).unwrap();
 
         assert_eq!(r[0], 0b00001);
         assert_eq!(r[1], 0b00010);
