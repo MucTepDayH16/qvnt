@@ -1,7 +1,7 @@
 # QVNT
 
 [![build](https://img.shields.io/github/workflow/status/MucTepDayH16/qvnt/Rust?style=for-the-badge&logo=github&label=build/tests)](https://github.com/MucTepDayH16/qvnt/actions/workflows/rust.yml)
-[![rustc](https://img.shields.io/badge/rustc-1.40+-blue?style=for-the-badge&logo=rust)](https://www.rust-lang.org)
+[![rustc](https://img.shields.io/badge/rustc-1.59.0+-blue?style=for-the-badge&logo=rust)](https://www.rust-lang.org)
 [![crates.io](https://img.shields.io/crates/v/qvnt?style=for-the-badge&logo=hackthebox&logoColor=white)](https://crates.io/crates/qvnt)
 [![docs.rs](https://img.shields.io/docsrs/qvnt?style=for-the-badge&logo=rust)](https://docs.rs/qvnt/)
 
