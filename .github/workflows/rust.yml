@@ -16,6 +16,10 @@ jobs:
         uses: snickerbockers/submodules-init@v4
       - name: Set stable channel
         run: rustup default stable
+      - name: Add nightly channel
+        run: rustup install nightly
+      - name: Rustfmt check
+        run: cargo +nightly fmt --check
       - name: Clean space
         run: cargo clean --package qvnt
       - name: Build crate
