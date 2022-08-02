@@ -23,7 +23,7 @@ Add this lines to your *Cargo.toml* file to use __QVNT__ crate:
 
 ```toml
 [dependencies]
-qvnt = { git = "https://github.com/MucTepDayH16/qvnt", branch = "qasm_interpreter", features = ["interpreter"] }
+qvnt = { version = "0.4.1", features = ["cpu"] }
 ```
 
 Quantum register and operators are controlled by bitmasks.
