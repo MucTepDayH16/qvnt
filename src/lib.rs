@@ -1,10 +1,7 @@
 #![allow(unused_imports)]
 #![allow(non_upper_case_globals)]
 #![allow(dead_code)]
-
-#[doc = include_str!("../README.md")]
-#[cfg(doctest)]
-mod README {}
+#![doc = include_str!("../README.md")]
 
 mod math;
 #[cfg(feature = "cpu")]
