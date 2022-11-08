@@ -29,6 +29,11 @@ pub fn is_unitary_m1(u: &M1) -> bool {
     approx_cmp(e00, 1.0) && approx_cmp(e11, 1.0) && approx_cmp(e01.re + e01.im, 0.0)
 }
 
+pub fn inverse_unitary_m1(u: &M1) -> M1 {
+    let [u00, u01, u10, u11] = u;
+    [u00.conj(), u10.conj(), u01.conj(), u11.conj()]
+}
+
 fn hermitian_mul(i: N, j: N, u: &M2) -> C {
     let i = (i << 2) & 0xf;
     let j = (j << 2) & 0xf;
@@ -66,6 +71,28 @@ pub fn is_unitary_m2(u: &M2) -> bool {
         && approx_cmp(e12.re + e12.im, 0.0)
         && approx_cmp(e13.re + e13.im, 0.0)
         && approx_cmp(e23.re + e23.im, 0.0)
+}
+
+pub fn inverse_unitary_m2(u: &M2) -> M2 {
+    let [u00, u01, u02, u03, u10, u11, u12, u13, u20, u21, u22, u23, u30, u31, u32, u33] = u;
+    [
+        u00.conj(),
+        u10.conj(),
+        u20.conj(),
+        u30.conj(),
+        u01.conj(),
+        u11.conj(),
+        u21.conj(),
+        u31.conj(),
+        u02.conj(),
+        u12.conj(),
+        u22.conj(),
+        u32.conj(),
+        u03.conj(),
+        u13.conj(),
+        u23.conj(),
+        u33.conj(),
+    ]
 }
 
 pub fn is_scaled_unitary_m1(u: &M1) -> bool {

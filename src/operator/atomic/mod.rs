@@ -19,6 +19,8 @@ pub(crate) mod t;
 pub(crate) mod z;
 
 pub(crate) mod phi;
+pub(crate) mod u1;
+pub(crate) mod u2;
 
 pub(crate) mod h1;
 pub(crate) mod h2;
