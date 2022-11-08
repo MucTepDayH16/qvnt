@@ -4,7 +4,8 @@ use lazy_static::*;
 use rayon::*;
 
 lazy_static! {
-    static ref GLOBAL_POOL: RwLock<Option<(usize, ThreadPool)>> = RwLock::new(None);
+    static ref GLOBAL_POOL: RwLock<Option<(usize, ThreadPool)>> =
+        RwLock::new(None);
 }
 
 fn get_current_num_threads() -> Option<usize> {

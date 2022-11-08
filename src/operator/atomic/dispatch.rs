@@ -1,6 +1,7 @@
 use std::fmt;
 
 use super::*;
+use crate::{backend::single_thread::SingleThreadOp, math::Mask};
 
 type Id = id::Op;
 type X = x::Op;
@@ -14,6 +15,7 @@ type S = s::Op;
 type T = t::Op;
 type RZ = rz::Op;
 type RZZ = rzz::Op;
+type U1 = u1::Op;
 type Phi = phi::Op;
 type H1 = h1::Op;
 type H2 = h2::Op;
@@ -23,62 +25,27 @@ type SqrtSwap = sqrt_swap::Op;
 type SqrtISwap = sqrt_i_swap::Op;
 
 #[::dispatch::enum_dispatch(AtomicOpDispatch)]
-pub(crate) trait AtomicOp: Clone + PartialEq + Sync + Send {
-    fn atomic_op(&self, psi: &[C], idx: N) -> C;
-
-    fn for_each(&self, psi_i: &[C], psi_o: &mut [C], ctrl: N) {
-        if ctrl != 0 {
-            psi_o.into_iter().enumerate().for_each(|(idx, psi)| {
-                *psi = if !idx & ctrl == 0 {
-                    self.atomic_op(psi_i, idx)
-                } else {
-                    psi_i[idx]
-                }
-            })
-        } else {
-            psi_o
-                .into_iter()
-                .enumerate()
-                .for_each(|(idx, psi)| *psi = self.atomic_op(psi_i, idx))
-        }
-    }
-
-    #[cfg(feature = "cpu")]
-    fn for_each_par(&self, psi_i: &[C], psi_o: &mut [C], ctrl: N) {
-        use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
-
-        if ctrl != 0 {
-            psi_o.into_par_iter().enumerate().for_each(|(idx, psi)| {
-                *psi = if !idx & ctrl == 0 {
-                    self.atomic_op(psi_i, idx)
-                } else {
-                    psi_i[idx]
-                }
-            })
-        } else {
-            psi_o
-                .into_par_iter()
-                .enumerate()
-                .for_each(|(idx, psi)| *psi = self.atomic_op(psi_i, idx))
-        }
-    }
-
+pub trait AtomicOp: Clone + PartialEq + crate::sealed::Seal {
     fn name(&self) -> String;
 
     fn is_valid(&self) -> bool {
         true
     }
 
-    fn acts_on(&self) -> N;
+    fn acts_on(&self) -> Mask;
 
     fn this(self) -> AtomicOpDispatch;
 
     fn dgr(self) -> AtomicOpDispatch;
 }
 
+pub(crate) trait NativeCpuOp: Sync + Send + AtomicOp {
+    fn native_cpu_op(&self, psi: &[C], idx: N) -> C;
+}
+
 #[::dispatch::enum_dispatch]
 #[derive(Clone, PartialEq)]
-pub(crate) enum AtomicOpDispatch {
+pub enum AtomicOpDispatch {
     Id,
     X,
     RX,
@@ -91,6 +58,7 @@ pub(crate) enum AtomicOpDispatch {
     T,
     RZ,
     RZZ,
+    U1,
     Phi,
     H1,
     H2,
@@ -100,8 +68,10 @@ pub(crate) enum AtomicOpDispatch {
     SqrtISwap,
 }
 
+impl crate::sealed::Seal for AtomicOpDispatch {}
+
 impl fmt::Debug for AtomicOpDispatch {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Op {{ {} }}", self.name())
+        f.debug_struct("Op").field("name", &self.name()).finish()
     }
 }

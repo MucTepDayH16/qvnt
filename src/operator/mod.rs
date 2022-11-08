@@ -93,7 +93,7 @@ use crate::math::{C, FRAC_PI_2, N, R};
 
 pub(crate) mod applicable;
 
-pub(self) mod atomic;
+pub(crate) mod atomic;
 pub(self) mod multi;
 pub(self) mod single;
 

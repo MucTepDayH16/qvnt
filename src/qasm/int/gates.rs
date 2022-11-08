@@ -73,10 +73,15 @@ macro_rules! gate {
     }};
 }
 
-pub(crate) fn process<'t>(name: &'t str, regs: Vec<N>, args: Vec<R>) -> Result<'t, MultiOp> {
-    match &*name {
+pub(crate) fn process<'t>(
+    name: &'t str,
+    regs: Vec<N>,
+    args: Vec<R>,
+) -> Result<'t, MultiOp> {
+    match name {
         s if matches!(&s[..1], "c" | "C") => {
-            let (&ctrl, regs) = regs.split_first().ok_or(Error::WrongRegNumber(name, 0))?;
+            let (&ctrl, regs) =
+                regs.split_first().ok_or(Error::WrongRegNumber(name, 0))?;
 
             match process(&name[1..], regs.into(), args) {
                 Ok(op) => {
@@ -84,8 +89,12 @@ pub(crate) fn process<'t>(name: &'t str, regs: Vec<N>, args: Vec<R>) -> Result<'
                     op.c(ctrl).ok_or(Error::InvalidControlMask(ctrl, act))
                 }
                 Err(err) => Err(match err {
-                    Error::WrongRegNumber(_, num) => Error::WrongRegNumber(name, 1 + num),
-                    Error::WrongArgNumber(_, num) => Error::WrongArgNumber(name, num),
+                    Error::WrongRegNumber(_, num) => {
+                        Error::WrongRegNumber(name, 1 + num)
+                    }
+                    Error::WrongArgNumber(_, num) => {
+                        Error::WrongArgNumber(name, num)
+                    }
                     Error::UnknownGate(_) => Error::UnknownGate(name),
                     e => e,
                 }),
@@ -113,7 +122,9 @@ pub(crate) fn process<'t>(name: &'t str, regs: Vec<N>, args: Vec<R>) -> Result<'
         "swap" | "SWAP" => gate!(name, 2, swap, regs, args),
         "sqrt_swap" | "SQRT_SWAP" => gate!(name, 2, sqrt_swap, regs, args),
         "i_swap" | "I_SWAP" => gate!(name, 2, i_swap, regs, args),
-        "sqrt_i_swap" | "SQRT_I_SWAP" => gate!(name, 2, sqrt_i_swap, regs, args),
+        "sqrt_i_swap" | "SQRT_I_SWAP" => {
+            gate!(name, 2, sqrt_i_swap, regs, args)
+        }
 
         "u1" | "U1" => gate!(name, u1, regs, args),
         "u2" | "U2" => gate!(name, u2, regs, args),

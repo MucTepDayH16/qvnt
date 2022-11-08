@@ -2,10 +2,8 @@ pub use std::f64::consts::*;
 
 pub use self::{consts::*, types::*};
 
-#[cfg(feature = "float-cmp")]
 pub mod approx_cmp;
 pub mod bits_iter;
-#[cfg(feature = "float-cmp")]
 pub mod matrix;
 
 mod consts {
@@ -24,6 +22,8 @@ mod consts {
 }
 
 mod types {
+    pub type Mask = usize;
+
     pub type N = usize;
     pub type Z = isize;
 
@@ -65,5 +65,5 @@ pub fn phase_from_rad(rad: R) -> C {
             ANGLE_TABLE[deg]
         }
      */
-    C::from_polar(1.0, rad)
+    C::from_polar(1.0, (PI * rad) / 180.)
 }

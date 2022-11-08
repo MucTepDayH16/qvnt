@@ -11,6 +11,7 @@ mod tests {
     use test_case::test_case;
 
     use super::*;
+    use crate::backend::DefaultBuilder;
 
     #[test_case(include_str!("./examples/source/adder.qasm"); "adder")]
     #[test_case(include_str!("./examples/source/bigadder.qasm"); "big_adder")]
@@ -32,7 +33,7 @@ mod tests {
     fn run_qasm(source: &'static str) {
         let ast = Ast::from_source(source).unwrap();
         let int = Int::new(ast).unwrap();
-        let mut sym = Sym::new(int);
+        let mut sym = Sym::new(int, DefaultBuilder::default());
 
         sym.reset();
         sym.finish();

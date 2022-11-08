@@ -3,26 +3,30 @@ use super::*;
 const SQRT_1_2: R = crate::math::FRAC_1_SQRT_2;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub(crate) struct Op {
-    a_mask: N,
+pub struct Op {
+    a_mask: Mask,
 }
 
 impl Op {
     #[inline(always)]
-    pub fn new(a_mask: N) -> Self {
+    pub fn new(a_mask: Mask) -> Self {
         Self { a_mask }
     }
 }
 
-impl AtomicOp for Op {
-    fn atomic_op(&self, psi: &[C], idx: N) -> C {
+impl crate::sealed::Seal for Op {}
+
+impl super::NativeCpuOp for Op {
+    fn native_cpu_op(&self, psi: &[C], idx: N) -> C {
         let mut psi = (psi[idx], psi[idx ^ self.a_mask]);
         if idx & self.a_mask != 0 {
             psi.0 = -psi.0
         };
         (psi.0 + psi.1).scale(SQRT_1_2)
     }
+}
 
+impl AtomicOp for Op {
     fn name(&self) -> String {
         format!("H{}", self.a_mask)
     }
@@ -31,7 +35,7 @@ impl AtomicOp for Op {
         self.a_mask.count_ones() == 1
     }
 
-    fn acts_on(&self) -> N {
+    fn acts_on(&self) -> Mask {
         self.a_mask
     }
 

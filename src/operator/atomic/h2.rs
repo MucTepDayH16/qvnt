@@ -1,15 +1,15 @@
 use super::*;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub(crate) struct Op {
-    a_mask: N,
-    b_mask: N,
-    ab_mask: N,
+pub struct Op {
+    a_mask: Mask,
+    b_mask: Mask,
+    ab_mask: Mask,
 }
 
 impl Op {
     #[inline(always)]
-    pub fn new(a_mask: N, b_mask: N) -> Self {
+    pub fn new(a_mask: Mask, b_mask: Mask) -> Self {
         Self {
             a_mask,
             b_mask,
@@ -18,8 +18,10 @@ impl Op {
     }
 }
 
-impl AtomicOp for Op {
-    fn atomic_op(&self, psi: &[C], idx: N) -> C {
+impl crate::sealed::Seal for Op {}
+
+impl super::NativeCpuOp for Op {
+    fn native_cpu_op(&self, psi: &[C], idx: N) -> C {
         let mut psi = (
             psi[idx],
             psi[idx ^ self.a_mask],
@@ -36,7 +38,9 @@ impl AtomicOp for Op {
         }
         (psi.0 + psi.1 + psi.2 + psi.3).scale(0.5)
     }
+}
 
+impl AtomicOp for Op {
     fn name(&self) -> String {
         format!("H{}", self.a_mask | self.b_mask)
     }
@@ -47,7 +51,7 @@ impl AtomicOp for Op {
             && self.ab_mask.count_ones() == 2
     }
 
-    fn acts_on(&self) -> N {
+    fn acts_on(&self) -> Mask {
         self.ab_mask
     }
 

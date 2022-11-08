@@ -4,11 +4,11 @@ use super::*;
 
 #[derive(Clone, PartialEq)]
 pub struct Op {
-    phases: HashMap<N, C>,
+    phases: HashMap<Mask, C>,
 }
 
 impl Op {
-    pub fn new(phases_vec: Vec<(R, N)>) -> Self {
+    pub fn new(phases_vec: Vec<(R, Mask)>) -> Self {
         let mut phases = HashMap::new();
         for (val, idx) in phases_vec.iter() {
             let mut jdx = 1;
@@ -26,8 +26,10 @@ impl Op {
     }
 }
 
-impl AtomicOp for Op {
-    fn atomic_op(&self, psi: &[C], idx: N) -> C {
+impl crate::sealed::Seal for Op {}
+
+impl super::NativeCpuOp for Op {
+    fn native_cpu_op(&self, psi: &[C], idx: N) -> C {
         let mut psi = psi[idx];
         for (jdx, ang) in &self.phases {
             if idx & jdx != 0 {
@@ -36,12 +38,14 @@ impl AtomicOp for Op {
         }
         psi
     }
+}
 
+impl AtomicOp for Op {
     fn name(&self) -> String {
         format!("Phase{:?}", self.phases)
     }
 
-    fn acts_on(&self) -> N {
+    fn acts_on(&self) -> Mask {
         self.phases.iter().fold(0, |acc, idx| acc | *idx.0)
     }
 

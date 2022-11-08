@@ -87,7 +87,9 @@ pub struct Reg(pub(crate) Ptr<N>, pub(crate) Vec<N>);
 impl Reg {
     /// Create virtual register with a given number of qubits.
     pub fn new(num: N) -> Self {
-        Self::new_with_mask(1usize.wrapping_shl(num as u32).wrapping_add(!0usize))
+        Self::new_with_mask(
+            1usize.wrapping_shl(num as u32).wrapping_add(!0usize),
+        )
     }
 
     pub(crate) fn new_with_mask(mask: N) -> Self {
@@ -159,6 +161,7 @@ impl Index<RangeFull> for Reg {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::backend::single_thread::SingleThread;
 
     #[test]
     fn index() {

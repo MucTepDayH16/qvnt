@@ -1,5 +1,8 @@
+use std::fmt;
+
 pub(crate) use super::Applicable;
 use crate::{
+    backend::{self, Backend, BackendError},
     math::{C, N, R},
     operator::atomic::*,
 };
@@ -46,7 +49,7 @@ pub mod swap;
 pub struct SingleOp {
     act: N,
     ctrl: N,
-    func: dispatch::AtomicOpDispatch,
+    op: dispatch::AtomicOpDispatch,
 }
 
 impl SingleOp {
@@ -76,23 +79,20 @@ impl SingleOp {
     /// ```
     pub fn name(&self) -> String {
         if self.ctrl != 0 {
-            format!("C{}_", self.ctrl) + &self.func.name()
+            format!("C{}_", self.ctrl) + &self.op.name()
         } else {
-            self.func.name()
+            self.op.name()
         }
     }
 }
 
 impl Applicable for SingleOp {
-    fn apply(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>) {
-        let ctrl = self.ctrl;
-        self.func.for_each(&psi_i[..], &mut psi_o[..], ctrl);
-    }
-
-    #[cfg(feature = "cpu")]
-    fn apply_sync(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>) {
-        let ctrl = self.ctrl;
-        self.func.for_each_par(&psi_i[..], &mut psi_o[..], ctrl);
+    fn apply(&self, backend: &mut impl Backend) -> Result<(), BackendError> {
+        if self.ctrl != 0 {
+            backend.apply_op_controled(&self.op, self.ctrl)
+        } else {
+            backend.apply_op(&self.op)
+        }
     }
 
     #[inline]
@@ -103,7 +103,7 @@ impl Applicable for SingleOp {
     #[inline]
     fn dgr(self) -> Self {
         Self {
-            func: self.func.dgr().into(),
+            op: self.op.dgr(),
             ..self
         }
     }
@@ -126,14 +126,14 @@ impl<Op: AtomicOp> From<Op> for SingleOp {
         Self {
             act: op.acts_on(),
             ctrl: 0,
-            func: op.this(),
+            op: op.this(),
         }
     }
 }
 
-impl std::fmt::Debug for SingleOp {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name())
+impl fmt::Debug for SingleOp {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Op").field("name", &self.name()).finish()
     }
 }
 
@@ -144,12 +144,12 @@ mod tests {
     #[test]
     fn name() {
         let single_op = pauli::x(123);
-        assert_eq!(single_op.name(), format!("X123"));
-        assert_eq!(format!("{:?}", single_op), format!("X123"));
+        assert_eq!(single_op.name(), "X123");
+        assert_eq!(format!("{:?}", single_op), "Op { name: \"X123\" }");
 
         let single_op = single_op.c(4).unwrap();
-        assert_eq!(single_op.name(), format!("C4_X123"));
-        assert_eq!(format!("{:?}", single_op), format!("C4_X123"));
+        assert_eq!(single_op.name(), "C4_X123");
+        assert_eq!(format!("{:?}", single_op), "Op { name: \"C4_X123\" }");
     }
 
     #[test]

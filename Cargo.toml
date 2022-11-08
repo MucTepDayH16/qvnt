@@ -14,7 +14,7 @@ license     = "MIT OR Apache-2.0"
 [dependencies]
 lazy_static = { version = "1.4.0", optional = true }
 num-complex = "0.4.0"
-float-cmp   = { version = "0.8.0", optional = true }
+float-cmp   = "0.8.0"
 rand        = "0.8.4"
 rand_distr  = "0.4.3"
 rayon       = { version = "1.5.1", optional = true }
@@ -27,11 +27,12 @@ criterion   = "0.3.5"
 test-case   = "2.2.1"
 
 [features]
-default     = ["interpreter"]
-cpu         = ["rayon", "lazy_static"]
+default     = ["interpreter", "multi-th"]
+multi-th    = ["rayon", "lazy_static"]
+cpu         = ["multi-th"]
 interpreter = ["qasm", "meval"]
 
 [[bench]]
 name                = "performance"
 harness             = false
-required-features   = ["cpu"]
+required-features   = ["multi-th"]

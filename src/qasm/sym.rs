@@ -1,34 +1,37 @@
 use super::int::*;
 use crate::{
+    backend::{Backend, BackendBuilder},
     math::{bits_iter::BitsIter, N, R},
     register::{CReg, QReg},
 };
 
 #[derive(Clone, Debug)]
-pub struct Sym {
+pub struct Sym<B: BackendBuilder> {
+    backend_builder: B,
     m_op: MeasureOp,
-    q_reg: QReg,
+    q_reg: QReg<B::Backend>,
     c_reg: CReg,
     q_ops: ExtOp,
 }
 
-impl Sym {
-    pub fn new<'t>(int: Int<'t>) -> Self {
+impl<B: BackendBuilder + Clone> Sym<B> {
+    pub fn new(int: Int<'_>, builder: B) -> Self {
         Self {
+            backend_builder: builder.clone(),
             m_op: int.m_op,
-            q_reg: QReg::new(int.q_reg.len()).init_state(0),
+            q_reg: QReg::with_builder(int.q_reg.len(), builder),
             c_reg: CReg::new(int.c_reg.len()).init_state(0),
-            q_ops: int.q_ops.clone(),
+            q_ops: int.q_ops,
         }
     }
 
-    pub fn init<'t>(&mut self, int: Int<'t>) {
+    pub fn init(&mut self, int: Int<'_>) {
         if self.m_op != int.m_op
             || self.q_ops != int.q_ops
             || self.q_reg.num() != int.q_reg.len()
             || self.c_reg.num() != int.c_reg.len()
         {
-            *self = Self::new(int);
+            *self = Self::new(int, self.backend_builder.clone());
         }
     }
 
@@ -51,10 +54,14 @@ impl Sym {
                     match self.m_op {
                         MeasureOp::Set => BitsIter::from(q_arg)
                             .zip(BitsIter::from(c_arg))
-                            .for_each(|(q, c)| c_reg.set(mask.get() & q != 0, c)),
+                            .for_each(|(q, c)| {
+                                c_reg.set(mask.get() & q != 0, c)
+                            }),
                         MeasureOp::Xor => BitsIter::from(q_arg)
                             .zip(BitsIter::from(c_arg))
-                            .for_each(|(q, c)| c_reg.xor(mask.get() & q != 0, c)),
+                            .for_each(|(q, c)| {
+                                c_reg.xor(mask.get() & q != 0, c)
+                            }),
                     };
                     self.c_reg = c_reg;
                 }

@@ -1,22 +1,24 @@
 use super::*;
 
 #[derive(Clone, Copy, PartialEq)]
-pub(crate) struct Op {
-    a_mask: N,
+pub struct Op {
+    a_mask: Mask,
     phase: C,
 }
 
 impl Op {
     #[inline(always)]
-    pub fn new(a_mask: N, mut phase: R) -> Self {
+    pub fn new(a_mask: Mask, mut phase: R) -> Self {
         phase /= 2.0;
         let phase = C::new(phase.cos(), phase.sin());
         Self { a_mask, phase }
     }
 }
 
-impl AtomicOp for Op {
-    fn atomic_op(&self, psi: &[C], idx: N) -> C {
+impl crate::sealed::Seal for Op {}
+
+impl super::NativeCpuOp for Op {
+    fn native_cpu_op(&self, psi: &[C], idx: N) -> C {
         let mut phase = self.phase;
         let psi = (psi[idx], psi[idx ^ self.a_mask]);
         if idx & self.a_mask == 0 {
@@ -27,7 +29,9 @@ impl AtomicOp for Op {
             im: psi.0.im * phase.re + psi.1.im * phase.im,
         }
     }
+}
 
+impl AtomicOp for Op {
     fn name(&self) -> String {
         format!("RY{}({})", self.a_mask, 2.0 * self.phase.arg())
     }
@@ -36,7 +40,7 @@ impl AtomicOp for Op {
         self.a_mask.count_ones() == 1
     }
 
-    fn acts_on(&self) -> N {
+    fn acts_on(&self) -> Mask {
         self.a_mask
     }
 

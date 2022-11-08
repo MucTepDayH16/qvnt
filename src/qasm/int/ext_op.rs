@@ -5,7 +5,7 @@ use crate::{
     operator::{self as op, MultiOp},
 };
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Sep {
     Nop,
     Measure(N, N),
@@ -97,20 +97,32 @@ impl fmt::Debug for Op {
         if let Some((op, sep)) = it.next() {
             match sep {
                 Sep::Nop => write!(f, "{:?}", op),
-                Sep::Measure(q, c) => write!(f, "{:?} -> Measure({:b} => {:b})", op, q, c),
-                Sep::IfBranch(c, v) => write!(f, " -> if c[{:b}] == {:b} {{ {:?} }}", c, v, op),
+                Sep::Measure(q, c) => {
+                    write!(f, "{:?} -> Measure({:b} => {:b})", op, q, c)
+                }
+                Sep::IfBranch(c, v) => {
+                    write!(f, " -> if c[{:b}] == {:b} {{ {:?} }}", c, v, op)
+                }
                 Sep::Reset(r) => write!(f, "{:?} -> Reset({:b})", op, r),
             }?;
             for (op, sep) in it {
                 match sep {
                     Sep::Nop => write!(f, "{}", fmt_op(op)),
                     Sep::Measure(q, c) => {
-                        write!(f, "{} -> Measure({:b} => {:b})", fmt_op(op), q, c)
+                        write!(
+                            f,
+                            "{} -> Measure({:b} => {:b})",
+                            fmt_op(op),
+                            q,
+                            c
+                        )
                     }
                     Sep::IfBranch(c, v) => {
                         write!(f, " -> if c[{:b}] == {:b} {{ {:?} }}", c, v, op)
                     }
-                    Sep::Reset(r) => write!(f, "{} -> Reset({:b})", fmt_op(op), r),
+                    Sep::Reset(r) => {
+                        write!(f, "{} -> Reset({:b})", fmt_op(op), r)
+                    }
                 }?;
             }
 

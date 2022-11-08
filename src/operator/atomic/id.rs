@@ -1,18 +1,22 @@
 pub use super::*;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub(crate) struct Op;
+pub struct Op;
 
-impl AtomicOp for Op {
-    fn atomic_op(&self, psi: &[C], idx: N) -> C {
+impl crate::sealed::Seal for Op {}
+
+impl super::NativeCpuOp for Op {
+    fn native_cpu_op(&self, psi: &[C], idx: N) -> C {
         psi[idx]
     }
+}
 
+impl AtomicOp for Op {
     fn name(&self) -> String {
         "Id".to_string()
     }
 
-    fn acts_on(&self) -> N {
+    fn acts_on(&self) -> Mask {
         0
     }
 

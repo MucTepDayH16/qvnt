@@ -1,26 +1,30 @@
 use super::*;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub(crate) struct Op {
-    a_mask: N,
+pub struct Op {
+    a_mask: Mask,
 }
 
 impl Op {
-    pub fn new(a_mask: N) -> Self {
+    pub fn new(a_mask: Mask) -> Self {
         Self { a_mask }
     }
 }
 
-impl AtomicOp for Op {
-    fn atomic_op(&self, psi: &[C], idx: N) -> C {
+impl crate::sealed::Seal for Op {}
+
+impl super::NativeCpuOp for Op {
+    fn native_cpu_op(&self, psi: &[C], idx: N) -> C {
         psi[idx ^ self.a_mask]
     }
+}
 
+impl AtomicOp for Op {
     fn name(&self) -> String {
         format!("X{}", self.a_mask)
     }
 
-    fn acts_on(&self) -> N {
+    fn acts_on(&self) -> Mask {
         self.a_mask
     }
 

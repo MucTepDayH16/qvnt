@@ -5,6 +5,7 @@ use std::{
 
 pub(crate) use super::Applicable;
 use crate::{
+    backend::{Backend, BackendError},
     math::{C, N, R},
     operator::single::*,
 };
@@ -62,7 +63,7 @@ use crate::{
 /// # use qvnt::prelude::*;
 /// let new_op = op::x(0b01) * op::y(0b10);
 /// ```
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Default, PartialEq)]
 pub struct MultiOp(VecDeque<SingleOp>);
 
 impl MultiOp {
@@ -97,23 +98,10 @@ impl std::fmt::Debug for MultiOp {
 }
 
 impl Applicable for MultiOp {
-    fn apply(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>) {
-        let psi_i = &mut psi_i.clone();
-        self.0.iter().for_each(|op| {
-            op.apply(psi_i, psi_o);
-            std::mem::swap(psi_i, psi_o);
-        });
-        std::mem::swap(psi_i, psi_o);
-    }
-
-    #[cfg(feature = "cpu")]
-    fn apply_sync(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>) {
-        let psi_i = &mut psi_i.clone();
-        self.0.iter().for_each(|op| {
-            op.apply_sync(psi_i, psi_o);
-            std::mem::swap(psi_i, psi_o);
-        });
-        std::mem::swap(psi_i, psi_o);
+    fn apply(&self, data: &mut impl Backend) -> Result<(), BackendError> {
+        self.0
+            .iter()
+            .try_for_each(|single_op| single_op.apply(data))
     }
 
     fn act_on(&self) -> N {
@@ -129,7 +117,8 @@ impl Applicable for MultiOp {
         if self.act_on() & c_mask != 0 {
             None
         } else {
-            let new = self.0.into_iter().map(|op| op.c(c_mask).unwrap()).collect();
+            let new =
+                self.0.into_iter().map(|op| op.c(c_mask).unwrap()).collect();
             Some(Self(new))
         }
     }
@@ -145,12 +134,6 @@ impl From<SingleOp> for MultiOp {
             }
             .into(),
         )
-    }
-}
-
-impl Default for MultiOp {
-    fn default() -> Self {
-        Self(VecDeque::new())
     }
 }
 

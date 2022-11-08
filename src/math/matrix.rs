@@ -24,7 +24,9 @@ pub fn is_unitary_m1(u: &M1) -> bool {
     let e11 = u[0b10].norm_sqr() + u[0b11].norm_sqr();
     let e01 = u[0b00] * u[0b10].conj() + u[0b01] * u[0b11].conj();
 
-    approx_cmp(e00, 1.0) && approx_cmp(e11, 1.0) && approx_cmp(e01.re + e01.im, 0.0)
+    approx_cmp(e00, 1.0)
+        && approx_cmp(e11, 1.0)
+        && approx_cmp(e01.re + e01.im, 0.0)
 }
 
 fn hermitian_mul(i: N, j: N, u: &M2) -> C {
@@ -32,13 +34,14 @@ fn hermitian_mul(i: N, j: N, u: &M2) -> C {
     let j = (j << 2) & 0xf;
     if i == j {
         C::new(
-            (u[0b00 | i].norm_sqr() + u[0b01 | i].norm_sqr())
+            (u[i].norm_sqr() + u[0b01 | i].norm_sqr())
                 + (u[0b10 | i].norm_sqr() + u[0b11 | i].norm_sqr()),
             0.0,
         )
     } else {
-        (u[0b00 | i] * u[0b00 | j].conj() + u[0b01 | i] * u[0b01 | j].conj())
-            + (u[0b10 | i] * u[0b10 | j].conj() + u[0b11 | i] * u[0b11 | j].conj())
+        (u[i] * u[j].conj() + u[0b01 | i] * u[0b01 | j].conj())
+            + (u[0b10 | i] * u[0b10 | j].conj()
+                + u[0b11 | i] * u[0b11 | j].conj())
     }
 }
 
@@ -79,7 +82,9 @@ pub fn is_scaled_unitary_m2(_: &M2) -> bool {
 }
 
 pub fn is_hermitian_m1(u: &M1) -> bool {
-    approx_real(&u[0b00]) && approx_eq_conj(&u[0b01], &u[0b10]) && approx_real(&u[0b11])
+    approx_real(&u[0b00])
+        && approx_eq_conj(&u[0b01], &u[0b10])
+        && approx_real(&u[0b11])
 }
 
 pub fn is_hermitian_m2(u: &M2) -> bool {

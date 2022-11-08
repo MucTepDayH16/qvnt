@@ -3,9 +3,15 @@
 #![allow(dead_code)]
 #![doc = include_str!("../README.md")]
 
+mod sealed {
+    pub trait Seal {}
+}
+
 mod math;
 #[cfg(feature = "cpu")]
 mod threads;
+
+pub mod backend;
 
 pub mod operator;
 pub mod register;

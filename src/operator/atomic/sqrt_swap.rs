@@ -1,14 +1,14 @@
 use super::*;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub(crate) struct Op {
-    ab_mask: N,
+pub struct Op {
+    ab_mask: Mask,
     dagger: bool,
 }
 
 impl Op {
     #[inline(always)]
-    pub fn new(ab_mask: N) -> Self {
+    pub fn new(ab_mask: Mask) -> Self {
         Self {
             ab_mask,
             dagger: false,
@@ -16,8 +16,10 @@ impl Op {
     }
 }
 
-impl AtomicOp for Op {
-    fn atomic_op(&self, psi: &[C], idx: N) -> C {
+impl crate::sealed::Seal for Op {}
+
+impl super::NativeCpuOp for Op {
+    fn native_cpu_op(&self, psi: &[C], idx: N) -> C {
         if (idx & self.ab_mask).count_ones() & 1 == 1 {
             let psi = (psi[idx], psi[idx ^ self.ab_mask]);
             if self.dagger {
@@ -35,7 +37,9 @@ impl AtomicOp for Op {
             psi[idx]
         }
     }
+}
 
+impl AtomicOp for Op {
     fn name(&self) -> String {
         format!("sqrt(SWAP{})", self.ab_mask)
     }
@@ -44,7 +48,7 @@ impl AtomicOp for Op {
         self.ab_mask.count_ones() == 2
     }
 
-    fn acts_on(&self) -> N {
+    fn acts_on(&self) -> Mask {
         self.ab_mask
     }
 

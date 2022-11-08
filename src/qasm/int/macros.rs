@@ -70,9 +70,14 @@ impl<'t> Macro<'t> {
                     for reg_a in &regs_a {
                         match reg_a.clone() {
                             Argument::Qubit(name, idx) => {
-                                return Err(Error::DisallowedRegister(name, idx as N).into())
+                                return Err(Error::DisallowedRegister(
+                                    name, idx as N,
+                                )
+                                .into())
                             }
-                            Argument::Register(name) if !regs.contains(&name) => {
+                            Argument::Register(name)
+                                if !regs.contains(&name) =>
+                            {
                                 return Err(Error::UnknownReg(name).into())
                             }
                             _ => continue,
@@ -80,22 +85,31 @@ impl<'t> Macro<'t> {
                     }
 
                     for arg_a in &args_a {
-                        match super::parse::eval_extended(arg_a.clone(), None) {
-                            Err(parse::Error::UnknownVariable(arg)) if !args.contains(&&*arg) => {
+                        match super::parse::eval_extended(arg_a, None) {
+                            Err(parse::Error::UnknownVariable(arg))
+                                if !args.contains(&&*arg) =>
+                            {
                                 return Err(Error::UnknownArg(arg).into())
                             }
                             Err(
                                 err @ (parse::Error::Function(_, _)
                                 | parse::Error::ParseError(_)
                                 | parse::Error::RPNError(_)),
-                            ) => return Err(super::Error::UnevaluatedArgument(arg_a.clone(), err)),
+                            ) => {
+                                return Err(super::Error::UnevaluatedArgument(
+                                    arg_a,
+                                    err,
+                                ))
+                            }
                             _ => continue,
                         };
                     }
 
                     Ok((name, regs_a, args_a))
                 }
-                disallowed_node => Err(Error::DisallowedNodeInMacro(disallowed_node).into()),
+                disallowed_node => {
+                    Err(Error::DisallowedNodeInMacro(disallowed_node).into())
+                }
             })
             .collect::<super::Result<Vec<_>>>()?;
 
@@ -116,12 +130,14 @@ impl<'t> Macro<'t> {
             return Err(super::Error::WrongArgNumber(name, args.len()));
         }
 
-        let regs: HashMap<&'t str, N> = self.regs.iter().cloned().zip(regs).collect();
-        let args: Vec<(&'t str, R)> = self.args.iter().cloned().zip(args).collect();
+        let regs: HashMap<&'t str, N> =
+            self.regs.iter().cloned().zip(regs).collect();
+        let args: Vec<(&'t str, R)> =
+            self.args.iter().cloned().zip(args).collect();
 
-        self.nodes
-            .iter()
-            .try_fold(MultiOp::default(), |op, (name_i, regs_i, args_i)| {
+        self.nodes.iter().try_fold(
+            MultiOp::default(),
+            |op, (name_i, regs_i, args_i)| {
                 let regs_i = regs_i
                     .iter()
                     .cloned()
@@ -133,19 +149,22 @@ impl<'t> Macro<'t> {
                     .cloned()
                     .map(|arg_i| parse::eval_extended(arg_i, args.clone()))
                     .collect::<parse::Result<Vec<_>>>()
-                    .map_err(|e| super::Error::UnevaluatedArgument(name_i, e))?;
+                    .map_err(|e| {
+                        super::Error::UnevaluatedArgument(name_i, e)
+                    })?;
 
                 let op_res = match macros.get(*name_i) {
                     Some(_macro) => {
                         if &name == name_i {
-                            return Err(Error::RecursiveMacro(*name_i).into());
+                            return Err(Error::RecursiveMacro(name_i).into());
                         }
-                        _macro.process(*name_i, regs_i, args_i, macros)?
+                        _macro.process(name_i, regs_i, args_i, macros)?
                     }
-                    None => gates::process(*name_i, regs_i, args_i)?,
+                    None => gates::process(name_i, regs_i, args_i)?,
                 };
                 Ok(op * op_res)
-            })
+            },
+        )
     }
 }
 

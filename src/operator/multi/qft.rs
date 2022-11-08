@@ -48,7 +48,10 @@ pub fn qft_swapped(a_mask: N) -> MultiOp {
     let mut swaps = MultiOp::default();
     let len = vec_mask.len();
     for i in 0..(len >> 1) {
-        swaps *= crate::operator::single::swap::swap(vec_mask[i] | vec_mask[len - i - 1]).unwrap();
+        swaps *= crate::operator::single::swap::swap(
+            vec_mask[i] | vec_mask[len - i - 1],
+        )
+        .unwrap();
     }
 
     qft(a_mask) * swaps
