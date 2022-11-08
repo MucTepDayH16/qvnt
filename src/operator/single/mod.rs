@@ -1,8 +1,5 @@
 pub(crate) use super::Applicable;
-use crate::{
-    math::{C, N, R},
-    operator::atomic::*,
-};
+use crate::{math::types::*, operator::atomic::*};
 
 macro_rules! single_op_checked {
     ($op:expr) => {
@@ -84,15 +81,15 @@ impl SingleOp {
 }
 
 impl Applicable for SingleOp {
-    fn apply(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>) {
+    fn apply(&self, psi_i: &[C], psi_o: &mut Vec<C>) {
         let ctrl = self.ctrl;
-        self.func.for_each(&psi_i[..], &mut psi_o[..], ctrl);
+        self.func.for_each(psi_i, &mut psi_o[..], ctrl);
     }
 
     #[cfg(feature = "multi-thread")]
-    fn apply_sync(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>) {
+    fn apply_sync(&self, psi_i: &[C], psi_o: &mut Vec<C>) {
         let ctrl = self.ctrl;
-        self.func.for_each_par(&psi_i[..], &mut psi_o[..], ctrl);
+        self.func.for_each_par(psi_i, &mut psi_o[..], ctrl);
     }
 
     #[inline]
@@ -103,7 +100,7 @@ impl Applicable for SingleOp {
     #[inline]
     fn dgr(self) -> Self {
         Self {
-            func: self.func.dgr().into(),
+            func: self.func.dgr(),
             ..self
         }
     }

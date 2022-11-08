@@ -1,3 +1,5 @@
+#![allow(clippy::upper_case_acronyms)]
+
 use std::fmt;
 
 use super::*;
@@ -28,7 +30,7 @@ pub(crate) trait AtomicOp: Clone + PartialEq + Sync + Send {
 
     fn for_each(&self, psi_i: &[C], psi_o: &mut [C], ctrl: N) {
         if ctrl != 0 {
-            psi_o.into_iter().enumerate().for_each(|(idx, psi)| {
+            psi_o.iter_mut().enumerate().for_each(|(idx, psi)| {
                 *psi = if !idx & ctrl == 0 {
                     self.atomic_op(psi_i, idx)
                 } else {
@@ -37,7 +39,7 @@ pub(crate) trait AtomicOp: Clone + PartialEq + Sync + Send {
             })
         } else {
             psi_o
-                .into_iter()
+                .iter_mut()
                 .enumerate()
                 .for_each(|(idx, psi)| *psi = self.atomic_op(psi_i, idx))
         }

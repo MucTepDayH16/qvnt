@@ -13,16 +13,16 @@ pub struct Sym {
 }
 
 impl Sym {
-    pub fn new<'t>(int: Int<'t>) -> Self {
+    pub fn new(int: Int<'_>) -> Self {
         Self {
             m_op: int.m_op,
             q_reg: QReg::new(int.q_reg.len()),
             c_reg: CReg::new(int.c_reg.len()),
-            q_ops: int.q_ops.clone(),
+            q_ops: int.q_ops,
         }
     }
 
-    pub fn init<'t>(&mut self, int: Int<'t>) {
+    pub fn init(&mut self, int: Int<'_>) {
         if self.m_op != int.m_op
             || self.q_ops != int.q_ops
             || self.q_reg.num() != int.q_reg.len()

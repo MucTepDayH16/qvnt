@@ -1,6 +1,5 @@
 use criterion::*;
 use qvnt::prelude::*;
-use rayon;
 
 fn perf_test_single(q_num: usize) {
     let mut reg = QReg::with_state(q_num, 0);

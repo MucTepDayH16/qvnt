@@ -1,4 +1,6 @@
-use crate::math::{C, N, R};
+#![cfg_attr(test, allow(non_upper_case_globals))]
+
+use crate::math::types::*;
 
 pub(crate) mod id;
 

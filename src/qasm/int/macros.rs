@@ -3,7 +3,7 @@ use std::{collections::HashMap, fmt};
 use qasm::{Argument, AstNode};
 
 use crate::{
-    math::{C, N, R},
+    math::types::*,
     operator::MultiOp,
     qasm::int::{gates, parse},
 };
@@ -80,7 +80,7 @@ impl<'t> Macro<'t> {
                     }
 
                     for arg_a in &args_a {
-                        match super::parse::eval_extended(arg_a.clone(), None) {
+                        match super::parse::eval_extended(arg_a, None) {
                             Err(parse::Error::UnknownVariable(arg)) if !args.contains(&&*arg) => {
                                 return Err(Error::UnknownArg(arg).into())
                             }
@@ -88,7 +88,7 @@ impl<'t> Macro<'t> {
                                 err @ (parse::Error::Function(_, _)
                                 | parse::Error::ParseError(_)
                                 | parse::Error::RPNError(_)),
-                            ) => return Err(super::Error::UnevaluatedArgument(arg_a.clone(), err)),
+                            ) => return Err(super::Error::UnevaluatedArgument(arg_a, err)),
                             _ => continue,
                         };
                     }
@@ -138,11 +138,11 @@ impl<'t> Macro<'t> {
                 let op_res = match macros.get(*name_i) {
                     Some(_macro) => {
                         if &name == name_i {
-                            return Err(Error::RecursiveMacro(*name_i).into());
+                            return Err(Error::RecursiveMacro(name_i).into());
                         }
-                        _macro.process(*name_i, regs_i, args_i, macros)?
+                        _macro.process(name_i, regs_i, args_i, macros)?
                     }
-                    None => gates::process(*name_i, regs_i, args_i)?,
+                    None => gates::process(name_i, regs_i, args_i)?,
                 };
                 Ok(op * op_res)
             })

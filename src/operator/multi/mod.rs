@@ -4,10 +4,7 @@ use std::{
 };
 
 pub(crate) use super::Applicable;
-use crate::{
-    math::{C, N, R},
-    operator::single::*,
-};
+use crate::{math::types::*, operator::single::*};
 
 /// Quantum operation's queue.
 ///
@@ -62,7 +59,7 @@ use crate::{
 /// # use qvnt::prelude::*;
 /// let new_op = op::x(0b01) * op::y(0b10);
 /// ```
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Default, PartialEq)]
 pub struct MultiOp(VecDeque<SingleOp>);
 
 impl MultiOp {
@@ -97,23 +94,23 @@ impl std::fmt::Debug for MultiOp {
 }
 
 impl Applicable for MultiOp {
-    fn apply(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>) {
-        let psi_i = &mut psi_i.clone();
+    fn apply(&self, psi_i: &[C], psi_o: &mut Vec<C>) {
+        let mut psi_i = psi_i.to_vec();
         self.0.iter().for_each(|op| {
-            op.apply(psi_i, psi_o);
-            std::mem::swap(psi_i, psi_o);
+            op.apply(&psi_i, psi_o);
+            std::mem::swap(&mut psi_i, psi_o);
         });
-        std::mem::swap(psi_i, psi_o);
+        std::mem::swap(&mut psi_i, psi_o);
     }
 
     #[cfg(feature = "multi-thread")]
-    fn apply_sync(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>) {
-        let psi_i = &mut psi_i.clone();
+    fn apply_sync(&self, psi_i: &[C], psi_o: &mut Vec<C>) {
+        let mut psi_i = psi_i.to_vec();
         self.0.iter().for_each(|op| {
-            op.apply_sync(psi_i, psi_o);
-            std::mem::swap(psi_i, psi_o);
+            op.apply_sync(&psi_i, psi_o);
+            std::mem::swap(&mut psi_i, psi_o);
         });
-        std::mem::swap(psi_i, psi_o);
+        std::mem::swap(&mut psi_i, psi_o);
     }
 
     fn act_on(&self) -> N {
@@ -145,12 +142,6 @@ impl From<SingleOp> for MultiOp {
             }
             .into(),
         )
-    }
-}
-
-impl Default for MultiOp {
-    fn default() -> Self {
-        Self(VecDeque::new())
     }
 }
 

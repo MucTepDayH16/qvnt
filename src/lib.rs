@@ -1,6 +1,5 @@
-#![allow(unused_imports)]
-#![allow(non_upper_case_globals)]
 #![allow(dead_code)]
+#![warn(clippy::cargo)]
 #![doc = include_str!("../README.md")]
 
 mod math;

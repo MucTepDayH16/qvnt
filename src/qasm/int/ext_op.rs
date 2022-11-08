@@ -1,11 +1,8 @@
 use std::{collections::VecDeque, fmt};
 
-use crate::{
-    math::{C, N, R},
-    operator::{self as op, MultiOp},
-};
+use crate::{math::types::*, operator::MultiOp};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Sep {
     Nop,
     Measure(N, N),
@@ -122,20 +119,20 @@ impl fmt::Debug for Op {
 }
 
 #[cfg(test)]
-pub(crate) fn dummy_op() -> Op {
-    Op(
-        vec![
-            (op::x(0b110), Sep::Nop),
-            (op::h(0b111) * op::z(0b010), Sep::Measure(0, 0)),
-        ]
-        .into(),
-        op::y(0b011),
-    )
-}
-
-#[cfg(test)]
 mod tests {
     use super::*;
+    use crate::operator as op;
+
+    fn dummy_op() -> Op {
+        Op(
+            vec![
+                (op::x(0b110), Sep::Nop),
+                (op::h(0b111) * op::z(0b010), Sep::Measure(0, 0)),
+            ]
+            .into(),
+            op::y(0b011),
+        )
+    }
 
     #[test]
     fn append_left() {

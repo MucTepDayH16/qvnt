@@ -1,3 +1,5 @@
+#![allow(clippy::uninit_vec)]
+
 use std::{
     fmt,
     ops::{Mul, MulAssign},
@@ -596,7 +598,7 @@ impl Reg {
         };
         match delta.cmp(&0) {
             Ordering::Less => {
-                let delta = delta.abs() as N;
+                let delta = delta.unsigned_abs();
                 let delta = (delta >> self.q_num, delta % self.q_mask);
                 for (idx, n) in n.iter_mut().enumerate() {
                     *n += delta.0;

@@ -1,3 +1,5 @@
+#![allow(clippy::identity_op)]
+
 use super::{approx_cmp::*, types::*};
 
 pub fn is_diagonal_m1(u: &M1) -> bool {

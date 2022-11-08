@@ -89,7 +89,7 @@
 
 pub use self::{applicable::*, multi::MultiOp, single::SingleOp};
 use self::{multi::*, single::*};
-use crate::math::{C, FRAC_PI_2, N, R};
+use crate::math::{types::*, FRAC_PI_2};
 
 pub(crate) mod applicable;
 

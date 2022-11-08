@@ -74,7 +74,7 @@ macro_rules! gate {
 }
 
 pub(crate) fn process<'t>(name: &'t str, regs: Vec<N>, args: Vec<R>) -> Result<'t, MultiOp> {
-    match &*name {
+    match name {
         s if matches!(&s[..1], "c" | "C") => {
             let (&ctrl, regs) = regs.split_first().ok_or(Error::WrongRegNumber(name, 0))?;
 

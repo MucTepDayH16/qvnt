@@ -1,5 +1,5 @@
 use crate::{
-    math::{C, N, R},
+    math::types::*,
     operator::{atomic, single::*},
 };
 

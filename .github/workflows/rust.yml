@@ -18,8 +18,10 @@ jobs:
         run: rustup default stable
       - name: Add nightly channel
         run: rustup install nightly && rustup +nightly component add rustfmt
-      - name: Rustfmt check
+      - name: Rustfmt checks
         run: cargo +nightly fmt --check
+      - name: Clippy checks
+        run: cargo clippy --all-targets --all-features -- -Dwarnings
       - name: Clean space
         run: cargo clean --package qvnt
       - name: Build crate

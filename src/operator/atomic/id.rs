@@ -1,4 +1,4 @@
-pub use super::*;
+use super::*;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub(crate) struct Op;

@@ -3,7 +3,7 @@ use std::{
     ops::{Mul, MulAssign},
 };
 
-use crate::math::{C, N, R};
+use crate::math::types::*;
 
 /// [`Classical register`](Reg)
 ///

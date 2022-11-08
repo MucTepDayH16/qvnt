@@ -1,8 +1,5 @@
 use super::*;
-use crate::{
-    math::{C, N, R},
-    operator::single::rotate::rz,
-};
+use crate::operator::single::rotate::rz;
 
 pub fn qft(a_mask: N) -> MultiOp {
     let count = a_mask.count_ones() as usize;

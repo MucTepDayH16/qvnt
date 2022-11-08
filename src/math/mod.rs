@@ -21,7 +21,7 @@ mod consts {
     ];
 }
 
-mod types {
+pub mod types {
     pub type N = usize;
     pub type Z = isize;
 

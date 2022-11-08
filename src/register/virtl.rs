@@ -4,7 +4,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::math::{bits_iter, C, N, R};
+use crate::math::{bits_iter, types::*};
 
 type Ptr<T> = Rc<RefCell<T>>;
 

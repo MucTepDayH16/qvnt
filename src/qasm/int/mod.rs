@@ -1,9 +1,12 @@
+#![allow(clippy::boxed_local)]
+#![allow(clippy::needless_lifetimes)]
+
 use std::collections::HashMap;
 
 use qasm::{Argument, AstNode};
 
 use crate::{
-    math::{bits_iter::BitsIter, C, N, R},
+    math::{bits_iter::BitsIter, types::*},
     operator::{self as op, Applicable, MultiOp},
     qasm::ast::Ast,
 };
@@ -82,6 +85,11 @@ impl<'t> Int<'t> {
         self.asts.into_iter()
     }
 
+    /// # Safety
+    ///
+    /// Caller should ensure that appending `int`
+    /// is equivalent to call `add_ast`.
+    /// Otherwise could lead to unexpected interpreter flow.
     pub unsafe fn append_int(mut self, mut int: Self) -> Self {
         self.m_op = int.m_op;
         self.q_reg.append(&mut int.q_reg);
@@ -91,6 +99,11 @@ impl<'t> Int<'t> {
         self
     }
 
+    /// # Safety
+    ///
+    /// Caller should ensure that prepending `int`
+    /// is equivalent to call `add_ast`.
+    /// Otherwise could lead to unexpected interpreter flow.
     pub unsafe fn prepend_int(self, int: Self) -> Self {
         int.append_int(self)
     }
@@ -113,7 +126,7 @@ impl<'t> Int<'t> {
         Ok(self)
     }
 
-    fn process_node<'a>(self, changes: &'a mut Self, node: AstNode<'t>) -> Result<'t, Self> {
+    fn process_node(self, changes: &mut Self, node: AstNode<'t>) -> Result<'t, Self> {
         match node {
             AstNode::QReg(alias, size) => self.process_qreg(changes, alias, size as N),
             AstNode::CReg(alias, size) => self.process_creg(changes, alias, size as N),
@@ -139,30 +152,30 @@ impl<'t> Int<'t> {
 
         let count = self.c_reg.iter().filter(|x| **x == alias).count();
         if count > 0 {
-            return Err(Error::DupCReg(alias.clone(), count));
+            return Err(Error::DupCReg(alias, count));
         }
 
         let count = changes.q_reg.iter().filter(|x| **x == alias).count();
         if count > 0 {
-            return Err(Error::DupQReg(alias.clone(), count));
+            return Err(Error::DupQReg(alias, count));
         }
 
         let count = changes.c_reg.iter().filter(|x| **x == alias).count();
         if count > 0 {
-            return Err(Error::DupCReg(alias.clone(), count));
+            return Err(Error::DupCReg(alias, count));
         }
 
         Ok(())
     }
 
-    fn process_qreg<'a>(self, changes: &mut Self, alias: &'t str, q_num: N) -> Result<'t, Self> {
-        self.check_dup(changes, &alias)?;
+    fn process_qreg(self, changes: &mut Self, alias: &'t str, q_num: N) -> Result<'t, Self> {
+        self.check_dup(changes, alias)?;
         changes.q_reg.append(&mut vec![alias; q_num]);
         Ok(self)
     }
 
-    fn process_creg<'a>(self, changes: &mut Self, alias: &'t str, q_num: N) -> Result<'t, Self> {
-        self.check_dup(changes, &alias)?;
+    fn process_creg(self, changes: &mut Self, alias: &'t str, q_num: N) -> Result<'t, Self> {
+        self.check_dup(changes, alias)?;
         changes.c_reg.append(&mut vec![alias; q_num]);
         Ok(self)
     }
@@ -178,7 +191,7 @@ impl<'t> Int<'t> {
         Ok(self)
     }
 
-    fn process_measure<'a>(
+    fn process_measure(
         self,
         changes: &mut Self,
         q_arg: Argument<'t>,
@@ -198,7 +211,7 @@ impl<'t> Int<'t> {
         Ok(self)
     }
 
-    fn process_apply_gate<'a>(
+    fn process_apply_gate(
         self,
         changes: &mut Self,
         name: &'t str,
@@ -213,8 +226,7 @@ impl<'t> Int<'t> {
         let args = args
             .into_iter()
             .map(|arg| {
-                parse::eval_extended(arg.clone(), None)
-                    .map_err(|e| Error::UnevaluatedArgument(arg, e))
+                parse::eval_extended(arg, None).map_err(|e| Error::UnevaluatedArgument(arg, e))
             })
             .collect::<Result<Vec<_>>>()?;
 
@@ -316,7 +328,7 @@ impl<'t> Int<'t> {
                         .nth(idx as N)
                         .ok_or(Error::IdxOutOfRange(alias, idx as N))
                 } else {
-                    Err(Error::NoQReg(alias.clone()))
+                    Err(Error::NoQReg(alias))
                 }
             }
             Argument::Register(alias) => {
@@ -343,9 +355,9 @@ impl<'t> Int<'t> {
                 if mask != 0 {
                     BitsIter::from(mask)
                         .nth(idx as N)
-                        .ok_or(Error::IdxOutOfRange(alias.clone(), idx as N))
+                        .ok_or(Error::IdxOutOfRange(alias, idx as N))
                 } else {
-                    Err(Error::NoCReg(alias.clone()))
+                    Err(Error::NoCReg(alias))
                 }
             }
             Argument::Register(alias) => {
@@ -353,7 +365,7 @@ impl<'t> Int<'t> {
                 if mask != 0 {
                     Ok(mask)
                 } else {
-                    Err(Error::NoCReg(alias.clone()))
+                    Err(Error::NoCReg(alias))
                 }
             }
         }
