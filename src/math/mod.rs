@@ -2,10 +2,8 @@ pub use std::f64::consts::*;
 
 pub use self::{consts::*, types::*};
 
-#[cfg(feature = "float-cmp")]
 pub mod approx_cmp;
 pub mod bits_iter;
-#[cfg(feature = "float-cmp")]
 pub mod matrix;
 
 mod consts {

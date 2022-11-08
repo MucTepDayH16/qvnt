@@ -4,7 +4,7 @@
 #![doc = include_str!("../README.md")]
 
 mod math;
-#[cfg(feature = "cpu")]
+#[cfg(feature = "multi-thread")]
 mod threads;
 
 pub mod operator;

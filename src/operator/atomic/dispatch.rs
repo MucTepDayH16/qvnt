@@ -43,7 +43,7 @@ pub(crate) trait AtomicOp: Clone + PartialEq + Sync + Send {
         }
     }
 
-    #[cfg(feature = "cpu")]
+    #[cfg(feature = "multi-thread")]
     fn for_each_par(&self, psi_i: &[C], psi_o: &mut [C], ctrl: N) {
         use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 

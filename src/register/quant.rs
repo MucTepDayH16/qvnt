@@ -5,7 +5,7 @@ use std::{
 
 use rand::prelude::*;
 use rand_distr;
-#[cfg(feature = "cpu")]
+#[cfg(feature = "multi-thread")]
 use rayon::prelude::*;
 
 use crate::{math::*, prelude::quant::threading::Model};
@@ -19,7 +19,7 @@ mod threading {
     #[derive(Clone, Copy, Debug)]
     pub enum Model {
         Single,
-        #[cfg(feature = "cpu")]
+        #[cfg(feature = "multi-thread")]
         Multi(N),
     }
 
@@ -29,11 +29,11 @@ mod threading {
         pub fn and(self, other: Self) -> Self {
             match (self, other) {
                 (Single, Single) => Single,
-                #[cfg(feature = "cpu")]
+                #[cfg(feature = "multi-thread")]
                 (Single, Multi(n)) => Multi(n),
-                #[cfg(feature = "cpu")]
+                #[cfg(feature = "multi-thread")]
                 (Multi(n), Single) => Multi(n),
-                #[cfg(feature = "cpu")]
+                #[cfg(feature = "multi-thread")]
                 (Multi(n), Multi(m)) => Multi(n.max(m)),
             }
         }
@@ -157,7 +157,7 @@ impl Reg {
     ///
     /// Set specified number of threads for a given quantum register.
     /// This value is used all across other methods to accelerate execution, using threads of your computer.
-    #[cfg(feature = "cpu")]
+    #[cfg(feature = "multi-thread")]
     pub fn num_threads(self, num_threads: usize) -> Option<Self> {
         if 0 == num_threads || num_threads > rayon::current_num_threads() {
             None
@@ -191,7 +191,7 @@ impl Reg {
                     .filter(|(idx, _)| idx & mask != 0)
                     .for_each(|(_, psi)| *psi = C_ZERO);
             }
-            #[cfg(feature = "cpu")]
+            #[cfg(feature = "multi-thread")]
             Model::Multi(n) => crate::threads::global_install(n, || {
                 self.psi
                     .par_iter_mut()
@@ -232,7 +232,7 @@ impl Reg {
                     q_reg.psi[..q.0.psi.len()].clone_from_slice(&q.0.psi[..]);
                     q_reg.psi[q.0.psi.len()..].clone_from_slice(&q.1.psi[..]);
                 }
-                #[cfg(feature = "cpu")]
+                #[cfg(feature = "multi-thread")]
                 Model::Multi(n) => crate::threads::global_install(n, || {
                     q_reg.psi[..q.0.psi.len()]
                         .par_iter_mut()
@@ -270,7 +270,7 @@ impl Reg {
                         }
                     });
                 }
-                #[cfg(feature = "cpu")]
+                #[cfg(feature = "multi-thread")]
                 Model::Multi(n) => crate::threads::global_install(n, || {
                     q_reg.psi.par_iter_mut().enumerate().for_each(|(idx, v)| {
                         let q = (q.0.psi[q_mask & idx], q.1.psi[q_mask & idx]);
@@ -298,7 +298,7 @@ impl Reg {
                 .iter_mut()
                 .zip(psi.iter())
                 .for_each(|q| *q.0 = q.0.mul(c.0) + q.1.mul(c.1)),
-            #[cfg(feature = "cpu")]
+            #[cfg(feature = "multi-thread")]
             Model::Multi(n) => crate::threads::global_install(n, || {
                 self.psi
                     .par_iter_mut()
@@ -328,7 +328,7 @@ impl Reg {
                     }
                 })
                 .collect(),
-            #[cfg(feature = "cpu")]
+            #[cfg(feature = "multi-thread")]
             Model::Multi(n) => crate::threads::global_install(n, || {
                 (0..q_size.max(MIN_BUFFER_LEN))
                     .into_par_iter()
@@ -366,7 +366,7 @@ impl Reg {
                 op.apply(&self.psi, &mut psi);
                 std::mem::swap(&mut self.psi, &mut psi);
             }
-            #[cfg(feature = "cpu")]
+            #[cfg(feature = "multi-thread")]
             Model::Multi(n) => crate::threads::global_install(n, || {
                 let mut psi = Vec::with_capacity(self.psi.capacity());
                 unsafe { psi.set_len(self.psi.len()) };
@@ -380,14 +380,14 @@ impl Reg {
     ///
     /// Apply quantum gate to register, using specified number of threads in [`num_threads`](Reg::num_threads).
     #[deprecated(since = "0.3.3", note = "use `apply` instead")]
-    #[cfg(feature = "cpu")]
+    #[cfg(feature = "multi-thread")]
     pub fn apply_sync<Op>(&mut self, op: &Op)
     where
         Op: crate::operator::applicable::Applicable,
     {
         match self.th {
             Model::Single => self.apply(op),
-            #[cfg(feature = "cpu")]
+            #[cfg(feature = "multi-thread")]
             Model::Multi(n) => crate::threads::global_install(n, || {
                 let mut psi = Vec::with_capacity(self.psi.capacity());
                 unsafe { psi.set_len(self.psi.len()) };
@@ -408,7 +408,7 @@ impl Reg {
         let norm = 1. / norm;
         match self.th {
             Model::Single => self.psi.iter_mut().for_each(|v| *v *= norm),
-            #[cfg(feature = "cpu")]
+            #[cfg(feature = "multi-thread")]
             Model::Multi(n) => crate::threads::global_install(n, || {
                 self.psi.par_iter_mut().for_each(|v| *v *= norm)
             }),
@@ -423,7 +423,7 @@ impl Reg {
                 .iter()
                 .map(|z| z.to_polar())
                 .collect(),
-            #[cfg(feature = "cpu")]
+            #[cfg(feature = "multi-thread")]
             Model::Multi(n) => crate::threads::global_install(n, || {
                 self.psi[..(1 << self.q_num)]
                     .par_iter()
@@ -444,7 +444,7 @@ impl Reg {
                     .map(|z| z.norm_sqr() * abs)
                     .collect()
             }
-            #[cfg(feature = "cpu")]
+            #[cfg(feature = "multi-thread")]
             Model::Multi(n) => crate::threads::global_install(n, || {
                 let abs: R = self.psi.par_iter().map(|z| z.norm_sqr()).sum();
                 let abs = 1. / abs;
@@ -461,7 +461,7 @@ impl Reg {
     pub fn get_absolute(&self) -> R {
         match self.th {
             Model::Single => self.psi.iter().map(|z| z.norm_sqr()).sum(),
-            #[cfg(feature = "cpu")]
+            #[cfg(feature = "multi-thread")]
             Model::Multi(n) => crate::threads::global_install(n, || {
                 self.psi.par_iter().map(|z| z.norm_sqr()).sum()
             }),
@@ -477,7 +477,7 @@ impl Reg {
                     }
                 });
             }
-            #[cfg(feature = "cpu")]
+            #[cfg(feature = "multi-thread")]
             Model::Multi(n) => crate::threads::global_install(n, || {
                 self.psi.par_iter_mut().enumerate().for_each(|(idx, psi)| {
                     if (idx ^ idy) & mask != 0 {
@@ -544,7 +544,7 @@ impl Reg {
 
                 (n, delta)
             }
-            #[cfg(feature = "cpu")]
+            #[cfg(feature = "multi-thread")]
             Model::Multi(n) => crate::threads::global_install(n, || {
                 let n = p
                     .par_iter()

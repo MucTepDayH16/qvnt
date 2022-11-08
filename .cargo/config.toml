@@ -1,4 +1,4 @@
-[target.'cfg(feature = "cpu")']
+[target.'cfg(test)']
 rustflags = [
     "-C", "target-cpu=native",
     "-C", "llvm-args=-ffast-math",

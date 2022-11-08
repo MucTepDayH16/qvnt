@@ -89,7 +89,7 @@ impl Applicable for SingleOp {
         self.func.for_each(&psi_i[..], &mut psi_o[..], ctrl);
     }
 
-    #[cfg(feature = "cpu")]
+    #[cfg(feature = "multi-thread")]
     fn apply_sync(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>) {
         let ctrl = self.ctrl;
         self.func.for_each_par(&psi_i[..], &mut psi_o[..], ctrl);

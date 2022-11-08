@@ -106,7 +106,7 @@ impl Applicable for MultiOp {
         std::mem::swap(psi_i, psi_o);
     }
 
-    #[cfg(feature = "cpu")]
+    #[cfg(feature = "multi-thread")]
     fn apply_sync(&self, psi_i: &Vec<C>, psi_o: &mut Vec<C>) {
         let psi_i = &mut psi_i.clone();
         self.0.iter().for_each(|op| {
