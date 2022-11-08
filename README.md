@@ -35,7 +35,7 @@ use qvnt::prelude::*;
 //  Create quantum register with 10 qubits
 let mut q_reg = QReg::new(10);
 //  or with initial state, where 5th, 6th and 7th qubits are already in state |1>.
-let mut q_reg = QReg::new(10).init_state(0b0011100000);
+let mut q_reg = QReg::with_state(10, 0b0011100000);
 
 //  Create qft (Quantum Fourier Transform) operation, acting on first 5 qubits in q_reg.
 let op = op::qft(0b0000011111);

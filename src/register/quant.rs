@@ -62,11 +62,11 @@ mod threading {
 /// ```
 /// 
 /// The quantum register ```q``` starts with state |0>.
-/// To vary initial state of register, you may use [`init_state`](Reg::init_state) modifier:
+/// To vary initial state of register, you may use [`with_state`](Reg::with_state) modifier:
 /// ```rust
 /// # use qvnt::prelude::*;
 /// // it will create quantum register in state |123>
-/// let q = QReg::new(10).init_state(123);
+/// let q = QReg::with_state(10, 123);
 /// ```
 /// 
 /// After creation of quantum computer you would like to be able to control its state.
@@ -109,7 +109,7 @@ pub struct Reg {
 
 impl Reg {
     /// Create quantum register with a given number of bits.
-    /// Initial value will be 0.
+    /// Initial value will be set to 0.
     pub fn new(q_num: N) -> Self {
         let q_size = 1_usize << q_num;
 
@@ -121,6 +121,31 @@ impl Reg {
             psi,
             q_num,
             q_mask: q_size.wrapping_sub(1_usize),
+        }
+    }
+
+    /// Create quantum register with a given number of bits
+    /// and an initial state
+    pub fn with_state(q_num: N, state: N) -> Self {
+        let q_size = 1_usize << q_num;
+        let q_mask = q_size.wrapping_sub(1_usize);
+
+        let mut psi = vec![C_ZERO; q_size.max(MIN_BUFFER_LEN)];
+        let state = state & q_mask;
+        if state >= psi.len() {
+            // SAFETY: operation `x & q_mask` is equivalent to `x % q_size`
+            // but optimized, since q_size has the form 2^n
+            unsafe {
+                std::hint::unreachable_unchecked();
+            }
+        }
+        psi[state] = C_ONE;
+
+        Self {
+            th: threading::Single,
+            psi,
+            q_num,
+            q_mask,
         }
     }
 
@@ -204,6 +229,7 @@ impl Reg {
     }
 
     /// Initialize state of qubits.
+    #[deprecated(since = "0.4.3", note = "use `with_state` instead")]
     pub fn init_state(mut self, i_state: N) -> Self {
         self.reset(i_state);
         self
@@ -500,7 +526,7 @@ impl Reg {
             thread_rng().sample(rand_distr::WeightedIndex::new(self.get_probabilities()).unwrap());
 
         self.collapse_mask(rand_idx, mask);
-        super::CReg::new(self.q_num).init_state(rand_idx & mask)
+        super::CReg::with_state(self.q_num, rand_idx & mask)
     }
 
     /// Measure all qubits into classical register.
@@ -648,7 +674,7 @@ mod tests {
     fn quantum_reg() {
         use crate::math::C;
 
-        let mut reg = QReg::new(4).init_state(0b1100);
+        let mut reg = QReg::with_state(4, 0b1100);
         let mask = 0b0110;
 
         let operator =
@@ -689,8 +715,8 @@ mod tests {
 
         let pend_ops = op::h(0b01);
 
-        let mut reg1 = QReg::new(2).init_state(0b01);
-        let mut reg2 = QReg::new(1).init_state(0b1);
+        let mut reg1 = QReg::with_state(2, 0b01);
+        let mut reg2 = QReg::with_state(1, 0b1);
 
         reg1.apply(&pend_ops);
         reg2.apply(&pend_ops);
@@ -703,7 +729,7 @@ mod tests {
             .zip(true_prob.into_iter())
             .all(|(a, b)| (a - b).abs() < EPS));
 
-        let mut reg3 = QReg::new(3).init_state(0b101);
+        let mut reg3 = QReg::with_state(3, 0b101);
         let pend_ops = op::h(0b101);
 
         reg3.apply(&pend_ops);
@@ -719,7 +745,7 @@ mod tests {
 
     #[test]
     fn histogram() {
-        let mut q = QReg::new(8).init_state(123);
+        let mut q = QReg::with_state(8, 123);
 
         q.apply(&op::h(255));
 

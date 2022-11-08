@@ -3,7 +3,7 @@ use qvnt::prelude::*;
 use rayon;
 
 fn perf_test_single(q_num: usize) {
-    let mut reg = QReg::new(q_num).init_state(0);
+    let mut reg = QReg::with_state(q_num, 0);
 
     reg.apply(&(op::qft(0b0111) * op::qft(0b1110)));
 
@@ -12,7 +12,7 @@ fn perf_test_single(q_num: usize) {
 }
 
 fn perf_test_multi(q_num: usize, t_num: usize) {
-    let mut reg = QReg::new(q_num).num_threads(t_num).unwrap().init_state(0);
+    let mut reg = QReg::with_state(q_num, 0).num_threads(t_num).unwrap();
 
     reg.apply(&(op::qft(0b0111) * op::qft(0b1110)));
 

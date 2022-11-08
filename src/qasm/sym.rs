@@ -16,8 +16,8 @@ impl Sym {
     pub fn new<'t>(int: Int<'t>) -> Self {
         Self {
             m_op: int.m_op,
-            q_reg: QReg::new(int.q_reg.len()).init_state(0),
-            c_reg: CReg::new(int.c_reg.len()).init_state(0),
+            q_reg: QReg::new(int.q_reg.len()),
+            c_reg: CReg::new(int.c_reg.len()),
             q_ops: int.q_ops.clone(),
         }
     }
