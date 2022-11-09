@@ -5,6 +5,8 @@ use crate::{
     operator::atomic::AtomicOpDispatch,
 };
 
+#[cfg(feature = "multi-thread")]
+pub mod multi_thread;
 pub mod single_thread;
 
 #[derive(Clone, Debug)]
@@ -16,7 +18,13 @@ impl FromStr for BackendError {
     type Err = Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self::Custom(s.to_string()))
+        Ok(s.to_string().into())
+    }
+}
+
+impl From<String> for BackendError {
+    fn from(s: String) -> Self {
+        Self::Custom(s)
     }
 }
 

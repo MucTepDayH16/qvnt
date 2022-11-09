@@ -3,6 +3,8 @@
 use std::fmt;
 
 use super::*;
+#[cfg(feature = "multi-thread")]
+use crate::backend::multi_thread::MultiThreadOp;
 use crate::{backend::single_thread::SingleThreadOp, math::Mask};
 
 type Id = id::Op;

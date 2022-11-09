@@ -27,7 +27,7 @@ criterion           = "0.3.5"
 test-case           = "2.2.1"
 
 [features]
-default             = ["multi-thread", "interpreter"]
+default             = []
 multi-thread        = ["rayon", "lazy_static"]
 cpu                 = ["multi-thread"]
 interpreter         = ["qasm", "meval"]

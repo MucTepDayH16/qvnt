@@ -1,5 +1,8 @@
 use criterion::*;
-use qvnt::{backend::single_thread::SingleThreadBuilder, prelude::*};
+use qvnt::{
+    backend::{multi_thread::MultiThreadBuilder, single_thread::SingleThreadBuilder},
+    prelude::*,
+};
 
 fn perf_test_single(q_num: usize) {
     let mut reg = QReg::with_builder(q_num, SingleThreadBuilder);
@@ -10,8 +13,13 @@ fn perf_test_single(q_num: usize) {
     assert_eq!(reg.measure_mask(mask).get() & !mask, 0);
 }
 
-fn perf_test_multi(q_num: usize, _t_num: usize) {
-    let mut reg = QReg::with_builder(q_num, SingleThreadBuilder);
+fn perf_test_multi(q_num: usize, t_num: usize) {
+    let mut reg = QReg::with_builder(
+        q_num,
+        MultiThreadBuilder {
+            num_threads: Some(t_num),
+        },
+    );
 
     reg.apply(&(op::qft(0b0111) * op::qft(0b1110)));
 

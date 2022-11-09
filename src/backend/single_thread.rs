@@ -4,7 +4,7 @@ use std::fmt;
 
 use super::{Backend, BackendBuilder, BackendError};
 use crate::{
-    math::{approx_cmp::approx_cmp, Mask, C, C_ONE, C_ZERO, N},
+    math::{approx_cmp::approx_cmp, types::*, C_ONE, C_ZERO},
     operator::atomic::{AtomicOpDispatch, NativeCpuOp},
 };
 

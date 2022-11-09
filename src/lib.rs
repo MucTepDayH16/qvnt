@@ -8,8 +8,6 @@ mod sealed {
 }
 
 mod math;
-#[cfg(feature = "multi-thread")]
-mod threads;
 
 pub mod backend;
 
