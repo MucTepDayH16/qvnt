@@ -1,6 +1,6 @@
 #![allow(clippy::uninit_vec)]
 
-use std::{fmt, rc::Rc};
+use std::{fmt, num::NonZeroUsize, rc::Rc};
 
 use rayon::{
     prelude::{
@@ -28,13 +28,13 @@ fn uninit_vec<T>(size: N) -> Vec<T> {
 
 #[derive(Clone, Copy, Default, Debug)]
 pub struct MultiThreadBuilder {
-    pub num_threads: Option<usize>,
+    pub num_threads: Option<NonZeroUsize>,
 }
 
 impl MultiThreadBuilder {
     pub fn with(num_threads: usize) -> Self {
         Self {
-            num_threads: Some(num_threads),
+            num_threads: NonZeroUsize::new(num_threads),
         }
     }
 }
@@ -49,12 +49,16 @@ impl BackendBuilder for MultiThreadBuilder {
         // since it will be used only with `write` access
         let psi_buffer = uninit_vec(alloc_size);
 
-        let mut thread_pool_builder = ThreadPoolBuilder::default();
-        if let Some(num_threads) = self.num_threads {
-            thread_pool_builder = thread_pool_builder.num_threads(num_threads);
-        }
+        let num_threads = self
+            .num_threads
+            .map(NonZeroUsize::get)
+            .unwrap_or(usize::MAX);
 
-        let thread_pool = thread_pool_builder.build().map_err(|e| e.to_string())?;
+        let thread_pool = ThreadPoolBuilder::default()
+            .num_threads(num_threads)
+            .thread_name(|th_idx| format!("qvnt worker #{:?}", th_idx))
+            .build()
+            .map_err(|e| e.to_string())?;
 
         Ok(MultiThread {
             thread_pool: Rc::new(thread_pool),
