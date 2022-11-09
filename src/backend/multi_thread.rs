@@ -26,9 +26,15 @@ fn uninit_vec<T>(size: N) -> Vec<T> {
     buffer
 }
 
-#[derive(Default, Clone, Copy)]
+#[derive(Clone, Copy, Default, Debug)]
 pub struct MultiThreadBuilder {
     pub num_threads: Option<usize>,
+}
+
+impl MultiThreadBuilder {
+    pub fn with(num_threads: usize) -> Self {
+        Self { num_threads: Some(num_threads) }
+    }
 }
 
 impl BackendBuilder for MultiThreadBuilder {

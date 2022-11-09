@@ -18,7 +18,7 @@ fn uninit_vec<T>(size: N) -> Vec<T> {
     buffer
 }
 
-#[derive(Default, Clone, Copy)]
+#[derive(Clone, Copy, Default, Debug)]
 pub struct SingleThreadBuilder;
 
 impl BackendBuilder for SingleThreadBuilder {
