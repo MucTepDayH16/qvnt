@@ -1,6 +1,6 @@
 [package]
 name                = "qvnt"
-version             = "0.4.2"
+version             = "0.5.0-alpha"
 description         = "Advanced quantum computation simulator."
 keywords            = ["theoretical", "quantum-computing", "quantum-simulator", "quantum", "qubits"]
 categories          = ["concurrency", "simulation", "mathematics", "science"]
