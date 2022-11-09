@@ -7,7 +7,7 @@ env:
     always
 
 jobs:
-  build:
+  unit-tests:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout branch
@@ -22,7 +22,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo
 
       - name: Set stable channel
         run: rustup default stable
