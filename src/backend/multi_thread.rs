@@ -33,7 +33,9 @@ pub struct MultiThreadBuilder {
 
 impl MultiThreadBuilder {
     pub fn with(num_threads: usize) -> Self {
-        Self { num_threads: Some(num_threads) }
+        Self {
+            num_threads: Some(num_threads),
+        }
     }
 }
 

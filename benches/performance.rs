@@ -14,12 +14,7 @@ fn perf_test_single(q_num: usize) {
 }
 
 fn perf_test_multi(q_num: usize, t_num: usize) {
-    let mut reg = QReg::with_builder(
-        q_num,
-        MultiThreadBuilder {
-            num_threads: Some(t_num),
-        },
-    );
+    let mut reg = QReg::with_builder(q_num, MultiThreadBuilder::with(t_num));
 
     reg.apply(&(op::qft(0b0111) * op::qft(0b1110)));
 
