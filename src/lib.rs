@@ -1,6 +1,6 @@
-#![allow(unused_imports)]
-#![allow(non_upper_case_globals)]
 #![allow(dead_code)]
+#![warn(clippy::cargo)]
+#![allow(clippy::comparison_chain)]
 #![doc = include_str!("../README.md")]
 
 mod sealed {
@@ -8,7 +8,7 @@ mod sealed {
 }
 
 mod math;
-#[cfg(feature = "cpu")]
+#[cfg(feature = "multi-thread")]
 mod threads;
 
 pub mod backend;

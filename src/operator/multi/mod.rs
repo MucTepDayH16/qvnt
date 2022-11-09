@@ -6,7 +6,7 @@ use std::{
 pub(crate) use super::Applicable;
 use crate::{
     backend::{Backend, BackendError},
-    math::{C, N, R},
+    math::types::*,
     operator::single::*,
 };
 
@@ -117,8 +117,7 @@ impl Applicable for MultiOp {
         if self.act_on() & c_mask != 0 {
             None
         } else {
-            let new =
-                self.0.into_iter().map(|op| op.c(c_mask).unwrap()).collect();
+            let new = self.0.into_iter().map(|op| op.c(c_mask).unwrap()).collect();
             Some(Self(new))
         }
     }

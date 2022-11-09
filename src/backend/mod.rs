@@ -2,7 +2,7 @@ use std::{convert::Infallible, fmt, str::FromStr};
 
 use crate::{
     math::{Mask, C, N, R},
-    operator::atomic::{AtomicOp, AtomicOpDispatch},
+    operator::atomic::AtomicOpDispatch,
 };
 
 pub mod single_thread;
@@ -28,9 +28,7 @@ pub trait BackendBuilder: Sized {
     fn build(self, q_num: N) -> Result<Self::Backend, BackendError>;
 }
 
-impl<B: Backend, Func: FnOnce(N) -> Result<B, BackendError>> BackendBuilder
-    for Func
-{
+impl<B: Backend, Func: FnOnce(N) -> Result<B, BackendError>> BackendBuilder for Func {
     type Backend = B;
 
     fn build(self, q_num: N) -> Result<Self::Backend, BackendError> {
@@ -41,11 +39,7 @@ impl<B: Backend, Func: FnOnce(N) -> Result<B, BackendError>> BackendBuilder
 pub trait Backend {
     fn reset_state(&mut self, state: Mask) -> Result<(), BackendError>;
 
-    fn reset_state_and_size(
-        &mut self,
-        q_num: N,
-        state: Mask,
-    ) -> Result<(), BackendError>;
+    fn reset_state_and_size(&mut self, q_num: N, state: Mask) -> Result<(), BackendError>;
 
     fn drain(&mut self) -> Vec<C>;
 
@@ -60,26 +54,16 @@ pub trait Backend {
 
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result;
 
-    fn apply_op_controled(
-        &mut self,
-        op: &AtomicOpDispatch,
-        ctrl: Mask,
-    ) -> Result<(), BackendError>;
+    fn apply_op_controled(&mut self, op: &AtomicOpDispatch, ctrl: Mask)
+        -> Result<(), BackendError>;
 
     fn apply_op(&mut self, op: &AtomicOpDispatch) -> Result<(), BackendError> {
         Self::apply_op_controled(self, op, 0)
     }
 
-    fn tensor_prod_assign(
-        &mut self,
-        other_psi: Vec<C>,
-    ) -> Result<(), BackendError>;
+    fn tensor_prod_assign(&mut self, other_psi: Vec<C>) -> Result<(), BackendError>;
 
-    fn collapse_by_mask(
-        &mut self,
-        collapse_state: Mask,
-        mask: Mask,
-    ) -> Result<(), BackendError>;
+    fn collapse_by_mask(&mut self, collapse_state: Mask, mask: Mask) -> Result<(), BackendError>;
 }
 
 impl<Ref: AsRef<dyn Backend> + AsMut<dyn Backend>> Backend for Ref {
@@ -87,11 +71,7 @@ impl<Ref: AsRef<dyn Backend> + AsMut<dyn Backend>> Backend for Ref {
         self.as_mut().reset_state(state)
     }
 
-    fn reset_state_and_size(
-        &mut self,
-        q_num: N,
-        state: Mask,
-    ) -> Result<(), BackendError> {
+    fn reset_state_and_size(&mut self, q_num: N, state: Mask) -> Result<(), BackendError> {
         self.as_mut().reset_state_and_size(q_num, state)
     }
 
@@ -123,28 +103,18 @@ impl<Ref: AsRef<dyn Backend> + AsMut<dyn Backend>> Backend for Ref {
         self.as_mut().apply_op(op)
     }
 
-    fn tensor_prod_assign(
-        &mut self,
-        other_psi: Vec<C>,
-    ) -> Result<(), BackendError> {
+    fn tensor_prod_assign(&mut self, other_psi: Vec<C>) -> Result<(), BackendError> {
         self.as_mut().tensor_prod_assign(other_psi)
     }
 
-    fn collapse_by_mask(
-        &mut self,
-        collapse_state: Mask,
-        mask: Mask,
-    ) -> Result<(), BackendError> {
+    fn collapse_by_mask(&mut self, collapse_state: Mask, mask: Mask) -> Result<(), BackendError> {
         self.as_mut().collapse_by_mask(collapse_state, mask)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        backend::{single_thread::SingleThread, Backend, BackendBuilder},
-        math::{Mask, N},
-    };
+    use crate::backend::{single_thread::SingleThread, Backend, BackendBuilder};
 
     #[test]
     fn assert_object_save() {

@@ -73,15 +73,10 @@ macro_rules! gate {
     }};
 }
 
-pub(crate) fn process<'t>(
-    name: &'t str,
-    regs: Vec<N>,
-    args: Vec<R>,
-) -> Result<'t, MultiOp> {
+pub(crate) fn process<'t>(name: &'t str, regs: Vec<N>, args: Vec<R>) -> Result<'t, MultiOp> {
     match name {
         s if matches!(&s[..1], "c" | "C") => {
-            let (&ctrl, regs) =
-                regs.split_first().ok_or(Error::WrongRegNumber(name, 0))?;
+            let (&ctrl, regs) = regs.split_first().ok_or(Error::WrongRegNumber(name, 0))?;
 
             match process(&name[1..], regs.into(), args) {
                 Ok(op) => {
@@ -89,12 +84,8 @@ pub(crate) fn process<'t>(
                     op.c(ctrl).ok_or(Error::InvalidControlMask(ctrl, act))
                 }
                 Err(err) => Err(match err {
-                    Error::WrongRegNumber(_, num) => {
-                        Error::WrongRegNumber(name, 1 + num)
-                    }
-                    Error::WrongArgNumber(_, num) => {
-                        Error::WrongArgNumber(name, num)
-                    }
+                    Error::WrongRegNumber(_, num) => Error::WrongRegNumber(name, 1 + num),
+                    Error::WrongArgNumber(_, num) => Error::WrongArgNumber(name, num),
                     Error::UnknownGate(_) => Error::UnknownGate(name),
                     e => e,
                 }),

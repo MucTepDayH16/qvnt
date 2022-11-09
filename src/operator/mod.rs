@@ -54,7 +54,7 @@
 //! let ops = op::h(123);
 //! // Create register with 3 qubit in state |1> and all others in state |0>
 //! // 4    = 0b00000100
-//! let mut reg = QReg::new(8).init_state(4);
+//! let mut reg = QReg::with_state(8, 4);
 //!
 //! reg.apply(&ops);
 //! ```
@@ -78,7 +78,7 @@
 //!
 //! ```rust
 //! # use qvnt::prelude::*;
-//! # let mut  reg = QReg::new(8).init_state(4);
+//! # let mut  reg = QReg::with_state(8, 4);
 //! let c = reg.measure();
 //! println!("{}", c.get());
 //! ```
@@ -89,7 +89,7 @@
 
 pub use self::{applicable::*, multi::MultiOp, single::SingleOp};
 use self::{multi::*, single::*};
-use crate::math::{C, FRAC_PI_2, N, R};
+use crate::math::{types::*, FRAC_PI_2};
 
 pub(crate) mod applicable;
 

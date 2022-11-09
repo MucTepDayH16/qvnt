@@ -3,7 +3,7 @@ use std::{
     ops::{Mul, MulAssign},
 };
 
-use crate::math::{C, N, R};
+use crate::math::types::*;
 
 /// [`Classical register`](Reg)
 ///
@@ -15,19 +15,19 @@ use crate::math::{C, N, R};
 ///
 /// ```rust
 /// # use qvnt::prelude::*;
-/// let q = QReg::new(8).init_state(123);
-/// let c = CReg::new(8).init_state(123);
+/// let q = QReg::with_state(8, 123);
+/// let c = CReg::with_state(8, 123);
 /// ```
 ///
 /// * Tensor product of 2 cregs:
 ///
 /// ```rust
 /// # use qvnt::prelude::*;
-/// let c0 = CReg::new(4).init_state(11);
-/// let c1 = CReg::new(4).init_state(7);
+/// let c0 = CReg::with_state(4, 11);
+/// let c1 = CReg::with_state(4, 7);
 ///
 /// let c = c0 * c1;
-/// # assert_eq!(c, CReg::new(8).init_state(123));
+/// # assert_eq!(c, CReg::with_state(8, 123));
 /// ```
 ///
 /// That make [`CReg`](Reg) like [`QReg`](super::QReg), but without superposition and entanglement.
@@ -36,7 +36,7 @@ use crate::math::{C, N, R};
 ///
 /// ```rust
 /// # use qvnt::prelude::*;
-/// let c = CReg::new(8).init_state(123);
+/// let c = CReg::with_state(8, 123);
 ///
 /// // This will print 123
 /// # assert_eq!(123, c.get());
@@ -56,12 +56,18 @@ pub struct Reg {
 
 impl Reg {
     /// Create classical register with a given number of bits.
-    /// Initial value will be 0.
+    /// Initial value will be set to 0.
     pub fn new(q_num: N) -> Self {
+        Self::with_state(q_num, 0)
+    }
+
+    /// Create classical register with a given number of bits
+    /// and an initial state
+    pub fn with_state(q_num: N, state: N) -> Self {
         let q_mask = 1_usize.wrapping_shl(q_num as u32).wrapping_sub(1_usize);
 
         Self {
-            value: 0,
+            value: state,
             q_num,
             q_mask,
         }
@@ -77,6 +83,7 @@ impl Reg {
     }
 
     /// Initialize a value of register.
+    #[deprecated(since = "0.4.3", note = "use `with_state` instead")]
     pub fn init_state(self, i_state: N) -> Self {
         Self {
             value: i_state & self.q_mask,
@@ -104,8 +111,8 @@ impl Reg {
 
     fn tensor_prod(self, other: Self) -> Self {
         let shift = (0u8, self.q_num as u8);
-        Self::new(self.q_num + other.q_num)
-            .init_state((self.value << shift.0) | (other.value << shift.1))
+        let state = (self.value << shift.0) | (other.value << shift.1);
+        Self::with_state(self.q_num + other.q_num, state)
     }
 
     /// Obtain value from classing register.
@@ -161,7 +168,7 @@ mod tests {
 
     #[test]
     fn display() {
-        let c = Reg::new(17).init_state(123);
+        let c = Reg::with_state(17, 123);
 
         println!("{:?}", c);
     }

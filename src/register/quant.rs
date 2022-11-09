@@ -1,3 +1,5 @@
+#![allow(clippy::uninit_vec)]
+
 use std::{
     fmt,
     ops::{Mul, MulAssign},
@@ -5,11 +7,9 @@ use std::{
 
 use rand::prelude::*;
 use rand_distr;
-#[cfg(feature = "cpu")]
-use rayon::prelude::*;
 
 use crate::{
-    backend::{self, Backend, BackendBuilder, DefaultBuilder},
+    backend::{Backend, BackendBuilder, DefaultBuilder},
     math::*,
     operator::applicable::Applicable,
 };
@@ -36,11 +36,11 @@ use crate::{
 /// ```
 /// 
 /// The quantum register ```q``` starts with state |0>.
-/// To vary initial state of register, you may use [`init_state`](Reg::init_state) modifier:
+/// To vary initial state of register, you may use [`with_state`](Reg::with_state) modifier:
 /// ```rust
 /// # use qvnt::prelude::*;
 /// // it will create quantum register in state |123>
-/// let q = QReg::new(10).init_state(123);
+/// let q = QReg::with_state(10, 123);
 /// ```
 /// 
 /// After creation of quantum computer you would like to be able to control its state.
@@ -82,7 +82,7 @@ pub struct Reg<B: Backend> {
 
 impl Reg<<DefaultBuilder as BackendBuilder>::Backend> {
     /// Create quantum register with a given number of bits.
-    /// Initial value will be 0.
+    /// Initial value will be set to 0.
     pub fn new(q_num: N) -> Self {
         Self::with_builder(q_num, DefaultBuilder::default())
     }
@@ -94,10 +94,7 @@ impl Reg<<DefaultBuilder as BackendBuilder>::Backend> {
 }
 
 impl<B: Backend> Reg<B> {
-    pub fn with_builder(
-        q_num: N,
-        builder: impl BackendBuilder<Backend = B>,
-    ) -> Self {
+    pub fn with_builder(q_num: N, builder: impl BackendBuilder<Backend = B>) -> Self {
         Self::with_state_and_backend(q_num, 0, builder.build(q_num).unwrap())
     }
 
@@ -106,11 +103,7 @@ impl<B: Backend> Reg<B> {
         state: Mask,
         builder: impl BackendBuilder<Backend = B>,
     ) -> Self {
-        Self::with_state_and_backend(
-            q_num,
-            state,
-            builder.build(q_num).unwrap(),
-        )
+        Self::with_state_and_backend(q_num, state, builder.build(q_num).unwrap())
     }
 
     #[inline(always)]
@@ -216,10 +209,7 @@ impl<B: Backend> Reg<B> {
 
     // TODO: add tests for combine
     #[deprecated]
-    pub(crate) fn combine_with_unitary(
-        _q: (&Self, &Self),
-        _c: M1,
-    ) -> Option<Self> {
+    pub(crate) fn combine_with_unitary(_q: (&Self, &Self), _c: M1) -> Option<Self> {
         // #[cfg(feature = "float-cmp")]
         // assert!(crate::math::matrix::is_unitary_m1(&c));
         // if q.0.q_num == q.1.q_num {
@@ -338,12 +328,11 @@ impl<B: Backend> Reg<B> {
             return super::CReg::new(self.q_num);
         }
 
-        let rand_idx = thread_rng().sample(
-            rand_distr::WeightedIndex::new(self.get_probabilities()).unwrap(),
-        );
+        let rand_idx =
+            thread_rng().sample(rand_distr::WeightedIndex::new(self.get_probabilities()).unwrap());
 
         self.collapse_mask(rand_idx, mask);
-        super::CReg::new(self.q_num).init_state(rand_idx & mask)
+        super::CReg::with_state(self.q_num, rand_idx & mask)
     }
 
     /// Measure all qubits into classical register.
@@ -357,8 +346,6 @@ impl<B: Backend> Reg<B> {
     /// But [`sample_all`](Reg::sample_all) does not collapse wavefunction and executes __MUSH FASTER__.
     /// If you want to simulate the execution of quantum computer, you would prefer [`sample_all`](Reg::sample_all).
     pub fn sample_all(&self, count: N) -> Vec<N> {
-        use std::cmp::Ordering;
-
         let p = self.get_probabilities();
         let c = count as R;
         let c_sqrt = c.sqrt();
@@ -366,9 +353,7 @@ impl<B: Backend> Reg<B> {
         let mut rng = rand::thread_rng();
         let p_sqrt_distr = p
             .iter()
-            .map(|&p| {
-                rng.sample(rand_distr::Normal::new(0.0, p.sqrt()).unwrap())
-            })
+            .map(|&p| rng.sample(rand_distr::Normal::new(0.0, p.sqrt()).unwrap()))
             .collect::<Vec<R>>();
         let p_sqrt_distr_sum = p_sqrt_distr.iter().sum::<R>();
 
@@ -376,17 +361,14 @@ impl<B: Backend> Reg<B> {
             .iter()
             .zip(&p_sqrt_distr)
             .map(|(p, p_sqrt_distr)| {
-                ((c * p + c_sqrt * (p_sqrt_distr - p_sqrt_distr_sum * p))
-                    .round() as Z)
-                    .max(0) as N
+                ((c * p + c_sqrt * (p_sqrt_distr - p_sqrt_distr_sum * p)).round() as Z).max(0) as N
             })
             .collect::<Vec<N>>();
         let n_sum: N = n.iter().sum();
 
         if n_sum < count {
             let delta = count - n_sum;
-            let (delta_for_each, extra_one_idx) =
-                (delta >> self.q_num, delta % self.q_mask);
+            let (delta_for_each, extra_one_idx) = (delta >> self.q_num, delta % self.q_mask);
             for (idx, n) in n.iter_mut().enumerate() {
                 *n += delta_for_each;
                 if idx < extra_one_idx {
@@ -438,18 +420,17 @@ impl<B: Backend> MulAssign for Reg<B> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{backend::single_thread::SingleThread, prelude::*};
+    use crate::prelude::*;
 
     #[test]
     fn quantum_reg() {
         use crate::math::C;
 
-        let mut reg = QReg::<SingleThread>::with_state(4, 0b1100);
+        let mut reg = QReg::with_state(4, 0b1100);
         let mask = 0b0110;
 
-        let operator = op::h(0b1111)
-            * op::h(0b0011).c(0b1000).unwrap()
-            * op::swap(0b1001).c(0b0010).unwrap();
+        let operator =
+            op::h(0b1111) * op::h(0b0011).c(0b1000).unwrap() * op::swap(0b1001).c(0b0010).unwrap();
 
         reg.apply(&operator);
 
@@ -506,7 +487,7 @@ mod tests {
             .zip(true_prob)
             .all(|(a, b)| (a - b).abs() < EPS));
 
-        let mut reg3 = QReg::<SingleThread>::with_state(3, 0b101);
+        let mut reg3 = QReg::with_state(3, 0b101);
         let pend_ops = op::h(0b101);
 
         reg3.apply(&pend_ops);

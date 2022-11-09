@@ -1,10 +1,10 @@
 #![allow(clippy::uninit_vec)]
 
-use std::{fmt, mem::MaybeUninit};
+use std::fmt;
 
 use super::{Backend, BackendBuilder, BackendError};
 use crate::{
-    math::{approx_cmp::approx_cmp, rotate, Mask, C, C_ONE, C_ZERO, N},
+    math::{approx_cmp::approx_cmp, Mask, C, C_ONE, C_ZERO, N},
     operator::atomic::{AtomicOpDispatch, NativeCpuOp},
 };
 
@@ -68,11 +68,7 @@ impl Backend for SingleThread {
         Ok(())
     }
 
-    fn reset_state_and_size(
-        &mut self,
-        q_num: N,
-        state: Mask,
-    ) -> Result<(), BackendError> {
+    fn reset_state_and_size(&mut self, q_num: N, state: Mask) -> Result<(), BackendError> {
         let new_size = 1usize << q_num;
 
         let old_size = self.psi_main.len();
@@ -152,10 +148,7 @@ impl Backend for SingleThread {
         Ok(())
     }
 
-    fn tensor_prod_assign(
-        &mut self,
-        other_psi: Vec<C>,
-    ) -> Result<(), BackendError> {
+    fn tensor_prod_assign(&mut self, other_psi: Vec<C>) -> Result<(), BackendError> {
         let self_size = self.psi_main.len();
         let new_len = self_size.checked_mul(other_psi.len()).unwrap();
         let self_mask = self_size.saturating_sub(1);
@@ -166,8 +159,7 @@ impl Backend for SingleThread {
                 let other_idx = idx >> self_size;
 
                 unsafe {
-                    self.psi_main.get_unchecked(self_idx)
-                        * other_psi.get_unchecked(other_idx)
+                    self.psi_main.get_unchecked(self_idx) * other_psi.get_unchecked(other_idx)
                 }
             })
             .collect();
@@ -175,11 +167,7 @@ impl Backend for SingleThread {
         Ok(())
     }
 
-    fn collapse_by_mask(
-        &mut self,
-        collapse_state: Mask,
-        mask: Mask,
-    ) -> Result<(), BackendError> {
+    fn collapse_by_mask(&mut self, collapse_state: Mask, mask: Mask) -> Result<(), BackendError> {
         let abs = self
             .psi_main
             .iter_mut()

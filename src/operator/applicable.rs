@@ -1,6 +1,6 @@
 use crate::{
     backend::{Backend, BackendError},
-    math::{Mask, C, N, R},
+    math::types::*,
 };
 
 pub trait Applicable: Sized + Sync {
@@ -14,9 +14,7 @@ pub trait Applicable: Sized + Sync {
 
     #[cfg(test)]
     fn matrix(&self, q_num: N) -> Vec<Vec<C>> {
-        use crate::backend::{
-            single_thread::SingleThreadBuilder as B, Backend, BackendBuilder,
-        };
+        use crate::backend::{single_thread::SingleThreadBuilder as B, BackendBuilder};
 
         let size = 1 << q_num;
 

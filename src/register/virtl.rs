@@ -4,7 +4,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::math::{bits_iter, C, N, R};
+use crate::math::{bits_iter, types::*};
 
 type Ptr<T> = Rc<RefCell<T>>;
 
@@ -17,7 +17,7 @@ type Ptr<T> = Rc<RefCell<T>>;
 /// ```rust
 /// # use qvnt::prelude::*;
 ///
-/// let mut q = QReg::new(8).init_state(0b00111000);
+/// let mut q = QReg::with_state(8, 0b00111000);
 /// let gate = op::h(0b01010101) * op::x(0b10101010);
 ///
 /// q.apply(&gate);
@@ -42,7 +42,7 @@ type Ptr<T> = Rc<RefCell<T>>;
 /// let v = VReg::new(8);
 /// // mask 0b00011000 acts on qubits 4, 5 and 6, so...
 /// # assert_eq!(v[[3, 4, 5]], 0b00111000);
-/// let mut q = QReg::new(8).init_state(v[[3, 4, 5]]);
+/// let mut q = QReg::with_state(8, v[[3, 4, 5]]);
 /// // indexing with fn
 /// # assert_eq!(v[even], 0b01010101);
 /// # assert_eq!(v[|i| i % 2 != 0], 0b10101010);
@@ -87,9 +87,7 @@ pub struct Reg(pub(crate) Ptr<N>, pub(crate) Vec<N>);
 impl Reg {
     /// Create virtual register with a given number of qubits.
     pub fn new(num: N) -> Self {
-        Self::new_with_mask(
-            1usize.wrapping_shl(num as u32).wrapping_add(!0usize),
-        )
+        Self::new_with_mask(1usize.wrapping_shl(num as u32).wrapping_add(!0usize))
     }
 
     pub(crate) fn new_with_mask(mask: N) -> Self {
@@ -161,7 +159,6 @@ impl Index<RangeFull> for Reg {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::backend::single_thread::SingleThread;
 
     #[test]
     fn index() {

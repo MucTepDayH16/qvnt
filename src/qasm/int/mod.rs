@@ -1,9 +1,12 @@
+#![allow(clippy::boxed_local)]
+#![allow(clippy::needless_lifetimes)]
+
 use std::collections::HashMap;
 
 use qasm::{Argument, AstNode};
 
 use crate::{
-    math::{bits_iter::BitsIter, C, N, R},
+    math::{bits_iter::BitsIter, types::*},
     operator::{self as op, Applicable, MultiOp},
     qasm::ast::Ast,
 };
@@ -64,11 +67,7 @@ impl<'t> Int<'t> {
         Ok(self)
     }
 
-    pub fn ast_changes(
-        self,
-        changes: &mut Self,
-        ast: Ast<'t>,
-    ) -> Result<'t, Self> {
+    pub fn ast_changes(self, changes: &mut Self, ast: Ast<'t>) -> Result<'t, Self> {
         match self.process_nodes(changes, ast.iter().cloned()) {
             Ok(mut ok) => {
                 ok.asts.push(ast);
@@ -86,6 +85,11 @@ impl<'t> Int<'t> {
         self.asts.into_iter()
     }
 
+    /// # Safety
+    ///
+    /// Caller should ensure that appending `int`
+    /// is equivalent to call `add_ast`.
+    /// Otherwise could lead to unexpected interpreter flow.
     pub unsafe fn append_int(mut self, mut int: Self) -> Self {
         self.m_op = int.m_op;
         self.q_reg.append(&mut int.q_reg);
@@ -95,6 +99,11 @@ impl<'t> Int<'t> {
         self
     }
 
+    /// # Safety
+    ///
+    /// Caller should ensure that prepending `int`
+    /// is equivalent to call `add_ast`.
+    /// Otherwise could lead to unexpected interpreter flow.
     pub unsafe fn prepend_int(self, int: Self) -> Self {
         int.append_int(self)
     }
@@ -117,23 +126,13 @@ impl<'t> Int<'t> {
         Ok(self)
     }
 
-    fn process_node<'a>(
-        self,
-        changes: &'a mut Self,
-        node: AstNode<'t>,
-    ) -> Result<'t, Self> {
+    fn process_node(self, changes: &mut Self, node: AstNode<'t>) -> Result<'t, Self> {
         match node {
-            AstNode::QReg(alias, size) => {
-                self.process_qreg(changes, alias, size as N)
-            }
-            AstNode::CReg(alias, size) => {
-                self.process_creg(changes, alias, size as N)
-            }
+            AstNode::QReg(alias, size) => self.process_qreg(changes, alias, size as N),
+            AstNode::CReg(alias, size) => self.process_creg(changes, alias, size as N),
             AstNode::Barrier(_) => self.process_barrier(changes),
             AstNode::Reset(reg) => self.process_reset(changes, reg),
-            AstNode::Measure(q_arg, c_arg) => {
-                self.process_measure(changes, q_arg, c_arg)
-            }
+            AstNode::Measure(q_arg, c_arg) => self.process_measure(changes, q_arg, c_arg),
             AstNode::ApplyGate(name, regs, args) => {
                 self.process_apply_gate(changes, name, regs, args)
             }
@@ -141,9 +140,7 @@ impl<'t> Int<'t> {
             AstNode::Gate(name, regs, args, nodes) => {
                 self.process_gate(changes, name, regs, args, nodes)
             }
-            AstNode::If(lhs, rhs, if_block) => {
-                self.process_if(changes, lhs, rhs as N, &if_block)
-            }
+            AstNode::If(lhs, rhs, if_block) => self.process_if(changes, lhs, rhs as N, &if_block),
         }
     }
 
@@ -171,23 +168,13 @@ impl<'t> Int<'t> {
         Ok(())
     }
 
-    fn process_qreg(
-        self,
-        changes: &mut Self,
-        alias: &'t str,
-        q_num: N,
-    ) -> Result<'t, Self> {
+    fn process_qreg(self, changes: &mut Self, alias: &'t str, q_num: N) -> Result<'t, Self> {
         self.check_dup(changes, alias)?;
         changes.q_reg.append(&mut vec![alias; q_num]);
         Ok(self)
     }
 
-    fn process_creg(
-        self,
-        changes: &mut Self,
-        alias: &'t str,
-        q_num: N,
-    ) -> Result<'t, Self> {
+    fn process_creg(self, changes: &mut Self, alias: &'t str, q_num: N) -> Result<'t, Self> {
         self.check_dup(changes, alias)?;
         changes.c_reg.append(&mut vec![alias; q_num]);
         Ok(self)
@@ -198,11 +185,7 @@ impl<'t> Int<'t> {
         Ok(self)
     }
 
-    fn process_reset(
-        self,
-        changes: &mut Self,
-        q_reg: Argument<'t>,
-    ) -> Result<'t, Self> {
+    fn process_reset(self, changes: &mut Self, q_reg: Argument<'t>) -> Result<'t, Self> {
         let idx = self.get_q_idx_with_context(changes, q_reg)?;
         changes.branch_with_id(Sep::Reset(idx));
         Ok(self)
@@ -243,8 +226,7 @@ impl<'t> Int<'t> {
         let args = args
             .into_iter()
             .map(|arg| {
-                parse::eval_extended(arg, None)
-                    .map_err(|e| Error::UnevaluatedArgument(arg, e))
+                parse::eval_extended(arg, None).map_err(|e| Error::UnevaluatedArgument(arg, e))
             })
             .collect::<Result<Vec<_>>>()?;
 
@@ -273,9 +255,7 @@ impl<'t> Int<'t> {
         nodes: Vec<AstNode<'t>>,
     ) -> Result<'t, Self> {
         let macros = Macro::new(regs, args, nodes)?;
-        if !self.macros.contains_key(&name)
-            && !changes.macros.contains_key(&name)
-        {
+        if !self.macros.contains_key(&name) && !changes.macros.contains_key(&name) {
             changes.macros.insert(name, macros);
             Ok(self)
         } else {
@@ -294,8 +274,7 @@ impl<'t> Int<'t> {
             if_block @ AstNode::ApplyGate(_, _, _) => {
                 changes.branch(Sep::Nop);
 
-                let val = self
-                    .get_c_idx_with_context(changes, Argument::Register(lhs))?;
+                let val = self.get_c_idx_with_context(changes, Argument::Register(lhs))?;
                 self = self.process_node(changes, if_block)?;
                 changes.branch(Sep::IfBranch(val, rhs));
 
@@ -306,35 +285,35 @@ impl<'t> Int<'t> {
     }
 
     fn get_idx_by_alias(&self, alias: &'t str) -> (N, N) {
-        let q_mask = self.q_reg.iter().cloned().enumerate().fold(
-            0,
-            |acc, (idx, name)| {
+        let q_mask = self
+            .q_reg
+            .iter()
+            .cloned()
+            .enumerate()
+            .fold(0, |acc, (idx, name)| {
                 if name == alias {
                     acc | 1_usize.wrapping_shl(idx as u32)
                 } else {
                     acc
                 }
-            },
-        );
-        let c_mask = self.c_reg.iter().cloned().enumerate().fold(
-            0,
-            |acc, (idx, name)| {
+            });
+        let c_mask = self
+            .c_reg
+            .iter()
+            .cloned()
+            .enumerate()
+            .fold(0, |acc, (idx, name)| {
                 if name == alias {
                     acc | 1_usize.wrapping_shl(idx as u32)
                 } else {
                     acc
                 }
-            },
-        );
+            });
 
         (q_mask, c_mask)
     }
 
-    fn get_q_idx_with_context(
-        &self,
-        changes: &Self,
-        arg: Argument<'t>,
-    ) -> Result<'t, N> {
+    fn get_q_idx_with_context(&self, changes: &Self, arg: Argument<'t>) -> Result<'t, N> {
         let self_q_len = self.q_reg.len();
         self.get_q_idx(arg.clone())
             .or_else(|_| changes.get_q_idx(arg).map(|idx| self_q_len + idx))
@@ -363,11 +342,7 @@ impl<'t> Int<'t> {
         }
     }
 
-    fn get_c_idx_with_context(
-        &self,
-        changes: &Self,
-        arg: Argument<'t>,
-    ) -> Result<'t, N> {
+    fn get_c_idx_with_context(&self, changes: &Self, arg: Argument<'t>) -> Result<'t, N> {
         let self_c_len = self.c_reg.len();
         self.get_c_idx(arg.clone())
             .or_else(|_| changes.get_c_idx(arg).map(|idx| self_c_len + idx))
@@ -574,16 +549,12 @@ mod tests {
         );
 
         assert_eq!(
-            int_from_source(
-                "gate M(a, b, c) x, y { rx(a) x; ry(b) y; rz(c) z; }"
-            ),
+            int_from_source("gate M(a, b, c) x, y { rx(a) x; ry(b) y; rz(c) z; }"),
             Err(Error::MacroError(macros::Error::UnknownReg("z")))
         );
 
         assert_eq!(
-            int_from_source(
-                "gate M(a, b) x, y, z { rx(a) x; ry(b) y; rz(c) z; }"
-            ),
+            int_from_source("gate M(a, b) x, y, z { rx(a) x; ry(b) y; rz(c) z; }"),
             Err(Error::MacroError(macros::Error::UnknownArg(
                 "c".to_string()
             )))

@@ -1,5 +1,5 @@
 use super::*;
-use crate::math::{matrix::is_unitary_m1, M1};
+use crate::math::matrix::{inverse_unitary_m1, is_unitary_m1};
 
 const EXP_I_PI_4: C = C {
     re: crate::math::FRAC_1_SQRT_2,
@@ -23,11 +23,9 @@ impl crate::sealed::Seal for Op {}
 impl super::NativeCpuOp for Op {
     fn native_cpu_op(&self, psi: &[C], idx: N) -> C {
         if (idx & self.a_mask) == 0 {
-            self.matrix[0b00] * psi[idx]
-                + self.matrix[0b01] * psi[idx ^ self.a_mask]
+            self.matrix[0b00] * psi[idx] + self.matrix[0b01] * psi[idx ^ self.a_mask]
         } else {
-            self.matrix[0b10] * psi[idx ^ self.a_mask]
-                + self.matrix[0b11] * psi[idx]
+            self.matrix[0b10] * psi[idx ^ self.a_mask] + self.matrix[0b11] * psi[idx]
         }
     }
 }
@@ -54,9 +52,8 @@ impl AtomicOp for Op {
     }
 
     fn dgr(self) -> dispatch::AtomicOpDispatch {
-        let [u00, u01, u10, u11] = self.matrix;
         dispatch::AtomicOpDispatch::U1(Self {
-            matrix: [u00.conj(), u10.conj(), u01.conj(), u11.conj()],
+            matrix: inverse_unitary_m1(&self.matrix),
             ..self
         })
     }

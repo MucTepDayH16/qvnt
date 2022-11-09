@@ -1,3 +1,5 @@
+#![allow(clippy::identity_op)]
+
 use super::{approx_cmp::*, types::*};
 
 pub fn is_diagonal_m1(u: &M1) -> bool {
@@ -24,9 +26,12 @@ pub fn is_unitary_m1(u: &M1) -> bool {
     let e11 = u[0b10].norm_sqr() + u[0b11].norm_sqr();
     let e01 = u[0b00] * u[0b10].conj() + u[0b01] * u[0b11].conj();
 
-    approx_cmp(e00, 1.0)
-        && approx_cmp(e11, 1.0)
-        && approx_cmp(e01.re + e01.im, 0.0)
+    approx_cmp(e00, 1.0) && approx_cmp(e11, 1.0) && approx_cmp(e01.re + e01.im, 0.0)
+}
+
+pub fn inverse_unitary_m1(u: &M1) -> M1 {
+    let [u00, u01, u10, u11] = u;
+    [u00.conj(), u10.conj(), u01.conj(), u11.conj()]
 }
 
 fn hermitian_mul(i: N, j: N, u: &M2) -> C {
@@ -40,8 +45,7 @@ fn hermitian_mul(i: N, j: N, u: &M2) -> C {
         )
     } else {
         (u[i] * u[j].conj() + u[0b01 | i] * u[0b01 | j].conj())
-            + (u[0b10 | i] * u[0b10 | j].conj()
-                + u[0b11 | i] * u[0b11 | j].conj())
+            + (u[0b10 | i] * u[0b10 | j].conj() + u[0b11 | i] * u[0b11 | j].conj())
     }
 }
 
@@ -69,6 +73,28 @@ pub fn is_unitary_m2(u: &M2) -> bool {
         && approx_cmp(e23.re + e23.im, 0.0)
 }
 
+pub fn inverse_unitary_m2(u: &M2) -> M2 {
+    let [u00, u01, u02, u03, u10, u11, u12, u13, u20, u21, u22, u23, u30, u31, u32, u33] = u;
+    [
+        u00.conj(),
+        u10.conj(),
+        u20.conj(),
+        u30.conj(),
+        u01.conj(),
+        u11.conj(),
+        u21.conj(),
+        u31.conj(),
+        u02.conj(),
+        u12.conj(),
+        u22.conj(),
+        u32.conj(),
+        u03.conj(),
+        u13.conj(),
+        u23.conj(),
+        u33.conj(),
+    ]
+}
+
 pub fn is_scaled_unitary_m1(u: &M1) -> bool {
     let e00 = u[0b00].norm_sqr() + u[0b01].norm_sqr();
     let e11 = u[0b10].norm_sqr() + u[0b11].norm_sqr();
@@ -82,9 +108,7 @@ pub fn is_scaled_unitary_m2(_: &M2) -> bool {
 }
 
 pub fn is_hermitian_m1(u: &M1) -> bool {
-    approx_real(&u[0b00])
-        && approx_eq_conj(&u[0b01], &u[0b10])
-        && approx_real(&u[0b11])
+    approx_real(&u[0b00]) && approx_eq_conj(&u[0b01], &u[0b10]) && approx_real(&u[0b11])
 }
 
 pub fn is_hermitian_m2(u: &M2) -> bool {

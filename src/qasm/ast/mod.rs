@@ -52,12 +52,9 @@ mod tests {
         use AstNode::*;
 
         assert_eq!(
-            Ast::from_source(
-                "OPENQASM 2.0; qreg a[3]; rx(pi, sqrt(2.0)) a[0], a[1];"
-            ),
+            Ast::from_source("OPENQASM 2.0; qreg a[3]; rx(pi, sqrt(2.0)) a[0], a[1];"),
             Ok(Ast {
-                source:
-                    "OPENQASM 2.0; qreg a[3]; rx(pi, sqrt(2.0)) a[0], a[1];",
+                source: "OPENQASM 2.0; qreg a[3]; rx(pi, sqrt(2.0)) a[0], a[1];",
                 ast: vec![
                     QReg("a", 3),
                     ApplyGate(
@@ -100,8 +97,7 @@ mod tests {
         use qasm::Argument::*;
         use AstNode::*;
 
-        let source =
-            std::fs::read_to_string("./src/qasm/examples/test.qasm").unwrap();
+        let source = std::fs::read_to_string("./src/qasm/examples/test.qasm").unwrap();
 
         assert_eq!(
             Ast::from_source(&source[..]),

@@ -1,0 +1,27 @@
+name: Linter
+
+on: [push]
+
+env:
+  CARGO_TERM_COLOR:
+    always
+
+jobs:
+  linter:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v2
+
+      - name: Add nightly channel
+        run: rustup install nightly && rustup +nightly component add rustfmt
+
+      - name: Set stable channel
+        run: rustup default nightly
+
+      - name: Rustfmt checks
+        run: cargo fmt --check
+
+      - name: Clippy checks
+        run: cargo clippy --all-targets --all-features -- -Dwarnings
+

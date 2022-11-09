@@ -1,6 +1,6 @@
 use super::int::*;
 use crate::{
-    backend::{Backend, BackendBuilder},
+    backend::BackendBuilder,
     math::{bits_iter::BitsIter, N, R},
     register::{CReg, QReg},
 };
@@ -20,7 +20,7 @@ impl<B: BackendBuilder + Clone> Sym<B> {
             backend_builder: builder.clone(),
             m_op: int.m_op,
             q_reg: QReg::with_builder(int.q_reg.len(), builder),
-            c_reg: CReg::new(int.c_reg.len()).init_state(0),
+            c_reg: CReg::new(int.c_reg.len()),
             q_ops: int.q_ops,
         }
     }
@@ -54,14 +54,10 @@ impl<B: BackendBuilder + Clone> Sym<B> {
                     match self.m_op {
                         MeasureOp::Set => BitsIter::from(q_arg)
                             .zip(BitsIter::from(c_arg))
-                            .for_each(|(q, c)| {
-                                c_reg.set(mask.get() & q != 0, c)
-                            }),
+                            .for_each(|(q, c)| c_reg.set(mask.get() & q != 0, c)),
                         MeasureOp::Xor => BitsIter::from(q_arg)
                             .zip(BitsIter::from(c_arg))
-                            .for_each(|(q, c)| {
-                                c_reg.xor(mask.get() & q != 0, c)
-                            }),
+                            .for_each(|(q, c)| c_reg.xor(mask.get() & q != 0, c)),
                     };
                     self.c_reg = c_reg;
                 }

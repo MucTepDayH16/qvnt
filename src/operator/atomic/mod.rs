@@ -1,4 +1,6 @@
-pub use crate::math::{Mask, C, N, R};
+#![cfg_attr(test, allow(non_upper_case_globals))]
+
+use crate::math::types::*;
 
 pub mod id;
 
@@ -16,9 +18,9 @@ pub mod s;
 pub mod t;
 pub mod z;
 
-pub mod u1;
-
 pub mod phi;
+pub mod u1;
+pub mod u2;
 
 pub mod h1;
 pub mod h2;

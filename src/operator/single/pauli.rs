@@ -1,5 +1,5 @@
 use crate::{
-    math::{C, N, R},
+    math::types::*,
     operator::{atomic, single::*},
 };
 
@@ -28,8 +28,18 @@ pub fn t(a_mask: N) -> SingleOp {
     atomic::t::Op::new(a_mask).into()
 }
 
-#[deprecated(note = "it is overhead, use `rz` instead")]
+#[deprecated(since = "0.4.3", note = "it is overhead, use `rz` instead")]
 #[inline(always)]
 pub fn phi(phases: Vec<(R, N)>) -> SingleOp {
     atomic::phi::Op::new(phases).into()
+}
+
+#[inline(always)]
+pub fn u1(a_mask: N, matrix: M1) -> Option<SingleOp> {
+    single_op_checked!(atomic::u1::Op::new(a_mask, matrix))
+}
+
+#[inline(always)]
+pub fn u2(a_mask: N, b_mask: N, matrix: M2) -> Option<SingleOp> {
+    single_op_checked!(atomic::u2::Op::new(a_mask, b_mask, matrix))
 }

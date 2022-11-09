@@ -1,3 +1,6 @@
+#![allow(clippy::upper_case_acronyms)]
+#![allow(deprecated)]
+
 use std::fmt;
 
 use super::*;
@@ -15,8 +18,9 @@ type S = s::Op;
 type T = t::Op;
 type RZ = rz::Op;
 type RZZ = rzz::Op;
-type U1 = u1::Op;
 type Phi = phi::Op;
+type U1 = u1::Op;
+type U2 = u2::Op;
 type H1 = h1::Op;
 type H2 = h2::Op;
 type Swap = swap::Op;
@@ -58,8 +62,9 @@ pub enum AtomicOpDispatch {
     T,
     RZ,
     RZZ,
-    U1,
     Phi,
+    U1,
+    U2,
     H1,
     H2,
     Swap,

@@ -1,38 +1,38 @@
 [package]
-name        = "qvnt"
-version     = "0.4.2"
-description = "Advanced quantum computation simulator."
-keywords    = ["theoretical", "quantum-computing", "quantum-simulator", "quantum", "qubits"]
-categories  = ["concurrency", "simulation", "mathematics", "science"]
+name                = "qvnt"
+version             = "0.4.2"
+description         = "Advanced quantum computation simulator."
+keywords            = ["theoretical", "quantum-computing", "quantum-simulator", "quantum", "qubits"]
+categories          = ["concurrency", "simulation", "mathematics", "science"]
 
-authors     = ["Denis Drozhzhin <denisdrozhzhin1999@gmail.com>"]
-edition     = "2018"
-repository  = "https://github.com/MucTepDayH16/qvnt/"
-readme      = "README.md"
-license     = "MIT OR Apache-2.0"
+authors             = ["Denis Drozhzhin <denisdrozhzhin1999@gmail.com>"]
+edition             = "2018"
+repository          = "https://github.com/MucTepDayH16/qvnt/"
+readme              = "README.md"
+license             = "MIT OR Apache-2.0"
 
 [dependencies]
-lazy_static = { version = "1.4.0", optional = true }
-num-complex = "0.4.0"
-float-cmp   = "0.8.0"
-rand        = "0.8.4"
-rand_distr  = "0.4.3"
-rayon       = { version = "1.5.1", optional = true }
-dispatch    = { package = "enum_dispatch", version = "0.3.8" }
-qasm        = { package = "qvnt-qasm", version = "0.2.0", optional = true, features = ["no-check-ver"] }
-meval       = { version = "0.2.0", optional = true }
+lazy_static         = { version = "1.4.0", optional = true }
+num-complex         = "0.4.0"
+float-cmp           = "0.8.0"
+rand                = "0.8.4"
+rand_distr          = "0.4.3"
+rayon               = { version = "1.5.1", optional = true }
+dispatch            = { package = "enum_dispatch", version = "0.3.8" }
+qasm                = { package = "qvnt-qasm", version = "0.2.0", optional = true, features = ["no-check-ver"] }
+meval               = { version = "0.2.0", optional = true }
 
 [dev-dependencies]
-criterion   = "0.3.5"
-test-case   = "2.2.1"
+criterion           = "0.3.5"
+test-case           = "2.2.1"
 
 [features]
-default     = ["interpreter", "multi-th"]
-multi-th    = ["rayon", "lazy_static"]
-cpu         = ["multi-th"]
-interpreter = ["qasm", "meval"]
+default             = ["multi-thread", "interpreter"]
+multi-thread        = ["rayon", "lazy_static"]
+cpu                 = ["multi-thread"]
+interpreter         = ["qasm", "meval"]
 
 [[bench]]
 name                = "performance"
 harness             = false
-required-features   = ["multi-th"]
+required-features   = ["multi-thread"]

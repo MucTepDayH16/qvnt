@@ -21,7 +21,7 @@ mod consts {
     ];
 }
 
-mod types {
+pub mod types {
     pub type Mask = usize;
 
     pub type N = usize;

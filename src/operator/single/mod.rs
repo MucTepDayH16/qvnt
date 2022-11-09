@@ -2,8 +2,8 @@ use std::fmt;
 
 pub(crate) use super::Applicable;
 use crate::{
-    backend::{self, Backend, BackendError},
-    math::{C, N, R},
+    backend::{Backend, BackendError},
+    math::types::*,
     operator::atomic::*,
 };
 
