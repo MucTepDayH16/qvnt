@@ -1,5 +1,4 @@
 #![allow(clippy::upper_case_acronyms)]
-#![allow(deprecated)]
 
 use std::fmt;
 

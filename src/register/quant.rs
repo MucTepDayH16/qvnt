@@ -127,32 +127,6 @@ impl<B: Backend> Reg<B> {
         B::reset_state_and_size(&mut self.backend, q_num, 0).unwrap();
     }
 
-    #[deprecated]
-    #[doc(hidden)]
-    pub(crate) fn set_num_no_realloc(&mut self, _q_num: N) {
-        // let q_size = 1_usize << q_num;
-        // self.q_num = q_num;
-        // self.q_mask = q_size.wrapping_sub(1_usize);
-
-        // if q_num < self.q_num {
-        //     self.reset(0);
-        //     unsafe { self.psi.set_len(q_size) };
-        // } else {
-        //     self.psi.resize(q_size, C_ZERO);
-        // }
-
-        todo!()
-    }
-
-    /// __This method available with "cpu" feature enabled.__
-    ///
-    /// Set specified number of threads for a given quantum register.
-    /// This value is used all across other methods to accelerate execution, using threads of your computer.
-    #[deprecated]
-    pub fn num_threads(self, _num_threads: usize) -> Option<Self> {
-        None
-    }
-
     pub(crate) fn reset(&mut self, state: Mask) {
         let state = self.q_mask & state;
         B::reset_state(&mut self.backend, state).unwrap();
@@ -176,98 +150,16 @@ impl<B: Backend> Reg<B> {
         }
     }
 
-    #[deprecated]
     pub(crate) fn combine(_q: (&Self, &Self)) -> Option<Self> {
-        // if q.0.q_num == q.1.q_num {
-        //     let mut q_reg = Self::new(q.0.q_num + 1);
-
-        //     match q.0.th {
-        //         Model::Single => {
-        //             q_reg.psi[..q.0.psi.len()].clone_from_slice(&q.0.psi[..]);
-        //             q_reg.psi[q.0.psi.len()..].clone_from_slice(&q.1.psi[..]);
-        //         }
-        //         #[cfg(feature = "cpu")]
-        //         Model::Multi(n) => crate::threads::global_install(n, || {
-        //             q_reg.psi[..q.0.psi.len()]
-        //                 .par_iter_mut()
-        //                 .zip(q.0.psi.par_iter())
-        //                 .for_each(|p| *p.0 = *p.1);
-        //             q_reg.psi[q.0.psi.len()..]
-        //                 .par_iter_mut()
-        //                 .zip(q.1.psi.par_iter())
-        //                 .for_each(|p| *p.0 = *p.1);
-        //         }),
-        //     }
-
-        //     Some(q_reg)
-        // } else {
-        //     None
-        // }
-
-        todo!()
+        unimplemented!()
     }
 
-    // TODO: add tests for combine
-    #[deprecated]
     pub(crate) fn combine_with_unitary(_q: (&Self, &Self), _c: M1) -> Option<Self> {
-        // #[cfg(feature = "float-cmp")]
-        // assert!(crate::math::matrix::is_unitary_m1(&c));
-        // if q.0.q_num == q.1.q_num {
-        //     let mut q_reg = Self::new(q.0.q_num + 1);
-        //     let q_mask = q.0.q_mask;
-
-        //     match q.0.th.and(q.1.th) {
-        //         Model::Single => {
-        //             q_reg.psi.iter_mut().enumerate().for_each(|(idx, v)| {
-        //                 let q = (q.0.psi[q_mask & idx], q.1.psi[q_mask & idx]);
-        //                 if !q_mask & idx == 0 {
-        //                     *v = c[0b00] * q.0 + c[0b01] * q.1;
-        //                 } else {
-        //                     *v = c[0b10] * q.0 + c[0b11] * q.1;
-        //                 }
-        //             });
-        //         }
-        //         #[cfg(feature = "cpu")]
-        //         Model::Multi(n) => crate::threads::global_install(n, || {
-        //             q_reg.psi.par_iter_mut().enumerate().for_each(|(idx, v)| {
-        //                 let q = (q.0.psi[q_mask & idx], q.1.psi[q_mask & idx]);
-        //                 if !q_mask & idx == 0 {
-        //                     *v = c[0b00] * q.0 + c[0b01] * q.1;
-        //                 } else {
-        //                     *v = c[0b10] * q.0 + c[0b11] * q.1;
-        //                 }
-        //             });
-        //         }),
-        //     }
-        //     Some(q_reg)
-        // } else {
-        //     None
-        // }
-
-        todo!()
+        unimplemented!()
     }
 
-    // TODO: add tests for linear_composition
-    #[deprecated]
     pub(crate) fn linear_composition(&mut self, _psi: &[C], _c: (C, C)) {
-        // assert_eq!(self.psi.len(), psi.len());
-
-        // match self.th {
-        //     Model::Single => self
-        //         .psi
-        //         .iter_mut()
-        //         .zip(psi.iter())
-        //         .for_each(|q| *q.0 = q.0.mul(c.0) + q.1.mul(c.1)),
-        //     #[cfg(feature = "cpu")]
-        //     Model::Multi(n) => crate::threads::global_install(n, || {
-        //         self.psi
-        //             .par_iter_mut()
-        //             .zip(psi.par_iter())
-        //             .for_each(|q| *q.0 = q.0.mul(c.0) + q.1.mul(c.1))
-        //     }),
-        // }
-
-        todo!()
+        unimplemented!()
     }
 
     fn tensor_prod_assign(&mut self, mut other: Self) {

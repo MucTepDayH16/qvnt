@@ -82,15 +82,6 @@ impl Reg {
         self.q_mask = 1_usize.wrapping_shl(q_num as u32).wrapping_sub(1_usize);
     }
 
-    /// Initialize a value of register.
-    #[deprecated(since = "0.4.3", note = "use `with_state` instead")]
-    pub fn init_state(self, i_state: N) -> Self {
-        Self {
-            value: i_state & self.q_mask,
-            ..self
-        }
-    }
-
     pub(crate) fn reset(&mut self, i_state: N) {
         self.value = i_state & self.q_mask;
     }

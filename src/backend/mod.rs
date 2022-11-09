@@ -46,10 +46,15 @@ pub trait Backend {
     fn collect(&self) -> Vec<C>;
 
     fn collect_probabilities(&self) -> Vec<R> {
-        self.collect()
+        let mut probs: Vec<_> = self
+            .collect()
             .into_iter()
             .map(|psi| psi.norm_sqr())
-            .collect()
+            .collect();
+        let inv_norm = 1. / probs.iter().sum::<R>();
+        probs.iter_mut().for_each(|psi| *psi *= inv_norm);
+
+        probs
     }
 
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result;
