@@ -1,0 +1,40 @@
+name: Unit-tests
+
+on: [push]
+
+env:
+  CARGO_TERM_COLOR:
+    always
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v2
+
+      - name: Cache cargo artifacts
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Set stable channel
+        run: rustup default stable
+
+      - name: Clean space
+        run: cargo clean --package qvnt
+
+      - name: Build crate
+        run: cargo build --release --package qvnt --all-features
+        
+      - name: Test crate
+        run: cargo test --quiet --release --package qvnt --all-features
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]

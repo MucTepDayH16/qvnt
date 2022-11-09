@@ -1,4 +1,4 @@
-name: Rust
+name: Linter
 
 on: [push]
 
@@ -8,26 +8,20 @@ env:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
         uses: actions/checkout@v2
-      - name: Init submodules
-        uses: snickerbockers/submodules-init@v4
+
       - name: Set stable channel
         run: rustup default stable
+
       - name: Add nightly channel
         run: rustup install nightly && rustup +nightly component add rustfmt
+
       - name: Rustfmt checks
         run: cargo +nightly fmt --check
+        
       - name: Clippy checks
         run: cargo clippy --all-targets --all-features -- -Dwarnings
-      - name: Clean space
-        run: cargo clean --package qvnt
-      - name: Build crate
-        run: cargo build --release --package qvnt --all-features
-      - name: Test crate
-        run: cargo test --quiet --release --package qvnt --all-features
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
+
