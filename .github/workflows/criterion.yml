@@ -22,7 +22,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: Criterion-${{ github.ref }}
+          key: Criterion-${{ github.ref_name }}
 
       - name: Set stable channel
         run: rustup default stable
