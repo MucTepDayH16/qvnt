@@ -178,7 +178,7 @@ impl Reg {
         }
     }
 
-    /// __This method available with "cpu" feature enabled.__
+    /// __This method available with "multi-thread" feature enabled.__
     ///
     /// Set specified number of threads for a given quantum register.
     /// This value is used all across other methods to accelerate execution, using threads of your computer.
@@ -226,13 +226,6 @@ impl Reg {
             }),
         }
         self.normalize();
-    }
-
-    /// Initialize state of qubits.
-    #[deprecated(since = "0.4.3", note = "use `with_state` instead")]
-    pub fn init_state(mut self, i_state: N) -> Self {
-        self.reset(i_state);
-        self
     }
 
     /// Acquire the [`VReg`](super::VReg) for a whole quantum register.
@@ -392,27 +385,6 @@ impl Reg {
                 op.apply(&self.psi, &mut psi);
                 std::mem::swap(&mut self.psi, &mut psi);
             }
-            #[cfg(feature = "multi-thread")]
-            threading::Multi(n) => crate::threads::global_install(n, || {
-                let mut psi = Vec::with_capacity(self.psi.capacity());
-                unsafe { psi.set_len(self.psi.len()) };
-                op.apply_sync(&self.psi, &mut psi);
-                std::mem::swap(&mut self.psi, &mut psi);
-            }),
-        }
-    }
-
-    /// __This method available with "cpu" feature enabled.__
-    ///
-    /// Apply quantum gate to register, using specified number of threads in [`num_threads`](Reg::num_threads).
-    #[deprecated(since = "0.3.3", note = "use `apply` instead")]
-    #[cfg(feature = "multi-thread")]
-    pub fn apply_sync<Op>(&mut self, op: &Op)
-    where
-        Op: crate::operator::applicable::Applicable,
-    {
-        match self.th {
-            threading::Single => self.apply(op),
             #[cfg(feature = "multi-thread")]
             threading::Multi(n) => crate::threads::global_install(n, || {
                 let mut psi = Vec::with_capacity(self.psi.capacity());

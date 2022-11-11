@@ -343,38 +343,6 @@ pub fn rzz(phase: R, ab_mask: N) -> MultiOp {
         .into()
 }
 
-/// Phase shift gate.
-///
-/// Performs phase shift for a range of given qubits by corresponding phase.
-/// It is similar to [`RZ(λ)`](rz) gate, but do not perform global phase shift and can act on multiple qubits at once.
-///
-/// As an argument, it takes [`Vec<(f64,usize)>`](Vec).
-/// Each element ```x``` of the vector is treated as separate phase shift by ```x.0```,
-/// that act on qubits by mask ```x.1```.
-///
-/// ```rust
-/// # use qvnt::prelude::*;
-/// use std::f64::consts::PI as π;
-///
-/// //  Take a third root of *Z* gate.
-/// let z_pow_a = op::phi(vec![(π / 3., 0b1)]);
-/// //  Equivalent to Op::z(0b1).
-/// let z = op::phi(vec![(π, 0b1)]);
-/// ```
-///
-/// Its matrix form depend on [`Vec`] size, but for ```vec![(a, 1)]```, which affect only 1 qubit, the matrix is:
-///
-/// <table cellpadding="10pt">
-///     <tr><th>&nbsp;&nbsp;1&nbsp;&nbsp;</sup></th><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th></tr>
-///     <tr><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>e<sup> <i>i</i>a</sup></th></tr>
-/// </table>
-#[deprecated(note = "it is overhead, use chain of `rz` instead")]
-#[allow(deprecated)]
-#[inline(always)]
-pub fn phi(phases: Vec<(R, N)>) -> MultiOp {
-    pauli::phi(phases).into()
-}
-
 /// [`SWAP`](swap()) gate.
 ///
 /// Performs SWAP of 2 qubits' state.

@@ -18,7 +18,6 @@ pub mod s;
 pub mod t;
 pub mod z;
 
-pub mod phi;
 pub mod u1;
 pub mod u2;
 
