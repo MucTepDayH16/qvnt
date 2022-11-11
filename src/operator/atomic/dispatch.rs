@@ -19,7 +19,6 @@ type S = s::Op;
 type T = t::Op;
 type RZ = rz::Op;
 type RZZ = rzz::Op;
-type Phi = phi::Op;
 type U1 = u1::Op;
 type U2 = u2::Op;
 type H1 = h1::Op;
@@ -63,7 +62,6 @@ pub enum AtomicOpDispatch {
     T,
     RZ,
     RZZ,
-    Phi,
     U1,
     U2,
     H1,
