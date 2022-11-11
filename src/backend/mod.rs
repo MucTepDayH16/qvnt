@@ -79,7 +79,9 @@ pub trait Backend {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::backend::{multi_thread::MultiThreadBuilder, single_thread::SingleThreadBuilder};
+    #[cfg(feature = "multi-thread")]
+    use crate::backend::multi_thread::MultiThreadBuilder;
+    use crate::backend::single_thread::SingleThreadBuilder;
 
     #[test]
     fn fn_builder() {
@@ -88,6 +90,7 @@ mod tests {
         }
 
         let _ = custom_build(SingleThreadBuilder);
+        #[cfg(feature = "multi-thread")]
         let _ = custom_build(MultiThreadBuilder::default());
         let _ = custom_build(|q_num| SingleThreadBuilder.build(q_num));
     }
