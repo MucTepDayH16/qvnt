@@ -3,22 +3,22 @@
 use super::{approx_cmp::*, types::*};
 
 pub fn is_diagonal_m1(u: &M1) -> bool {
-    approx_cmp(u[0b01].norm_sqr(), 0.0) && approx_cmp(u[0b10].norm_sqr(), 0.0)
+    approx_eq_real(u[0b01].norm_sqr(), 0.0) && approx_eq_real(u[0b10].norm_sqr(), 0.0)
 }
 
 pub fn is_diagonal_m2(u: &M2) -> bool {
-    approx_cmp(u[0b0001].norm_sqr(), 0.0)
-        && approx_cmp(u[0b0010].norm_sqr(), 0.0)
-        && approx_cmp(u[0b0011].norm_sqr(), 0.0)
-        && approx_cmp(u[0b0100].norm_sqr(), 0.0)
-        && approx_cmp(u[0b0110].norm_sqr(), 0.0)
-        && approx_cmp(u[0b0111].norm_sqr(), 0.0)
-        && approx_cmp(u[0b1000].norm_sqr(), 0.0)
-        && approx_cmp(u[0b1001].norm_sqr(), 0.0)
-        && approx_cmp(u[0b1011].norm_sqr(), 0.0)
-        && approx_cmp(u[0b1100].norm_sqr(), 0.0)
-        && approx_cmp(u[0b1101].norm_sqr(), 0.0)
-        && approx_cmp(u[0b1110].norm_sqr(), 0.0)
+    approx_eq_real(u[0b0001].norm_sqr(), 0.0)
+        && approx_eq_real(u[0b0010].norm_sqr(), 0.0)
+        && approx_eq_real(u[0b0011].norm_sqr(), 0.0)
+        && approx_eq_real(u[0b0100].norm_sqr(), 0.0)
+        && approx_eq_real(u[0b0110].norm_sqr(), 0.0)
+        && approx_eq_real(u[0b0111].norm_sqr(), 0.0)
+        && approx_eq_real(u[0b1000].norm_sqr(), 0.0)
+        && approx_eq_real(u[0b1001].norm_sqr(), 0.0)
+        && approx_eq_real(u[0b1011].norm_sqr(), 0.0)
+        && approx_eq_real(u[0b1100].norm_sqr(), 0.0)
+        && approx_eq_real(u[0b1101].norm_sqr(), 0.0)
+        && approx_eq_real(u[0b1110].norm_sqr(), 0.0)
 }
 
 pub fn is_unitary_m1(u: &M1) -> bool {
@@ -26,7 +26,7 @@ pub fn is_unitary_m1(u: &M1) -> bool {
     let e11 = u[0b10].norm_sqr() + u[0b11].norm_sqr();
     let e01 = u[0b00] * u[0b10].conj() + u[0b01] * u[0b11].conj();
 
-    approx_cmp(e00, 1.0) && approx_cmp(e11, 1.0) && approx_cmp(e01.re + e01.im, 0.0)
+    approx_eq_real(e00, 1.0) && approx_eq_real(e11, 1.0) && approx_eq_real(e01.re + e01.im, 0.0)
 }
 
 pub fn inverse_unitary_m1(u: &M1) -> M1 {
@@ -61,16 +61,16 @@ pub fn is_unitary_m2(u: &M2) -> bool {
     let e13 = hermitian_mul(1, 3, u);
     let e23 = hermitian_mul(2, 3, u);
 
-    approx_cmp(e00, 1.0)
-        && approx_cmp(e11, 1.0)
-        && approx_cmp(e22, 1.0)
-        && approx_cmp(e33, 1.0)
-        && approx_cmp(e01.re + e01.im, 0.0)
-        && approx_cmp(e02.re + e02.im, 0.0)
-        && approx_cmp(e03.re + e03.im, 0.0)
-        && approx_cmp(e12.re + e12.im, 0.0)
-        && approx_cmp(e13.re + e13.im, 0.0)
-        && approx_cmp(e23.re + e23.im, 0.0)
+    approx_eq_real(e00, 1.0)
+        && approx_eq_real(e11, 1.0)
+        && approx_eq_real(e22, 1.0)
+        && approx_eq_real(e33, 1.0)
+        && approx_eq_real(e01.re + e01.im, 0.0)
+        && approx_eq_real(e02.re + e02.im, 0.0)
+        && approx_eq_real(e03.re + e03.im, 0.0)
+        && approx_eq_real(e12.re + e12.im, 0.0)
+        && approx_eq_real(e13.re + e13.im, 0.0)
+        && approx_eq_real(e23.re + e23.im, 0.0)
 }
 
 pub fn inverse_unitary_m2(u: &M2) -> M2 {
@@ -100,7 +100,7 @@ pub fn is_scaled_unitary_m1(u: &M1) -> bool {
     let e11 = u[0b10].norm_sqr() + u[0b11].norm_sqr();
     let e01 = u[0b00] * u[0b10].conj() + u[0b01] * u[0b11].conj();
 
-    approx_cmp(e00, e11) && approx_cmp(e01.re + e01.im, 0.0)
+    approx_eq_real(e00, e11) && approx_eq_real(e01.re + e01.im, 0.0)
 }
 
 pub fn is_scaled_unitary_m2(_: &M2) -> bool {

@@ -10,7 +10,7 @@ use rand_distr;
 
 use crate::{
     backend::{Backend, BackendBuilder, DefaultBuilder},
-    math::*,
+    math::types::*,
     operator::applicable::Applicable,
 };
 
@@ -312,12 +312,10 @@ impl<B: Backend> MulAssign for Reg<B> {
 
 #[cfg(test)]
 mod tests {
-    use crate::prelude::*;
+    use crate::{math::types::*, prelude::*};
 
     #[test]
     fn quantum_reg() {
-        use crate::math::C;
-
         let mut reg = QReg::with_state(4, 0b1100);
         let mask = 0b0110;
 

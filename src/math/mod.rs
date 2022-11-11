@@ -1,12 +1,8 @@
-pub use std::f64::consts::*;
-
-pub use self::{consts::*, types::*};
-
 pub mod approx_cmp;
 pub mod bits_iter;
 pub mod matrix;
 
-mod consts {
+pub mod consts {
     use super::types::*;
 
     pub const C_ONE: C = C { re: 1., im: 0. };
@@ -19,6 +15,8 @@ mod consts {
         C { re: -1., im: 0. },
         C { re: 0., im: -1. },
     ];
+
+    pub use std::f64::consts::*;
 }
 
 pub mod types {
@@ -33,6 +31,9 @@ pub mod types {
     pub type M1 = [C; 4];
     pub type M2 = [C; 16];
 }
+
+use consts::*;
+use types::*;
 
 #[inline]
 pub fn count_bits(n: N) -> N {

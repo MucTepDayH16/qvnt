@@ -1,7 +1,5 @@
 use super::*;
 
-const SQRT_1_2: R = crate::math::FRAC_1_SQRT_2;
-
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub struct Op {
     ab_mask: Mask,
@@ -26,13 +24,13 @@ impl super::NativeCpuOp for Op {
             let psi = (psi[idx], psi[idx ^ self.ab_mask]);
             if self.dagger {
                 C {
-                    re: SQRT_1_2 * (psi.0.re + psi.1.im),
-                    im: SQRT_1_2 * (psi.0.im - psi.1.re),
+                    re: FRAC_1_SQRT_2 * (psi.0.re + psi.1.im),
+                    im: FRAC_1_SQRT_2 * (psi.0.im - psi.1.re),
                 }
             } else {
                 C {
-                    re: SQRT_1_2 * (psi.0.re - psi.1.im),
-                    im: SQRT_1_2 * (psi.0.im + psi.1.re),
+                    re: FRAC_1_SQRT_2 * (psi.0.re - psi.1.im),
+                    im: FRAC_1_SQRT_2 * (psi.0.im + psi.1.re),
                 }
             }
         } else {
@@ -81,8 +79,8 @@ fn matrix_repr() {
         op.matrix(2),
         [
             [I, O, O, O],
-            [O, SQRT_1_2 * I, SQRT_1_2 * i, O],
-            [O, SQRT_1_2 * i, SQRT_1_2 * I, O],
+            [O, FRAC_1_SQRT_2 * I, FRAC_1_SQRT_2 * i, O],
+            [O, FRAC_1_SQRT_2 * i, FRAC_1_SQRT_2 * I, O],
             [O, O, O, I]
         ]
     );

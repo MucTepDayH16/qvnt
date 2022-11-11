@@ -1,9 +1,6 @@
 use std::{convert::Infallible, fmt, str::FromStr};
 
-use crate::{
-    math::{Mask, C, N, R},
-    operator::atomic::AtomicOpDispatch,
-};
+use crate::{math::types::*, operator::atomic::AtomicOpDispatch};
 
 #[cfg(feature = "multi-thread")]
 pub mod multi_thread;

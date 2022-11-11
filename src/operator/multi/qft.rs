@@ -1,5 +1,5 @@
 use super::*;
-use crate::operator::single::rotate::rz;
+use crate::{math::consts::PI, operator::single::rotate::rz};
 
 pub fn qft(a_mask: N) -> MultiOp {
     let count = a_mask.count_ones() as usize;
@@ -20,7 +20,7 @@ pub fn qft(a_mask: N) -> MultiOp {
             for i in 0..(count - 1) {
                 res.append(&mut h::h(vec[i]));
                 res.extend((1..(count - i)).map(|j| {
-                    rz(vec[i + j], crate::math::PI * 0.5f64.powi(j as i32))
+                    rz(vec[i + j], PI * 0.5f64.powi(j as i32))
                         .and_then(|op| op.c(vec[i]))
                         .unwrap()
                 }));

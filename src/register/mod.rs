@@ -5,9 +5,9 @@
 //! * [`CReg`] - classical register;
 //! * [`VReg`] - *vurtual* register.
 
-pub(crate) mod class;
-pub(crate) mod quant;
-pub(crate) mod virtl;
+mod class;
+mod quant;
+mod virtl;
 
 pub use class::Reg as CReg;
 pub use quant::Reg as QReg;

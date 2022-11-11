@@ -181,8 +181,8 @@ impl<'a> MulAssign<SingleOp> for &'a mut MultiOp {
     }
 }
 
-pub(crate) mod h;
-pub(crate) mod qft;
+pub mod h;
+pub mod qft;
 
 #[cfg(test)]
 mod tests {

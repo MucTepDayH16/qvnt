@@ -4,7 +4,7 @@ use std::fmt;
 
 use super::{Backend, BackendBuilder, BackendError};
 use crate::{
-    math::{approx_cmp::approx_cmp, types::*, C_ONE, C_ZERO},
+    math::{approx_cmp::approx_eq_real, consts::*, types::*},
     operator::atomic::{AtomicOpDispatch, NativeCpuOp},
 };
 
@@ -182,9 +182,9 @@ impl Backend for SingleThread {
             })
             .sqrt();
 
-        if approx_cmp(abs, 0.0) {
+        if approx_eq_real(abs, 0.0) {
             self.reset_state(0)?;
-        } else if !approx_cmp(abs, 1.0) {
+        } else if !approx_eq_real(abs, 1.0) {
             self.psi_main.iter_mut().for_each(|psi| {
                 *psi /= abs;
             });

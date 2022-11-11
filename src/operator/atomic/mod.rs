@@ -1,6 +1,6 @@
 #![cfg_attr(test, allow(non_upper_case_globals))]
 
-use crate::math::types::*;
+use crate::math::{consts::*, types::*};
 
 pub mod id;
 

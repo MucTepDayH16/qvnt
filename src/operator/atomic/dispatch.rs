@@ -5,7 +5,7 @@ use std::fmt;
 use super::*;
 #[cfg(feature = "multi-thread")]
 use crate::backend::multi_thread::MultiThreadOp;
-use crate::{backend::single_thread::SingleThreadOp, math::Mask};
+use crate::backend::single_thread::SingleThreadOp;
 
 type Id = id::Op;
 type X = x::Op;
@@ -44,7 +44,7 @@ pub trait AtomicOp: Clone + PartialEq + crate::sealed::Seal {
     fn dgr(self) -> AtomicOpDispatch;
 }
 
-pub(crate) trait NativeCpuOp: Sync + Send + AtomicOp {
+pub trait NativeCpuOp: Sync + Send + AtomicOp {
     fn native_cpu_op(&self, psi: &[C], idx: N) -> C;
 }
 

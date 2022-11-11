@@ -1,6 +1,6 @@
 use meval::*;
 
-use crate::math::*;
+use crate::math::{consts::*, types::*};
 
 thread_local! {
     static EXAUSTIVE_CONTEXT: Context<'static> = {

@@ -13,16 +13,35 @@ impl Iterator for BitsIter {
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.pos {
-            pos if pos > self.bits => None,
-            pos if pos & self.bits != 0 => {
+        loop {
+            if self.pos & self.bits != 0 {
+                let pos = self.pos;
                 self.pos <<= 1;
-                Some(pos)
+                return Some(pos);
+            } else if self.pos > self.bits {
+                return None;
             }
-            _ => {
-                self.pos <<= 1;
-                self.next()
-            }
+            self.pos <<= 1;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bits_iter() {
+        let number = 0b10011001101010;
+        let mut iter = BitsIter::from(number);
+
+        assert_eq!(iter.next(), Some(1 << 1));
+        assert_eq!(iter.next(), Some(1 << 3));
+        assert_eq!(iter.next(), Some(1 << 5));
+        assert_eq!(iter.next(), Some(1 << 6));
+        assert_eq!(iter.next(), Some(1 << 9));
+        assert_eq!(iter.next(), Some(1 << 10));
+        assert_eq!(iter.next(), Some(1 << 13));
+        assert_eq!(iter.next(), None);
     }
 }
