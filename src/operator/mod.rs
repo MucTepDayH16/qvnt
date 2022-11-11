@@ -89,13 +89,13 @@
 
 pub use self::{applicable::*, multi::MultiOp, single::SingleOp};
 use self::{multi::*, single::*};
-use crate::math::{types::*, FRAC_PI_2};
+use crate::math::{consts::*, types::*};
 
-pub(crate) mod applicable;
+pub mod applicable;
 
-pub(self) mod atomic;
-pub(self) mod multi;
-pub(self) mod single;
+mod atomic;
+mod multi;
+mod single;
 
 /// [`Identity`](id) gate.
 ///
@@ -554,7 +554,7 @@ pub fn qft_swapped(a_mask: N) -> MultiOp {
 }
 
 #[cfg(test)]
-pub(crate) fn bench_circuit() -> MultiOp {
+pub fn bench_circuit() -> MultiOp {
     MultiOp::default()
         * h(0b111)
         * h(0b100).c(0b001).unwrap()
@@ -563,5 +563,5 @@ pub(crate) fn bench_circuit() -> MultiOp {
         * rz(1.0, 0b010).c(0b001).unwrap()
         * h(0b001).c(0b100).unwrap()
         * z(0b010)
-        * rxx(crate::math::FRAC_PI_6, 0b101)
+        * rxx(FRAC_PI_6, 0b101)
 }

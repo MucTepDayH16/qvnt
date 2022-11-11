@@ -1,9 +1,7 @@
 use super::*;
 
-const SQRT_1_2: R = crate::math::FRAC_1_SQRT_2;
-
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub(crate) struct Op {
+pub struct Op {
     a_mask: N,
 }
 
@@ -20,7 +18,7 @@ impl AtomicOp for Op {
         if idx & self.a_mask != 0 {
             psi.0 = -psi.0
         };
-        (psi.0 + psi.1).scale(SQRT_1_2)
+        (psi.0 + psi.1).scale(FRAC_1_SQRT_2)
     }
 
     fn name(&self) -> String {
@@ -50,7 +48,7 @@ fn matrix_repr() {
     use crate::operator::single::*;
 
     const SQRT_1_2: C = C {
-        re: crate::math::FRAC_1_SQRT_2,
+        re: FRAC_1_SQRT_2,
         im: 0.0,
     };
 

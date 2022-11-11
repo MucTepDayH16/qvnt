@@ -1,12 +1,12 @@
 use super::*;
 
 const EXP_I_PI_4: C = C {
-    re: crate::math::FRAC_1_SQRT_2,
-    im: crate::math::FRAC_1_SQRT_2,
+    re: FRAC_1_SQRT_2,
+    im: FRAC_1_SQRT_2,
 };
 
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub(crate) struct Op {
+pub struct Op {
     a_mask: N,
     dagger: bool,
 }

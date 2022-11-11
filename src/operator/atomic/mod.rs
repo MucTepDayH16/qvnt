@@ -1,34 +1,34 @@
 #![cfg_attr(test, allow(non_upper_case_globals))]
 
-use crate::math::types::*;
+use crate::math::{consts::*, types::*};
 
-pub(crate) mod id;
+pub mod id;
 
-pub(crate) mod rx;
-pub(crate) mod rxx;
-pub(crate) mod x;
+pub mod rx;
+pub mod rxx;
+pub mod x;
 
-pub(crate) mod ry;
-pub(crate) mod ryy;
-pub(crate) mod y;
+pub mod ry;
+pub mod ryy;
+pub mod y;
 
-pub(crate) mod rz;
-pub(crate) mod rzz;
-pub(crate) mod s;
-pub(crate) mod t;
-pub(crate) mod z;
+pub mod rz;
+pub mod rzz;
+pub mod s;
+pub mod t;
+pub mod z;
 
-pub(crate) mod phi;
-pub(crate) mod u1;
-pub(crate) mod u2;
+pub mod phi;
+pub mod u1;
+pub mod u2;
 
-pub(crate) mod h1;
-pub(crate) mod h2;
+pub mod h1;
+pub mod h2;
 
-pub(crate) mod i_swap;
-pub(crate) mod sqrt_i_swap;
-pub(crate) mod sqrt_swap;
-pub(crate) mod swap;
+pub mod i_swap;
+pub mod sqrt_i_swap;
+pub mod sqrt_swap;
+pub mod swap;
 
-pub(crate) mod dispatch;
-pub(crate) use self::dispatch::*;
+pub mod dispatch;
+pub use self::dispatch::*;

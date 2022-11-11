@@ -14,7 +14,7 @@ impl Op {
             let mut jdx = 1;
             while jdx <= *idx {
                 if jdx & *idx != 0 {
-                    phases.entry(jdx).or_insert(crate::math::C_ZERO).im += *val;
+                    phases.entry(jdx).or_insert(C_ZERO).im += *val;
                 }
                 jdx <<= 1;
             }

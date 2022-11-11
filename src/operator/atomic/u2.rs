@@ -1,11 +1,6 @@
 use super::*;
 use crate::math::matrix::{inverse_unitary_m2, is_unitary_m2};
 
-const EXP_I_PI_4: C = C {
-    re: crate::math::FRAC_1_SQRT_2,
-    im: crate::math::FRAC_1_SQRT_2,
-};
-
 #[derive(Clone, Copy, PartialEq)]
 pub struct Op {
     a_mask: N,
@@ -96,7 +91,7 @@ fn matrix_repr() {
     const O: C = C { re: 0.0, im: 0.0 };
     const I: C = C { re: 1.0, im: 0.0 };
     const SQRT_1_2: C = C {
-        re: crate::math::FRAC_1_SQRT_2,
+        re: FRAC_1_SQRT_2,
         im: 0.0,
     };
 

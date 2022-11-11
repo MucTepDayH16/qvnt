@@ -1,6 +1,6 @@
 use super::int::*;
 use crate::{
-    math::{bits_iter::BitsIter, N, R},
+    math::{bits_iter::BitsIter, types::*},
     register::{CReg, QReg},
 };
 

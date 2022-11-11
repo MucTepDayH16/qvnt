@@ -3,7 +3,7 @@ use std::{
     ops::{Mul, MulAssign},
 };
 
-pub(crate) use super::Applicable;
+pub use super::Applicable;
 use crate::{math::types::*, operator::single::*};
 
 /// Quantum operation's queue.
@@ -190,8 +190,8 @@ impl<'a> MulAssign<SingleOp> for &'a mut MultiOp {
     }
 }
 
-pub(crate) mod h;
-pub(crate) mod qft;
+pub mod h;
+pub mod qft;
 
 #[cfg(test)]
 mod tests {

@@ -39,7 +39,7 @@ fn set_num_threads(num_threads: usize) {
     ));
 }
 
-pub(crate) fn global_install<OP, R>(num_threads: usize, op: OP) -> R
+pub fn global_install<OP, R>(num_threads: usize, op: OP) -> R
 where
     OP: FnOnce() -> R + Send,
     R: Send,

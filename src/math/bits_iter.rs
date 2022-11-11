@@ -13,16 +13,13 @@ impl Iterator for BitsIter {
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.pos {
-            pos if pos > self.bits => None,
-            pos if pos & self.bits != 0 => {
-                self.pos <<= 1;
-                Some(pos)
+        loop {
+            if self.pos & self.bits != 0 {
+                return Some(self.pos);
+            } else if self.pos > self.bits {
+                return None;
             }
-            _ => {
-                self.pos <<= 1;
-                self.next()
-            }
+            self.pos <<= 1;
         }
     }
 }

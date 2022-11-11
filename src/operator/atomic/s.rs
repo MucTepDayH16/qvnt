@@ -1,7 +1,7 @@
 use super::*;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub(crate) struct Op {
+pub struct Op {
     a_mask: N,
     dagger: bool,
 }

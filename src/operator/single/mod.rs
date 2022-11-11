@@ -1,4 +1,4 @@
-pub(crate) use super::Applicable;
+pub use super::Applicable;
 use crate::{math::types::*, operator::atomic::*};
 
 macro_rules! single_op_checked {

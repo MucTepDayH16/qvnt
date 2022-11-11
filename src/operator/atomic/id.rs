@@ -1,7 +1,7 @@
 use super::*;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub(crate) struct Op;
+pub struct Op;
 
 impl AtomicOp for Op {
     fn atomic_op(&self, psi: &[C], idx: N) -> C {
