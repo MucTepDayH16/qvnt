@@ -221,12 +221,21 @@ impl Backend for MultiThread {
         Ok(())
     }
 
-    fn tensor_prod_assign(&mut self, other_psi: Vec<C>) -> Result<(), BackendError> {
+    fn tensor_prod_assign(&mut self, other: Self) -> Result<(), BackendError> {
         let MultiThread {
             thread_pool,
             psi_main,
             psi_buffer,
         } = self;
+        let MultiThread {
+            thread_pool: other_thread_pool,
+            psi_main: other_psi,
+            ..
+        } = &other;
+
+        if thread_pool.current_num_threads() < other_thread_pool.current_num_threads() {
+            *thread_pool = other_thread_pool.clone();
+        }
 
         let self_size = psi_main.len();
         let new_len = self_size.checked_mul(other_psi.len()).unwrap();

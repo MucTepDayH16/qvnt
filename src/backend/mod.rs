@@ -71,74 +71,24 @@ pub trait Backend {
         Self::apply_op_controled(self, op, 0)
     }
 
-    fn tensor_prod_assign(&mut self, other_psi: Vec<C>) -> Result<(), BackendError>;
+    fn tensor_prod_assign(&mut self, other: Self) -> Result<(), BackendError>;
 
     fn collapse_by_mask(&mut self, collapse_state: Mask, mask: Mask) -> Result<(), BackendError>;
 }
 
-impl<Ref: AsRef<dyn Backend> + AsMut<dyn Backend>> Backend for Ref {
-    fn reset_state(&mut self, state: Mask) -> Result<(), BackendError> {
-        self.as_mut().reset_state(state)
-    }
-
-    fn reset_state_and_size(&mut self, q_num: N, state: Mask) -> Result<(), BackendError> {
-        self.as_mut().reset_state_and_size(q_num, state)
-    }
-
-    fn drain(&mut self) -> Vec<C> {
-        self.as_mut().drain()
-    }
-
-    fn collect(&self) -> Vec<C> {
-        self.as_ref().collect()
-    }
-
-    fn collect_probabilities(&self) -> Vec<R> {
-        self.as_ref().collect_probabilities()
-    }
-
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.as_ref().fmt(fmt)
-    }
-
-    fn apply_op_controled(
-        &mut self,
-        op: &AtomicOpDispatch,
-        ctrl: Mask,
-    ) -> Result<(), BackendError> {
-        self.as_mut().apply_op_controled(op, ctrl)
-    }
-
-    fn apply_op(&mut self, op: &AtomicOpDispatch) -> Result<(), BackendError> {
-        self.as_mut().apply_op(op)
-    }
-
-    fn tensor_prod_assign(&mut self, other_psi: Vec<C>) -> Result<(), BackendError> {
-        self.as_mut().tensor_prod_assign(other_psi)
-    }
-
-    fn collapse_by_mask(&mut self, collapse_state: Mask, mask: Mask) -> Result<(), BackendError> {
-        self.as_mut().collapse_by_mask(collapse_state, mask)
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::backend::{single_thread::SingleThread, Backend, BackendBuilder};
+    use super::*;
+    use crate::backend::{multi_thread::MultiThreadBuilder, single_thread::SingleThreadBuilder};
 
     #[test]
-    fn assert_object_save() {
-        fn _assert_object_safe() -> Box<dyn Backend + 'static> {
-            Box::new(SingleThread {
-                psi_main: vec![],
-                psi_buffer: vec![],
-            })
+    fn fn_builder() {
+        fn custom_build<B: BackendBuilder>(b: B) -> B::Backend {
+            b.build(1).unwrap()
         }
 
-        fn _assert_has_trait(_: impl Backend) {}
-
-        _assert_has_trait(_assert_object_safe());
-
-        (|_| Ok(_assert_object_safe())).build(0).unwrap();
+        let _ = custom_build(SingleThreadBuilder);
+        let _ = custom_build(MultiThreadBuilder::default());
+        let _ = custom_build(|q_num| SingleThreadBuilder.build(q_num));
     }
 }

@@ -148,9 +148,9 @@ impl Backend for SingleThread {
         Ok(())
     }
 
-    fn tensor_prod_assign(&mut self, other_psi: Vec<C>) -> Result<(), BackendError> {
+    fn tensor_prod_assign(&mut self, other: Self) -> Result<(), BackendError> {
         let self_size = self.psi_main.len();
-        let new_len = self_size.checked_mul(other_psi.len()).unwrap();
+        let new_len = self_size.checked_mul(other.psi_main.len()).unwrap();
         let self_mask = self_size.saturating_sub(1);
 
         self.psi_main = (0..new_len)
@@ -159,7 +159,7 @@ impl Backend for SingleThread {
                 let other_idx = idx >> self_size;
 
                 unsafe {
-                    self.psi_main.get_unchecked(self_idx) * other_psi.get_unchecked(other_idx)
+                    self.psi_main.get_unchecked(self_idx) * other.psi_main.get_unchecked(other_idx)
                 }
             })
             .collect();

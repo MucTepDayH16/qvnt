@@ -162,9 +162,8 @@ impl<B: Backend> Reg<B> {
         unimplemented!()
     }
 
-    fn tensor_prod_assign(&mut self, mut other: Self) {
-        let other_psi = other.backend.drain();
-        self.backend.tensor_prod_assign(other_psi).unwrap();
+    fn tensor_prod_assign(&mut self, other: Self) {
+        self.backend.tensor_prod_assign(other.backend).unwrap();
         self.q_num += other.q_num;
         self.q_mask = (1usize << self.q_num).saturating_sub(1);
     }
