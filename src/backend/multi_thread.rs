@@ -52,7 +52,7 @@ impl BackendBuilder for MultiThreadBuilder {
         let num_threads = self
             .num_threads
             .map(NonZeroUsize::get)
-            .unwrap_or(usize::MAX);
+            .unwrap_or_else(rayon::current_num_threads);
 
         let thread_pool = ThreadPoolBuilder::default()
             .num_threads(num_threads)
