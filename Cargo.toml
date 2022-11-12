@@ -29,7 +29,6 @@ test-case           = "2.2.1"
 [features]
 default             = []
 multi-thread        = ["rayon", "lazy_static"]
-cpu                 = ["multi-thread"]
 interpreter         = ["qasm", "meval"]
 
 [[bench]]

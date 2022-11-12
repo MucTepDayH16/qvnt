@@ -6,6 +6,10 @@ use crate::{math::types::*, operator::atomic::AtomicOpDispatch};
 pub mod multi_thread;
 pub mod single_thread;
 
+#[cfg(feature = "multi-thread")]
+pub use multi_thread::{MultiThread, MultiThreadBuilder};
+pub use single_thread::{SingleThread, SingleThreadBuilder};
+
 #[derive(Clone, Debug)]
 pub enum BackendError {
     Custom(String),
