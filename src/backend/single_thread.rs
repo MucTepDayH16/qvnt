@@ -111,6 +111,14 @@ impl Backend for SingleThread {
         self.psi_main.clone()
     }
 
+    fn collect_probabilities(&self) -> Vec<R> {
+        let mut probs: Vec<_> = self.psi_main.iter().map(C::norm_sqr).collect();
+        let inv_norm = 1. / probs.iter().sum::<R>();
+        probs.iter_mut().for_each(|psi| *psi *= inv_norm);
+
+        probs
+    }
+
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.psi_main.len() <= MAX_LEN_TO_DISPLAY {
             self.psi_main
@@ -131,6 +139,19 @@ impl Backend for SingleThread {
         }
     }
 
+    fn apply_op(&mut self, op: &AtomicOpDispatch) -> Result<(), BackendError> {
+        let SingleThread {
+            psi_main,
+            psi_buffer,
+            ..
+        } = self;
+
+        op.apply_for(&mut psi_buffer[..], &psi_main[..]);
+        std::mem::swap(psi_main, psi_buffer);
+
+        Ok(())
+    }
+
     fn apply_op_controled(
         &mut self,
         op: &AtomicOpDispatch,
@@ -142,7 +163,7 @@ impl Backend for SingleThread {
             ..
         } = self;
 
-        op.apply_for_each(&mut psi_buffer[..], &psi_main[..], ctrl);
+        op.apply_for_with_ctrl(&mut psi_buffer[..], &psi_main[..], ctrl);
         std::mem::swap(psi_main, psi_buffer);
 
         Ok(())
@@ -196,11 +217,19 @@ impl Backend for SingleThread {
 
 #[::dispatch::enum_dispatch(AtomicOpDispatch)]
 pub(crate) trait SingleThreadOp {
-    fn apply_for_each(&self, psi_out: &mut [C], psi_in: &[C], ctrl: Mask);
+    fn apply_for(&self, psi_out: &mut [C], psi_in: &[C]);
+
+    fn apply_for_with_ctrl(&self, psi_out: &mut [C], psi_in: &[C], ctrl: Mask);
 }
 
 impl<NOp: NativeCpuOp> SingleThreadOp for NOp {
-    fn apply_for_each(&self, psi_out: &mut [C], psi_in: &[C], ctrl: Mask) {
+    fn apply_for(&self, psi_out: &mut [C], psi_in: &[C]) {
+        for (idx, psi_out) in psi_out.iter_mut().enumerate() {
+            *psi_out = self.native_cpu_op(psi_in, idx);
+        }
+    }
+
+    fn apply_for_with_ctrl(&self, psi_out: &mut [C], psi_in: &[C], ctrl: Mask) {
         for (idx, psi_out) in psi_out.iter_mut().enumerate() {
             *psi_out = if !idx & ctrl == 0 {
                 self.native_cpu_op(psi_in, idx)

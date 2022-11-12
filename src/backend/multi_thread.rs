@@ -204,6 +204,19 @@ impl Backend for MultiThread {
         }
     }
 
+    fn apply_op(&mut self, op: &AtomicOpDispatch) -> Result<(), BackendError> {
+        let MultiThread {
+            thread_pool,
+            psi_main,
+            psi_buffer,
+        } = self;
+
+        thread_pool.install(|| op.apply_for(&mut psi_buffer[..], &psi_main[..]));
+        std::mem::swap(psi_main, psi_buffer);
+
+        Ok(())
+    }
+
     fn apply_op_controled(
         &mut self,
         op: &AtomicOpDispatch,
@@ -215,7 +228,7 @@ impl Backend for MultiThread {
             psi_buffer,
         } = self;
 
-        thread_pool.install(|| op.apply_for_each(&mut psi_buffer[..], &psi_main[..], ctrl));
+        thread_pool.install(|| op.apply_for_with_ctrl(&mut psi_buffer[..], &psi_main[..], ctrl));
         std::mem::swap(psi_main, psi_buffer);
 
         Ok(())
@@ -299,11 +312,22 @@ impl Backend for MultiThread {
 
 #[::dispatch::enum_dispatch(AtomicOpDispatch)]
 pub(crate) trait MultiThreadOp {
-    fn apply_for_each(&self, psi_out: &mut [C], psi_in: &[C], ctrl: Mask);
+    fn apply_for(&self, psi_out: &mut [C], psi_in: &[C]);
+
+    fn apply_for_with_ctrl(&self, psi_out: &mut [C], psi_in: &[C], ctrl: Mask);
 }
 
 impl<NOp: NativeCpuOp> MultiThreadOp for NOp {
-    fn apply_for_each(&self, psi_out: &mut [C], psi_in: &[C], ctrl: Mask) {
+    fn apply_for(&self, psi_out: &mut [C], psi_in: &[C]) {
+        psi_out
+            .par_iter_mut()
+            .enumerate()
+            .for_each(|(idx, psi_out)| {
+                *psi_out = self.native_cpu_op(psi_in, idx);
+            })
+    }
+
+    fn apply_for_with_ctrl(&self, psi_out: &mut [C], psi_in: &[C], ctrl: Mask) {
         psi_out
             .par_iter_mut()
             .enumerate()

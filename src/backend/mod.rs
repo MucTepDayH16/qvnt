@@ -50,26 +50,14 @@ pub trait Backend {
 
     fn collect(&self) -> Vec<C>;
 
-    fn collect_probabilities(&self) -> Vec<R> {
-        let mut probs: Vec<_> = self
-            .collect()
-            .into_iter()
-            .map(|psi| psi.norm_sqr())
-            .collect();
-        let inv_norm = 1. / probs.iter().sum::<R>();
-        probs.iter_mut().for_each(|psi| *psi *= inv_norm);
-
-        probs
-    }
+    fn collect_probabilities(&self) -> Vec<R>;
 
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result;
 
+    fn apply_op(&mut self, op: &AtomicOpDispatch) -> Result<(), BackendError>;
+
     fn apply_op_controled(&mut self, op: &AtomicOpDispatch, ctrl: Mask)
         -> Result<(), BackendError>;
-
-    fn apply_op(&mut self, op: &AtomicOpDispatch) -> Result<(), BackendError> {
-        Self::apply_op_controled(self, op, 0)
-    }
 
     fn tensor_prod_assign(&mut self, other: Self) -> Result<(), BackendError>;
 
