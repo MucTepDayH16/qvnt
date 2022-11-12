@@ -28,4 +28,4 @@ jobs:
         run: rustup default stable
 
       - name: Benchmark crate (performance)
-        run: cargo bench --quiet --package qvnt --bench performance --features=multi-thread
+        run: cargo bench --quiet --package qvnt --bench performance --features multi-thread -- --sample-size 500

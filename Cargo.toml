@@ -23,7 +23,7 @@ qasm                = { package = "qvnt-qasm", version = "0.2.0", optional = tru
 meval               = { version = "0.2.0", optional = true }
 
 [dev-dependencies]
-criterion           = "0.3.5"
+criterion           = { version = "0.3.5", features = ["html_reports"] }
 test-case           = "2.2.1"
 
 [features]
