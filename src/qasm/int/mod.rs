@@ -284,74 +284,50 @@ impl<'t> Int<'t> {
         }
     }
 
-    fn get_idx_by_alias(&self, alias: &'t str) -> (N, N) {
-        let q_mask = self
-            .q_reg
-            .iter()
-            .cloned()
-            .enumerate()
-            .fold(0, |acc, (idx, name)| {
-                if name == alias {
-                    acc | 1_usize.wrapping_shl(idx as u32)
-                } else {
-                    acc
-                }
-            });
-        let c_mask = self
-            .c_reg
-            .iter()
-            .cloned()
-            .enumerate()
-            .fold(0, |acc, (idx, name)| {
-                if name == alias {
-                    acc | 1_usize.wrapping_shl(idx as u32)
-                } else {
-                    acc
-                }
-            });
+    fn get_idx_by_alias(&self, changes: &Self, alias: &'t str) -> (N, N) {
+        fn fold_idx_by_alias<'a>(iter: impl Iterator<Item = &'a str>, alias: &str) -> usize {
+            iter.enumerate()
+                .filter(|(_, name)| *name == alias)
+                .fold(0, |acc, (idx, _)| acc | 1_usize.wrapping_shl(idx as u32))
+        }
+
+        let q_mask = fold_idx_by_alias(self.q_reg.iter().chain(&changes.q_reg).cloned(), alias);
+        let c_mask = fold_idx_by_alias(self.c_reg.iter().chain(&changes.c_reg).cloned(), alias);
 
         (q_mask, c_mask)
     }
 
     fn get_q_idx_with_context(&self, changes: &Self, arg: Argument<'t>) -> Result<'t, N> {
-        let self_q_len = self.q_reg.len();
-        self.get_q_idx(arg.clone())
-            .or_else(|_| changes.get_q_idx(arg).map(|idx| self_q_len + idx))
+        match arg {
+            Argument::Qubit(alias, idx) => {
+                let mask = self.get_idx_by_alias(changes, alias).0;
+                if mask != 0 {
+                    BitsIter::from(mask)
+                        .nth(idx as N)
+                        .ok_or(Error::IdxOutOfRange(alias, idx as N))
+                } else {
+                    Err(Error::NoQReg(alias))
+                }
+            }
+            Argument::Register(alias) => {
+                let mask = self.get_idx_by_alias(changes, alias).0;
+                if mask != 0 {
+                    Ok(mask)
+                } else {
+                    Err(Error::NoQReg(alias))
+                }
+            }
+        }
     }
 
     fn get_q_idx(&self, arg: Argument<'t>) -> Result<'t, N> {
-        match arg {
-            Argument::Qubit(alias, idx) => {
-                let mask = self.get_idx_by_alias(alias).0;
-                if mask != 0 {
-                    BitsIter::from(mask)
-                        .nth(idx as N)
-                        .ok_or(Error::IdxOutOfRange(alias, idx as N))
-                } else {
-                    Err(Error::NoQReg(alias))
-                }
-            }
-            Argument::Register(alias) => {
-                let mask = self.get_idx_by_alias(alias).0;
-                if mask != 0 {
-                    Ok(mask)
-                } else {
-                    Err(Error::NoQReg(alias))
-                }
-            }
-        }
+        self.get_q_idx_with_context(&Default::default(), arg)
     }
 
     fn get_c_idx_with_context(&self, changes: &Self, arg: Argument<'t>) -> Result<'t, N> {
-        let self_c_len = self.c_reg.len();
-        self.get_c_idx(arg.clone())
-            .or_else(|_| changes.get_c_idx(arg).map(|idx| self_c_len + idx))
-    }
-
-    fn get_c_idx(&self, arg: Argument<'t>) -> Result<'t, N> {
         match arg {
             Argument::Qubit(alias, idx) => {
-                let mask = self.get_idx_by_alias(alias).1;
+                let mask = self.get_idx_by_alias(changes, alias).1;
                 if mask != 0 {
                     BitsIter::from(mask)
                         .nth(idx as N)
@@ -361,7 +337,7 @@ impl<'t> Int<'t> {
                 }
             }
             Argument::Register(alias) => {
-                let mask = self.get_idx_by_alias(alias).1;
+                let mask = self.get_idx_by_alias(changes, alias).1;
                 if mask != 0 {
                     Ok(mask)
                 } else {
@@ -369,6 +345,10 @@ impl<'t> Int<'t> {
                 }
             }
         }
+    }
+
+    fn get_c_idx(&self, arg: Argument<'t>) -> Result<'t, N> {
+        self.get_c_idx_with_context(&Default::default(), arg)
     }
 
     fn branch(&mut self, sep: Sep) {
