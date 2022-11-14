@@ -59,19 +59,21 @@ impl<'t> fmt::Debug for Int<'t> {
 
 impl<'t> Int<'t> {
     pub fn new(ast: Ast<'t>) -> Result<'t, Self> {
-        Self::default().add_ast(ast)
+        let mut new = Self::default();
+        new.add_ast(ast)?;
+        Ok(new)
     }
 
-    pub fn add_ast(mut self, ast: Ast<'t>) -> Result<'t, Self> {
-        Self::default().ast_changes(&mut self, ast)?;
-        Ok(self)
+    pub fn add_ast(&mut self, ast: Ast<'t>) -> Result<'t, ()> {
+        Self::default().ast_changes(self, ast)?;
+        Ok(())
     }
 
-    pub fn ast_changes(self, changes: &mut Self, ast: Ast<'t>) -> Result<'t, Self> {
+    pub fn ast_changes(&self, changes: &mut Self, ast: Ast<'t>) -> Result<'t, ()> {
         match self.process_nodes(changes, ast.iter().cloned()) {
-            Ok(mut ok) => {
+            Ok(_) => {
                 changes.asts.push(ast);
-                Ok(ok)
+                Ok(())
             }
             Err(err) => Err(err),
         }
@@ -116,17 +118,17 @@ impl<'t> Int<'t> {
     }
 
     fn process_nodes<'a, I: IntoIterator<Item = AstNode<'t>>>(
-        mut self,
+        &self,
         changes: &mut Self,
         nodes: I,
-    ) -> Result<'t, Self> {
+    ) -> Result<'t, ()> {
         for node in nodes {
-            self = self.process_node(changes, node)?;
+            self.process_node(changes, node)?;
         }
-        Ok(self)
+        Ok(())
     }
 
-    fn process_node(self, changes: &mut Self, node: AstNode<'t>) -> Result<'t, Self> {
+    fn process_node(&self, changes: &mut Self, node: AstNode<'t>) -> Result<'t, ()> {
         match node {
             AstNode::QReg(alias, size) => self.process_qreg(changes, alias, size as N),
             AstNode::CReg(alias, size) => self.process_creg(changes, alias, size as N),
@@ -168,35 +170,35 @@ impl<'t> Int<'t> {
         Ok(())
     }
 
-    fn process_qreg(self, changes: &mut Self, alias: &'t str, q_num: N) -> Result<'t, Self> {
+    fn process_qreg(&self, changes: &mut Self, alias: &'t str, q_num: N) -> Result<'t, ()> {
         self.check_dup(changes, alias)?;
         changes.q_reg.append(&mut vec![alias; q_num]);
-        Ok(self)
+        Ok(())
     }
 
-    fn process_creg(self, changes: &mut Self, alias: &'t str, q_num: N) -> Result<'t, Self> {
+    fn process_creg(&self, changes: &mut Self, alias: &'t str, q_num: N) -> Result<'t, ()> {
         self.check_dup(changes, alias)?;
         changes.c_reg.append(&mut vec![alias; q_num]);
-        Ok(self)
+        Ok(())
     }
 
-    fn process_barrier(self, _changes: &mut Self) -> Result<'t, Self> {
+    fn process_barrier(&self, _changes: &mut Self) -> Result<'t, ()> {
         //  Does not really affect qvnt-i flow
-        Ok(self)
+        Ok(())
     }
 
-    fn process_reset(self, changes: &mut Self, q_reg: Argument<'t>) -> Result<'t, Self> {
+    fn process_reset(&self, changes: &mut Self, q_reg: Argument<'t>) -> Result<'t, ()> {
         let idx = self.get_q_idx_with_context(changes, q_reg)?;
         changes.branch_with_id(Sep::Reset(idx));
-        Ok(self)
+        Ok(())
     }
 
     fn process_measure(
-        self,
+        &self,
         changes: &mut Self,
         q_arg: Argument<'t>,
         c_arg: Argument<'t>,
-    ) -> Result<'t, Self> {
+    ) -> Result<'t, ()> {
         let q_arg = self.get_q_idx_with_context(changes, q_arg)?;
         let c_arg = self.get_c_idx_with_context(changes, c_arg)?;
 
@@ -208,16 +210,16 @@ impl<'t> Int<'t> {
         }
 
         changes.branch_with_id(Sep::Measure(q_arg, c_arg));
-        Ok(self)
+        Ok(())
     }
 
     fn process_apply_gate(
-        self,
+        &self,
         changes: &mut Self,
         name: &'t str,
         regs: Vec<Argument<'t>>,
         args: Vec<&'t str>,
-    ) -> Result<'t, Self> {
+    ) -> Result<'t, ()> {
         let regs = regs
             .into_iter()
             .map(|reg| self.get_q_idx_with_context(changes, reg))
@@ -238,47 +240,47 @@ impl<'t> Int<'t> {
         };
         changes.q_ops.push(q_ops);
 
-        Ok(self)
+        Ok(())
     }
 
-    fn process_opaque(self, _changes: &mut Self) -> Result<'t, Self> {
+    fn process_opaque(&self, _changes: &mut Self) -> Result<'t, ()> {
         //  TODO: To understand what opaque gate stands for
-        Ok(self)
+        Ok(())
     }
 
     fn process_gate(
-        self,
+        &self,
         changes: &mut Self,
         name: &'t str,
         regs: Vec<&'t str>,
         args: Vec<&'t str>,
         nodes: Vec<AstNode<'t>>,
-    ) -> Result<'t, Self> {
+    ) -> Result<'t, ()> {
         let macros = Macro::new(regs, args, nodes)?;
         if !self.macros.contains_key(&name) && !changes.macros.contains_key(&name) {
             changes.macros.insert(name, macros);
-            Ok(self)
+            Ok(())
         } else {
             Err(Error::MacroAlreadyDefined(name))
         }
     }
 
     fn process_if(
-        mut self,
+        &self,
         changes: &mut Self,
         lhs: &'t str,
         rhs: N,
         if_block: Box<AstNode<'t>>,
-    ) -> Result<'t, Self> {
+    ) -> Result<'t, ()> {
         match *if_block {
             if_block @ AstNode::ApplyGate(_, _, _) => {
                 changes.branch(Sep::Nop);
 
                 let val = self.get_c_idx_with_context(changes, Argument::Register(lhs))?;
-                self = self.process_node(changes, if_block)?;
+                self.process_node(changes, if_block)?;
                 changes.branch(Sep::IfBranch(val, rhs));
 
-                Ok(self)
+                Ok(())
             }
             if_block => Err(Error::DisallowedNodeInIf(if_block)),
         }
