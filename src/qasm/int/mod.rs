@@ -70,7 +70,7 @@ impl<'t> Int<'t> {
     pub fn ast_changes(self, changes: &mut Self, ast: Ast<'t>) -> Result<'t, Self> {
         match self.process_nodes(changes, ast.iter().cloned()) {
             Ok(mut ok) => {
-                ok.asts.push(ast);
+                changes.asts.push(ast);
                 Ok(ok)
             }
             Err(err) => Err(err),
@@ -449,6 +449,7 @@ mod tests {
         let int = Int::new(ast).unwrap();
 
         println!("{}", int.get_ops_tree());
+        assert_ne!(int.asts.len(), 0);
     }
 
     #[test]
