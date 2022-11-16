@@ -12,23 +12,22 @@ readme              = "README.md"
 license             = "Apache-2.0"
 
 [dependencies]
-lazy_static         = { version = "1.4.0", optional = true }
-num-complex         = "0.4.0"
-float-cmp           = "0.8.0"
-rand                = "0.8.4"
+num-complex         = "0.4.2"
+float-cmp           = "0.9.0"
+rand                = "0.8.5"
 rand_distr          = "0.4.3"
-rayon               = { version = "1.5.1", optional = true }
-dispatch            = { package = "enum_dispatch", version = "0.3.8" }
+rayon               = { version = "1.5.3", optional = true }
+enum_dispatch       = "0.3.8"
 qasm                = { package = "qvnt-qasm", version = "0.2.0", optional = true, features = ["no-check-ver"] }
 meval               = { version = "0.2.0", optional = true }
 
 [dev-dependencies]
-criterion           = { version = "0.3.5", features = ["html_reports"] }
+criterion           = { version = "0.4.0", features = ["html_reports"] }
 test-case           = "2.2.1"
 
 [features]
 default             = []
-multi-thread        = ["rayon", "lazy_static"]
+multi-thread        = ["rayon"]
 interpreter         = ["qasm", "meval"]
 
 [[bench]]

@@ -215,7 +215,7 @@ impl Backend for SingleThread {
     }
 }
 
-#[::dispatch::enum_dispatch(AtomicOpDispatch)]
+#[enum_dispatch::enum_dispatch(AtomicOpDispatch)]
 pub(crate) trait SingleThreadOp {
     fn apply_for(&self, psi_out: &mut [C], psi_in: &[C]);
 

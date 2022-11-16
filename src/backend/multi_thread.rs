@@ -310,7 +310,7 @@ impl Backend for MultiThread {
     }
 }
 
-#[::dispatch::enum_dispatch(AtomicOpDispatch)]
+#[enum_dispatch::enum_dispatch(AtomicOpDispatch)]
 pub(crate) trait MultiThreadOp {
     fn apply_for(&self, psi_out: &mut [C], psi_in: &[C]);
 
