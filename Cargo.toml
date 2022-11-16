@@ -9,7 +9,7 @@ authors             = ["Denis Drozhzhin <denisdrozhzhin1999@gmail.com>"]
 edition             = "2018"
 repository          = "https://github.com/MucTepDayH16/qvnt/"
 readme              = "README.md"
-license             = "MPL-2.0"
+license             = "Apache-2.0"
 
 [dependencies]
 lazy_static         = { version = "1.4.0", optional = true }
