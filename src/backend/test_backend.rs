@@ -24,14 +24,15 @@ impl Backend for TestBackend {
         self.b0.reset_state(state)?;
         #[cfg(feature = "multi-thread")]
         self.b1.reset_state(state)?;
+
         Ok(())
     }
 
     fn reset_state_and_size(&mut self, q_num: N, state: Mask) -> Result<(), BackendError> {
         self.b0.reset_state_and_size(q_num, state)?;
-
         #[cfg(feature = "multi-thread")]
         self.b1.reset_state_and_size(q_num, state)?;
+
         Ok(())
     }
 
@@ -76,6 +77,7 @@ impl Backend for TestBackend {
         self.b0.apply_op(op)?;
         #[cfg(feature = "multi-thread")]
         self.b1.apply_op(op)?;
+
         Ok(())
     }
 
@@ -87,6 +89,7 @@ impl Backend for TestBackend {
         self.b0.apply_op_controled(op, ctrl)?;
         #[cfg(feature = "multi-thread")]
         self.b1.apply_op_controled(op, ctrl)?;
+
         Ok(())
     }
 
