@@ -44,7 +44,7 @@ pub trait AtomicOp: Clone + PartialEq + crate::sealed::Seal {
 }
 
 pub trait NativeCpuOp: Sync + Send + AtomicOp {
-    fn native_cpu_op(&self, psi: &[C], idx: N) -> C;
+    fn native_cpu_op(&self, psi: &[C], idx: Mask) -> C;
 }
 
 #[enum_dispatch::enum_dispatch]

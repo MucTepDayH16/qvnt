@@ -82,7 +82,7 @@ type Ptr<T> = Rc<RefCell<T>>;
 /// q.apply(&gate);
 /// ```
 #[derive(Clone, Default)]
-pub struct Reg(pub(crate) Ptr<N>, pub(crate) Vec<N>);
+pub struct Reg(pub(crate) Ptr<N>, pub(crate) Vec<Mask>);
 
 impl Reg {
     /// Create virtual register with a given number of qubits.
@@ -90,14 +90,14 @@ impl Reg {
         Self::new_with_mask(1usize.wrapping_shl(num as u32).wrapping_add(!0usize))
     }
 
-    pub(crate) fn new_with_mask(mask: N) -> Self {
+    pub(crate) fn new_with_mask(mask: Mask) -> Self {
         let bi = bits_iter::BitsIter::from(mask);
         super::VReg(Ptr::new(0.into()), bi.collect())
     }
 }
 
 impl From<N> for Reg {
-    fn from(mask: N) -> Self {
+    fn from(mask: Mask) -> Self {
         Self::new_with_mask(mask)
     }
 }
@@ -109,7 +109,7 @@ impl std::fmt::Debug for Reg {
 }
 
 impl Index<N> for Reg {
-    type Output = N;
+    type Output = Mask;
 
     #[inline]
     fn index(&self, idx: N) -> &Self::Output {
@@ -121,7 +121,7 @@ impl<F> Index<F> for Reg
 where
     F: Fn(N) -> bool,
 {
-    type Output = N;
+    type Output = Mask;
 
     #[inline]
     fn index(&self, f: F) -> &Self::Output {
@@ -137,7 +137,7 @@ where
 }
 
 impl<const X: usize> Index<[N; X]> for Reg {
-    type Output = N;
+    type Output = Mask;
 
     fn index(&self, slice: [N; X]) -> &Self::Output {
         &self[move |i| slice.contains(&i)]
@@ -145,7 +145,7 @@ impl<const X: usize> Index<[N; X]> for Reg {
 }
 
 impl Index<RangeFull> for Reg {
-    type Output = N;
+    type Output = Mask;
 
     #[inline]
     fn index(&self, _: RangeFull) -> &Self::Output {

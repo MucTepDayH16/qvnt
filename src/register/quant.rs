@@ -142,7 +142,7 @@ impl<B: Backend> Reg<B> {
     }
 
     /// Acquire the [`VReg`](super::VReg) for a specified part of quantum register.
-    pub fn get_vreg_by(&self, mask: N) -> Option<super::VReg> {
+    pub fn get_vreg_by(&self, mask: Mask) -> Option<super::VReg> {
         if mask & !self.q_mask != 0 {
             None
         } else {

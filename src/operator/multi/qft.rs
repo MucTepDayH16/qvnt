@@ -1,8 +1,8 @@
 use super::*;
-use crate::{math::consts::PI, operator::single::rotate::rz};
+use crate::{math::{consts::PI, count_bits}, operator::single::rotate::rz};
 
 pub fn qft(a_mask: N) -> MultiOp {
-    let count = a_mask.count_ones() as usize;
+    let count = count_bits(a_mask);
     match count {
         0 => MultiOp::default(),
         1 => h::h(a_mask),
@@ -32,8 +32,8 @@ pub fn qft(a_mask: N) -> MultiOp {
     }
 }
 
-pub fn qft_swapped(a_mask: N) -> MultiOp {
-    let mut vec_mask = Vec::with_capacity(a_mask.count_ones() as N);
+pub fn qft_swapped(a_mask: Mask) -> MultiOp {
+    let mut vec_mask = Vec::with_capacity(count_bits(a_mask));
     let mut idx = 1;
     while idx <= a_mask {
         if idx & a_mask != 0 {

@@ -1,18 +1,18 @@
 use super::*;
-use crate::operator::atomic;
+use crate::{operator::atomic, math::count_bits};
 
 #[inline(always)]
-fn h1(a_mask: N) -> SingleOp {
+fn h1(a_mask: Mask) -> SingleOp {
     atomic::h1::Op::new(a_mask).into()
 }
 
 #[inline(always)]
-fn h2(a_mask: N, b_mask: N) -> SingleOp {
+fn h2(a_mask: Mask, b_mask: Mask) -> SingleOp {
     atomic::h2::Op::new(a_mask, b_mask).into()
 }
 
-pub fn h(a_mask: N) -> MultiOp {
-    let count = a_mask.count_ones() as N;
+pub fn h(a_mask: Mask) -> MultiOp {
+    let count = count_bits(a_mask);
 
     match count {
         0 => MultiOp::default(),

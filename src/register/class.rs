@@ -49,9 +49,9 @@ use crate::math::types::*;
 /// ```
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct Reg {
-    value: N,
+    value: Mask,
     q_num: N,
-    q_mask: N,
+    q_mask: Mask,
 }
 
 impl Reg {
@@ -63,7 +63,7 @@ impl Reg {
 
     /// Create classical register with a given number of bits
     /// and an initial state
-    pub fn with_state(q_num: N, state: N) -> Self {
+    pub fn with_state(q_num: N, state: Mask) -> Self {
         let q_mask = 1_usize.wrapping_shl(q_num as u32).wrapping_sub(1_usize);
 
         Self {
@@ -82,11 +82,11 @@ impl Reg {
         self.q_mask = 1_usize.wrapping_shl(q_num as u32).wrapping_sub(1_usize);
     }
 
-    pub(crate) fn reset(&mut self, i_state: N) {
+    pub(crate) fn reset(&mut self, i_state: Mask) {
         self.value = i_state & self.q_mask;
     }
 
-    pub fn set(&mut self, bit: bool, mask: N) {
+    pub fn set(&mut self, bit: bool, mask: Mask) {
         if bit {
             self.value |= mask;
         } else {
@@ -94,7 +94,7 @@ impl Reg {
         }
     }
 
-    pub fn xor(&mut self, bit: bool, mask: N) {
+    pub fn xor(&mut self, bit: bool, mask: Mask) {
         if bit {
             self.value ^= mask;
         }
@@ -108,11 +108,11 @@ impl Reg {
 
     /// Obtain value from classing register.
     /// This number will always be less than 2<sup>N</sup>, where N is the number of bits, given in [`CReg::new()`](Reg::new).
-    pub fn get(&self) -> N {
+    pub fn get(&self) -> Mask {
         self.value
     }
 
-    pub(crate) fn get_by_mask(&self, mask: N) -> N {
+    pub(crate) fn get_by_mask(&self, mask: Mask) -> Mask {
         crate::math::bits_iter::BitsIter::from(mask & self.q_mask)
             .enumerate()
             .fold(0, |mask, (idx, val)| {

@@ -36,7 +36,7 @@ use consts::*;
 use types::*;
 
 #[inline]
-pub fn count_bits(n: N) -> N {
+pub fn count_bits(n: Mask) -> N {
     n.count_ones() as N
 }
 

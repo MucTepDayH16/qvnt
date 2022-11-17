@@ -47,8 +47,8 @@ pub mod swap;
 /// into simple ones and apply them *insequentially*.
 #[derive(Clone, PartialEq)]
 pub struct SingleOp {
-    act: N,
-    ctrl: N,
+    act: Mask,
+    ctrl: Mask,
     op: dispatch::AtomicOpDispatch,
 }
 
@@ -96,7 +96,7 @@ impl Applicable for SingleOp {
     }
 
     #[inline]
-    fn act_on(&self) -> N {
+    fn act_on(&self) -> Mask {
         self.act | self.ctrl
     }
 
@@ -109,7 +109,7 @@ impl Applicable for SingleOp {
     }
 
     #[inline(always)]
-    fn c(self, c: N) -> Option<Self> {
+    fn c(self, c: Mask) -> Option<Self> {
         if self.act_on() & c != 0 {
             None
         } else {

@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use qasm::{Argument, AstNode};
 
 use crate::{
-    math::{bits_iter::BitsIter, types::*},
+    math::{bits_iter::BitsIter, types::*, count_bits},
     operator::{self as op, Applicable, MultiOp},
     qasm::ast::Ast,
 };
@@ -202,8 +202,8 @@ impl<'t> Int<'t> {
 
         if q_arg.count_ones() != c_arg.count_ones() {
             return Err(Error::UnmatchedRegSize(
-                q_arg.count_ones() as N,
-                c_arg.count_ones() as N,
+                count_bits(q_arg),
+                count_bits(c_arg),
             ));
         }
 

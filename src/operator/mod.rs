@@ -138,7 +138,7 @@ pub fn id() -> MultiOp {
 /// | :---: | :---: | :---: |
 /// | ![X](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/X.gif) | ![X0](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/X0.gif) |  ![X1](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/X1.gif) |
 #[inline(always)]
-pub fn x(a_mask: N) -> MultiOp {
+pub fn x(a_mask: Mask) -> MultiOp {
     pauli::x(a_mask).into()
 }
 
@@ -153,7 +153,7 @@ pub fn x(a_mask: N) -> MultiOp {
 ///     <tr><th>- <i>i</i> sin(λ/2)</th><th>&nbsp;cos(λ/2)</th></tr>
 /// </table>
 #[inline(always)]
-pub fn rx(phase: R, a_mask: N) -> MultiOp {
+pub fn rx(phase: R, a_mask: Mask) -> MultiOp {
     rotate::rx(a_mask, phase)
         .expect("Mask should contain 1 bit!")
         .into()
@@ -172,7 +172,7 @@ pub fn rx(phase: R, a_mask: N) -> MultiOp {
 ///     <tr><th>- <i>i</i> sin(λ/2)</th><th>&nbsp;&nbsp;0</th><th>&nbsp;&nbsp;0</th><th>cos(λ/2)</th></tr>
 /// </table>
 #[inline(always)]
-pub fn rxx(phase: R, ab_mask: N) -> MultiOp {
+pub fn rxx(phase: R, ab_mask: Mask) -> MultiOp {
     rotate::rxx(ab_mask, phase)
         .expect("Mask should contain 2 bit!")
         .into()
@@ -201,7 +201,7 @@ pub fn rxx(phase: R, ab_mask: N) -> MultiOp {
 /// | :---: | :---: | :---: |
 /// | ![Y](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/Y.gif) | ![Y0](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/Y0.gif) |  ![Y1](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/Y1.gif) |
 #[inline(always)]
-pub fn y(a_mask: N) -> MultiOp {
+pub fn y(a_mask: Mask) -> MultiOp {
     pauli::y(a_mask).into()
 }
 
@@ -216,7 +216,7 @@ pub fn y(a_mask: N) -> MultiOp {
 ///     <tr><th>sin(λ/2)</th><th>cos(λ/2)</th></tr>
 /// </table>
 #[inline(always)]
-pub fn ry(phase: R, a_mask: N) -> MultiOp {
+pub fn ry(phase: R, a_mask: Mask) -> MultiOp {
     rotate::ry(a_mask, phase)
         .expect("Mask should contain 1 bit!")
         .into()
@@ -235,7 +235,7 @@ pub fn ry(phase: R, a_mask: N) -> MultiOp {
 ///     <tr><th><i>i</i> sin(λ/2)</th><th>&nbsp;&nbsp;0</th><th>&nbsp;&nbsp;0</th><th>cos(λ/2)</th></tr>
 /// </table>
 #[inline(always)]
-pub fn ryy(phase: R, ab_mask: N) -> MultiOp {
+pub fn ryy(phase: R, ab_mask: Mask) -> MultiOp {
     rotate::ryy(ab_mask, phase)
         .expect("Mask should contain 2 bit!")
         .into()
@@ -260,7 +260,7 @@ pub fn ryy(phase: R, ab_mask: N) -> MultiOp {
 /// | :---: | :---: | :---: |
 /// | ![Z](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/Z.gif) | ![Z0](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/Z0.gif) |  ![Z1](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/Z1.gif) |
 #[inline(always)]
-pub fn z(a_mask: N) -> MultiOp {
+pub fn z(a_mask: Mask) -> MultiOp {
     pauli::z(a_mask).into()
 }
 
@@ -279,7 +279,7 @@ pub fn z(a_mask: N) -> MultiOp {
 ///     <tr><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>&nbsp;&nbsp;<i>i</i></th></tr>
 /// </table>
 #[inline(always)]
-pub fn s(a_mask: N) -> MultiOp {
+pub fn s(a_mask: Mask) -> MultiOp {
     pauli::s(a_mask).into()
 }
 
@@ -299,7 +299,7 @@ pub fn s(a_mask: N) -> MultiOp {
 ///     <tr><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>(1+<i>i</i>)/&radic;2</th></tr>
 /// </table>
 #[inline(always)]
-pub fn t(a_mask: N) -> MultiOp {
+pub fn t(a_mask: Mask) -> MultiOp {
     pauli::t(a_mask).into()
 }
 
@@ -323,7 +323,7 @@ pub fn t(a_mask: N) -> MultiOp {
 ///     <tr><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>e<sup> <i>i</i>λ/2</sup></th></tr>
 /// </table>
 #[inline(always)]
-pub fn rz(phase: R, a_mask: N) -> MultiOp {
+pub fn rz(phase: R, a_mask: Mask) -> MultiOp {
     rotate::rz(a_mask, phase)
         .expect("Mask should contain 1 bit!")
         .into()
@@ -342,7 +342,7 @@ pub fn rz(phase: R, a_mask: N) -> MultiOp {
 ///     <tr><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>e<sup> - <i>i</i>λ/2</th></tr>
 /// </table>
 #[inline(always)]
-pub fn rzz(phase: R, ab_mask: N) -> MultiOp {
+pub fn rzz(phase: R, ab_mask: Mask) -> MultiOp {
     rotate::rzz(ab_mask, phase)
         .expect("Mask should contain 2 bit!")
         .into()
@@ -367,7 +367,7 @@ pub fn rzz(phase: R, ab_mask: N) -> MultiOp {
 ///     <tr><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>&nbsp;&nbsp;1&nbsp;&nbsp;</th></tr>
 /// </table>
 #[inline(always)]
-pub fn swap(ab_mask: N) -> MultiOp {
+pub fn swap(ab_mask: Mask) -> MultiOp {
     swap::swap(ab_mask)
         .expect("Mask should contain 2 bit!")
         .into()
@@ -389,7 +389,7 @@ pub fn swap(ab_mask: N) -> MultiOp {
 ///     <tr><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>&nbsp;&nbsp;1&nbsp;&nbsp;</th></tr>
 /// </table>
 #[inline(always)]
-pub fn sqrt_swap(ab_mask: N) -> MultiOp {
+pub fn sqrt_swap(ab_mask: Mask) -> MultiOp {
     swap::sqrt_swap(ab_mask)
         .expect("Mask should contain 2 bit!")
         .into()
@@ -414,7 +414,7 @@ pub fn sqrt_swap(ab_mask: N) -> MultiOp {
 ///     <tr><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>&nbsp;&nbsp;1&nbsp;&nbsp;</th></tr>
 /// </table>
 #[inline(always)]
-pub fn i_swap(ab_mask: N) -> MultiOp {
+pub fn i_swap(ab_mask: Mask) -> MultiOp {
     swap::i_swap(ab_mask)
         .expect("Mask should contain 2 bit!")
         .into()
@@ -436,7 +436,7 @@ pub fn i_swap(ab_mask: N) -> MultiOp {
 ///     <tr><th>&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;</th><th>&nbsp;&nbsp;1&nbsp;&nbsp;</th></tr>
 /// </table>
 #[inline(always)]
-pub fn sqrt_i_swap(ab_mask: N) -> MultiOp {
+pub fn sqrt_i_swap(ab_mask: Mask) -> MultiOp {
     swap::sqrt_i_swap(ab_mask)
         .expect("Mask should contain 2 bit!")
         .into()
@@ -466,7 +466,7 @@ pub fn sqrt_i_swap(ab_mask: N) -> MultiOp {
 /// | :---: | :---: | :---: |
 /// | ![H](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/H.gif) | ![H0](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/H0.gif) |  ![H1](https://raw.githubusercontent.com/MucTepDayH16/qvnt/master/animated/output/H1.gif) |
 #[inline(always)]
-pub fn h(a_mask: N) -> MultiOp {
+pub fn h(a_mask: Mask) -> MultiOp {
     h::h(a_mask)
 }
 
@@ -474,7 +474,7 @@ pub fn h(a_mask: N) -> MultiOp {
 ///
 /// First universal gate. Equivalent to [`RZ(λ)`](rz) and [`U3(0,0,λ)`](u3).
 #[inline(always)]
-pub fn u1(lam: R, a_mask: N) -> MultiOp {
+pub fn u1(lam: R, a_mask: Mask) -> MultiOp {
     rz(lam, a_mask)
 }
 
@@ -482,7 +482,7 @@ pub fn u1(lam: R, a_mask: N) -> MultiOp {
 ///
 /// Second universal gate. Equivalent to [`U3(π/2,φ,λ)`](u3)
 #[inline(always)]
-pub fn u2(phi: R, lam: R, a_mask: N) -> MultiOp {
+pub fn u2(phi: R, lam: R, a_mask: Mask) -> MultiOp {
     rz(lam, a_mask) * ry(FRAC_PI_2, a_mask) * rz(phi, a_mask)
 }
 
@@ -501,7 +501,7 @@ pub fn u2(phi: R, lam: R, a_mask: N) -> MultiOp {
 /// ```Z |q> = i U3(0,0,π) |q>```&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 /// ```H |q> = i U3(0,π/2,π) |q>```
 #[inline(always)]
-pub fn u3(the: R, phi: R, lam: R, a_mask: N) -> MultiOp {
+pub fn u3(the: R, phi: R, lam: R, a_mask: Mask) -> MultiOp {
     rz(lam, a_mask) * ry(the, a_mask) * rz(phi, a_mask)
 }
 
@@ -513,7 +513,7 @@ pub fn u3(the: R, phi: R, lam: R, a_mask: N) -> MultiOp {
 /// This can be compared with the classical Discrete Fourier Transform, which takes O(n2<sup>n</sup> gates,
 /// which is exponentially more than [`QFT`](qft()).
 #[inline(always)]
-pub fn qft(a_mask: N) -> MultiOp {
+pub fn qft(a_mask: Mask) -> MultiOp {
     qft::qft(a_mask)
 }
 
@@ -522,7 +522,7 @@ pub fn qft(a_mask: N) -> MultiOp {
 /// [`QFT`](qft()) is differ from real DFT by a bit order of amplitudes indices.
 /// [`swapped QFT`](qft_swapped) is the more natural version of DFT.
 #[inline(always)]
-pub fn qft_swapped(a_mask: N) -> MultiOp {
+pub fn qft_swapped(a_mask: Mask) -> MultiOp {
     qft::qft_swapped(a_mask)
 }
 

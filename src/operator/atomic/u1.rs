@@ -16,7 +16,7 @@ impl Op {
 impl crate::sealed::Seal for Op {}
 
 impl super::NativeCpuOp for Op {
-    fn native_cpu_op(&self, psi: &[C], idx: N) -> C {
+    fn native_cpu_op(&self, psi: &[C], idx: Mask) -> C {
         if (idx & self.a_mask) == 0 {
             self.matrix[0b00] * psi[idx] + self.matrix[0b01] * psi[idx ^ self.a_mask]
         } else {

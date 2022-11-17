@@ -3,13 +3,13 @@ use crate::math::matrix::{inverse_unitary_m2, is_unitary_m2};
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct Op {
-    a_mask: N,
-    b_mask: N,
+    a_mask: Mask,
+    b_mask: Mask,
     matrix: M2,
 }
 
 impl Op {
-    pub fn new(a_mask: N, b_mask: N, matrix: M2) -> Self {
+    pub fn new(a_mask: Mask, b_mask: Mask, matrix: M2) -> Self {
         Self {
             a_mask,
             b_mask,
@@ -21,7 +21,7 @@ impl Op {
 impl crate::sealed::Seal for Op {}
 
 impl super::NativeCpuOp for Op {
-    fn native_cpu_op(&self, psi: &[C], idx: N) -> C {
+    fn native_cpu_op(&self, psi: &[C], idx: Mask) -> C {
         let a_bit = (idx & self.a_mask) != 0;
         let b_bit = (idx & self.b_mask) != 0;
         let idx = idx & !self.a_mask & !self.b_mask;
@@ -71,7 +71,7 @@ impl AtomicOp for Op {
             && is_unitary_m2(&self.matrix)
     }
 
-    fn acts_on(&self) -> N {
+    fn acts_on(&self) -> Mask {
         self.a_mask
     }
 

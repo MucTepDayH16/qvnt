@@ -18,7 +18,7 @@ impl Op {
 impl crate::sealed::Seal for Op {}
 
 impl super::NativeCpuOp for Op {
-    fn native_cpu_op(&self, psi: &[C], idx: N) -> C {
+    fn native_cpu_op(&self, psi: &[C], idx: Mask) -> C {
         let mut phase = self.phase;
         let psi = (psi[idx], psi[idx ^ self.ab_mask]);
         if (idx & self.ab_mask).count_ones() & 1 == 0 {

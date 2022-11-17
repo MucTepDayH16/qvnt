@@ -104,7 +104,7 @@ impl Applicable for MultiOp {
             .try_for_each(|single_op| single_op.apply(data))
     }
 
-    fn act_on(&self) -> N {
+    fn act_on(&self) -> Mask {
         self.0.iter().fold(0, |act, op| act | op.act_on())
     }
 
@@ -113,7 +113,7 @@ impl Applicable for MultiOp {
         Self(new)
     }
 
-    fn c(self, c_mask: N) -> Option<Self> {
+    fn c(self, c_mask: Mask) -> Option<Self> {
         if self.act_on() & c_mask != 0 {
             None
         } else {
