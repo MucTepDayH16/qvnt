@@ -5,6 +5,8 @@ use crate::{math::types::*, operator::atomic::AtomicOpDispatch};
 #[cfg(feature = "multi-thread")]
 pub mod multi_thread;
 pub mod single_thread;
+#[cfg(test)]
+pub(crate) mod test_backend;
 
 #[cfg(feature = "multi-thread")]
 pub use multi_thread::{MultiThread, MultiThreadBuilder};

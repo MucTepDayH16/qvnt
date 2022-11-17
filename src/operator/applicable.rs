@@ -14,8 +14,7 @@ pub trait Applicable: Sized + Sync {
 
     #[cfg(test)]
     fn matrix(&self, q_num: N) -> Vec<Vec<C>> {
-        use crate::backend::{single_thread::SingleThreadBuilder as B, BackendBuilder};
-
+        use crate::backend::test_backend::test_build;
         let size = 1 << q_num;
 
         const O: C = C { re: 0.0, im: 0.0 };
@@ -25,7 +24,7 @@ pub trait Applicable: Sized + Sync {
         matrix.reserve(q_num);
 
         for idx in 0..size {
-            let mut backend_data = B.build(q_num).unwrap();
+            let mut backend_data = test_build(q_num);
             backend_data.reset_state(idx).unwrap();
             self.apply(&mut backend_data).unwrap();
 
