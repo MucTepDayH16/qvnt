@@ -10,7 +10,7 @@ use rayon::{
     ThreadPool, ThreadPoolBuilder,
 };
 
-use super::{Backend, BackendBuilder, BackendError};
+use super::{Backend, BackendBuilder, BackendResult};
 use crate::{
     math::{approx_cmp::approx_eq_real, consts::*, types::*},
     operator::atomic::{AtomicOpDispatch, NativeCpuOp},
@@ -42,7 +42,7 @@ impl MultiThreadBuilder {
 impl BackendBuilder for MultiThreadBuilder {
     type Backend = MultiThread;
 
-    fn build(self, q_num: N) -> Result<Self::Backend, BackendError> {
+    fn build(self, q_num: N) -> BackendResult<Self::Backend> {
         let alloc_size = 1 << q_num;
 
         // It is safe to use uninitialized buffer
@@ -93,7 +93,7 @@ impl Drop for MultiThread {
 }
 
 impl Backend for MultiThread {
-    fn reset_state(&mut self, state: Mask) -> Result<(), BackendError> {
+    fn reset_state(&mut self, state: Mask) -> BackendResult {
         let MultiThread {
             thread_pool: _,
             psi_main,
@@ -105,7 +105,7 @@ impl Backend for MultiThread {
         Ok(())
     }
 
-    fn reset_state_and_size(&mut self, q_num: N, state: Mask) -> Result<(), BackendError> {
+    fn reset_state_and_size(&mut self, q_num: N, state: Mask) -> BackendResult {
         let MultiThread {
             thread_pool: _,
             psi_main,
@@ -140,7 +140,7 @@ impl Backend for MultiThread {
         Ok(())
     }
 
-    fn drain(&mut self) -> Vec<C> {
+    fn drain(&mut self) -> BackendResult<Vec<C>> {
         let MultiThread {
             thread_pool: _,
             psi_main,
@@ -153,20 +153,20 @@ impl Backend for MultiThread {
             psi.set_len(size);
         }
         psi_buffer.clear();
-        psi
+        Ok(psi)
     }
 
-    fn collect(&self) -> Vec<C> {
+    fn collect(&self) -> BackendResult<Vec<C>> {
         let MultiThread {
             thread_pool,
             psi_main,
             ..
         } = self;
 
-        thread_pool.install(|| psi_main.par_iter().cloned().collect())
+        thread_pool.install(|| Ok(psi_main.par_iter().cloned().collect()))
     }
 
-    fn collect_probabilities(&self) -> Vec<R> {
+    fn collect_probabilities(&self) -> BackendResult<Vec<R>> {
         let MultiThread {
             thread_pool,
             psi_main,
@@ -178,7 +178,7 @@ impl Backend for MultiThread {
             let inv_norm = 1. / probs.par_iter().sum::<R>();
             probs.par_iter_mut().for_each(|prob| *prob *= inv_norm);
 
-            probs
+            Ok(probs)
         })
     }
 
@@ -204,7 +204,7 @@ impl Backend for MultiThread {
         }
     }
 
-    fn apply_op(&mut self, op: &AtomicOpDispatch) -> Result<(), BackendError> {
+    fn apply_op(&mut self, op: &AtomicOpDispatch) -> BackendResult {
         let MultiThread {
             thread_pool,
             psi_main,
@@ -217,11 +217,7 @@ impl Backend for MultiThread {
         Ok(())
     }
 
-    fn apply_op_controled(
-        &mut self,
-        op: &AtomicOpDispatch,
-        ctrl: Mask,
-    ) -> Result<(), BackendError> {
+    fn apply_op_controled(&mut self, op: &AtomicOpDispatch, ctrl: Mask) -> BackendResult {
         let MultiThread {
             thread_pool,
             psi_main,
@@ -234,7 +230,7 @@ impl Backend for MultiThread {
         Ok(())
     }
 
-    fn tensor_prod_assign(&mut self, other: Self) -> Result<(), BackendError> {
+    fn tensor_prod_assign(&mut self, other: Self) -> BackendResult {
         let MultiThread {
             thread_pool,
             psi_main,
@@ -270,7 +266,7 @@ impl Backend for MultiThread {
         Ok(())
     }
 
-    fn collapse_by_mask(&mut self, collapse_state: Mask, mask: Mask) -> Result<(), BackendError> {
+    fn collapse_by_mask(&mut self, collapse_state: Mask, mask: Mask) -> BackendResult {
         let MultiThread {
             thread_pool,
             psi_main,

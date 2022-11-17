@@ -186,6 +186,7 @@ impl<B: Backend> Reg<B> {
     /// Return complex amplitudes of quantum states of register in polar form.
     pub fn get_polar(&self) -> Vec<(R, R)> {
         B::collect(&self.backend)
+            .unwrap()
             .into_iter()
             .map(|c| c.to_polar())
             .collect()
@@ -193,13 +194,16 @@ impl<B: Backend> Reg<B> {
 
     /// Return probabilities of quantum states of register.
     pub fn get_probabilities(&self) -> Vec<R> {
-        B::collect_probabilities(&self.backend)
+        B::collect_probabilities(&self.backend).unwrap()
     }
 
     /// Return absolute value of wavefunction of quantum register.
     /// If you use gates from [`op`](crate::operator) module, it always will be 1.
     pub fn get_absolute(&self) -> R {
-        B::collect_probabilities(&self.backend).into_iter().sum()
+        B::collect_probabilities(&self.backend)
+            .unwrap()
+            .into_iter()
+            .sum()
     }
 
     fn collapse_mask(&mut self, collapse_state: Mask, mask: Mask) {

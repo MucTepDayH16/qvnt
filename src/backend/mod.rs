@@ -31,43 +31,44 @@ impl From<String> for BackendError {
     }
 }
 
+pub type BackendResult<T = ()> = Result<T, BackendError>;
+
 pub type DefaultBuilder = single_thread::SingleThreadBuilder;
 
 pub trait BackendBuilder: Sized {
     type Backend: Backend;
 
-    fn build(self, q_num: N) -> Result<Self::Backend, BackendError>;
+    fn build(self, q_num: N) -> BackendResult<Self::Backend>;
 }
 
-impl<B: Backend, Func: FnOnce(N) -> Result<B, BackendError>> BackendBuilder for Func {
+impl<B: Backend, Func: FnOnce(N) -> BackendResult<B>> BackendBuilder for Func {
     type Backend = B;
 
-    fn build(self, q_num: N) -> Result<Self::Backend, BackendError> {
+    fn build(self, q_num: N) -> BackendResult<Self::Backend> {
         self(q_num)
     }
 }
 
 pub trait Backend {
-    fn reset_state(&mut self, state: Mask) -> Result<(), BackendError>;
+    fn reset_state(&mut self, state: Mask) -> BackendResult;
 
-    fn reset_state_and_size(&mut self, q_num: N, state: Mask) -> Result<(), BackendError>;
+    fn reset_state_and_size(&mut self, q_num: N, state: Mask) -> BackendResult;
 
-    fn drain(&mut self) -> Vec<C>;
+    fn drain(&mut self) -> BackendResult<Vec<C>>;
 
-    fn collect(&self) -> Vec<C>;
+    fn collect(&self) -> BackendResult<Vec<C>>;
 
-    fn collect_probabilities(&self) -> Vec<R>;
+    fn collect_probabilities(&self) -> BackendResult<Vec<R>>;
 
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result;
 
-    fn apply_op(&mut self, op: &AtomicOpDispatch) -> Result<(), BackendError>;
+    fn apply_op(&mut self, op: &AtomicOpDispatch) -> BackendResult;
 
-    fn apply_op_controled(&mut self, op: &AtomicOpDispatch, ctrl: Mask)
-        -> Result<(), BackendError>;
+    fn apply_op_controled(&mut self, op: &AtomicOpDispatch, ctrl: Mask) -> BackendResult;
 
-    fn tensor_prod_assign(&mut self, other: Self) -> Result<(), BackendError>;
+    fn tensor_prod_assign(&mut self, other: Self) -> BackendResult;
 
-    fn collapse_by_mask(&mut self, collapse_state: Mask, mask: Mask) -> Result<(), BackendError>;
+    fn collapse_by_mask(&mut self, collapse_state: Mask, mask: Mask) -> BackendResult;
 }
 
 #[cfg(test)]

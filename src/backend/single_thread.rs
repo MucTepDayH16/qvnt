@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use super::{Backend, BackendBuilder, BackendError};
+use super::{Backend, BackendBuilder, BackendError, BackendResult};
 use crate::{
     math::{approx_cmp::approx_eq_real, consts::*, types::*},
     operator::atomic::{AtomicOpDispatch, NativeCpuOp},
@@ -61,14 +61,14 @@ impl Drop for SingleThread {
 }
 
 impl Backend for SingleThread {
-    fn reset_state(&mut self, state: Mask) -> Result<(), BackendError> {
+    fn reset_state(&mut self, state: Mask) -> BackendResult {
         self.psi_main.fill(C_ZERO);
         self.psi_main[state] = C_ONE;
 
         Ok(())
     }
 
-    fn reset_state_and_size(&mut self, q_num: N, state: Mask) -> Result<(), BackendError> {
+    fn reset_state_and_size(&mut self, q_num: N, state: Mask) -> BackendResult {
         let new_size = 1usize << q_num;
 
         let old_size = self.psi_main.len();
@@ -97,26 +97,26 @@ impl Backend for SingleThread {
         Ok(())
     }
 
-    fn drain(&mut self) -> Vec<C> {
+    fn drain(&mut self) -> BackendResult<Vec<C>> {
         let size = self.psi_main.len();
         let mut psi = std::mem::take(&mut self.psi_main);
         unsafe {
             psi.set_len(size);
         }
         self.psi_buffer.clear();
-        psi
+        Ok(psi)
     }
 
-    fn collect(&self) -> Vec<C> {
-        self.psi_main.clone()
+    fn collect(&self) -> BackendResult<Vec<C>> {
+        Ok(self.psi_main.clone())
     }
 
-    fn collect_probabilities(&self) -> Vec<R> {
+    fn collect_probabilities(&self) -> BackendResult<Vec<R>> {
         let mut probs: Vec<_> = self.psi_main.iter().map(C::norm_sqr).collect();
         let inv_norm = 1. / probs.iter().sum::<R>();
         probs.iter_mut().for_each(|psi| *psi *= inv_norm);
 
-        probs
+        Ok(probs)
     }
 
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -139,7 +139,7 @@ impl Backend for SingleThread {
         }
     }
 
-    fn apply_op(&mut self, op: &AtomicOpDispatch) -> Result<(), BackendError> {
+    fn apply_op(&mut self, op: &AtomicOpDispatch) -> BackendResult {
         let SingleThread {
             psi_main,
             psi_buffer,
@@ -152,11 +152,7 @@ impl Backend for SingleThread {
         Ok(())
     }
 
-    fn apply_op_controled(
-        &mut self,
-        op: &AtomicOpDispatch,
-        ctrl: Mask,
-    ) -> Result<(), BackendError> {
+    fn apply_op_controled(&mut self, op: &AtomicOpDispatch, ctrl: Mask) -> BackendResult {
         let SingleThread {
             psi_main,
             psi_buffer,
@@ -169,7 +165,7 @@ impl Backend for SingleThread {
         Ok(())
     }
 
-    fn tensor_prod_assign(&mut self, other: Self) -> Result<(), BackendError> {
+    fn tensor_prod_assign(&mut self, other: Self) -> BackendResult {
         let self_size = self.psi_main.len();
         let new_len = self_size.checked_mul(other.psi_main.len()).unwrap();
         let self_mask = self_size.saturating_sub(1);
@@ -188,7 +184,7 @@ impl Backend for SingleThread {
         Ok(())
     }
 
-    fn collapse_by_mask(&mut self, collapse_state: Mask, mask: Mask) -> Result<(), BackendError> {
+    fn collapse_by_mask(&mut self, collapse_state: Mask, mask: Mask) -> BackendResult {
         let abs = self
             .psi_main
             .iter_mut()

@@ -1,10 +1,10 @@
 use crate::{
-    backend::{Backend, BackendError},
+    backend::{Backend, BackendResult},
     math::types::*,
 };
 
 pub trait Applicable: Sized + Sync {
-    fn apply(&self, backend: &mut impl Backend) -> Result<(), BackendError>;
+    fn apply(&self, backend: &mut impl Backend) -> BackendResult;
 
     fn act_on(&self) -> Mask;
 
@@ -14,7 +14,6 @@ pub trait Applicable: Sized + Sync {
 
     #[cfg(test)]
     fn matrix(&self, q_num: N) -> Vec<Vec<C>> {
-        use crate::backend::test_backend::test_build;
         let size = 1 << q_num;
 
         const O: C = C { re: 0.0, im: 0.0 };
@@ -23,12 +22,16 @@ pub trait Applicable: Sized + Sync {
         let mut matrix = vec![];
         matrix.reserve(q_num);
 
-        for idx in 0..size {
-            let mut backend_data = test_build(q_num);
-            backend_data.reset_state(idx).unwrap();
-            self.apply(&mut backend_data).unwrap();
+        let init_and_apply_op = |idx: Mask| -> BackendResult<Vec<C>> {
+            let mut backend_data = crate::backend::test_backend::test_build(q_num)?;
+            backend_data.reset_state(idx)?;
+            self.apply(&mut backend_data)?;
+            backend_data.collect()
+        };
 
-            matrix.push(backend_data.collect());
+        for idx in 0..size {
+            let psi = init_and_apply_op(idx).unwrap();
+            matrix.push(psi);
         }
 
         for idx in 0..size {
