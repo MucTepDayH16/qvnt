@@ -1,5 +1,5 @@
 use super::*;
-use crate::{operator::atomic, math::count_bits};
+use crate::{math::count_bits, operator::atomic};
 
 #[inline(always)]
 fn h1(a_mask: Mask) -> SingleOp {

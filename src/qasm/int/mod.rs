@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use qasm::{Argument, AstNode};
 
 use crate::{
-    math::{bits_iter::BitsIter, types::*, count_bits},
+    math::{bits_iter::BitsIter, count_bits, types::*},
     operator::{self as op, Applicable, MultiOp},
     qasm::ast::Ast,
 };

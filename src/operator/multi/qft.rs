@@ -1,5 +1,8 @@
 use super::*;
-use crate::{math::{consts::PI, count_bits}, operator::single::rotate::rz};
+use crate::{
+    math::{consts::PI, count_bits},
+    operator::single::rotate::rz,
+};
 
 pub fn qft(a_mask: N) -> MultiOp {
     let count = count_bits(a_mask);
