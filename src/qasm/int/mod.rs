@@ -146,17 +146,24 @@ impl<'t> Int<'t> {
         }
     }
 
-    fn check_reg_args(alias: &'t str, q_num: N) -> Result<'t, ()> {
+    #[inline]
+    fn check_ident(alias: &'t str) -> Result<'t, ()> {
         let bytes_len = alias.as_bytes().len();
         if bytes_len >= 32 {
             return Err(Error::IdentIsTooLarge(alias, bytes_len));
         }
+        Ok(())
+    }
+
+    #[inline]
+    fn check_reg_size(alias: &'t str, q_num: N) -> Result<'t, ()> {
         if q_num >= 64 {
             return Err(Error::RegisterIsTooLarge(alias, q_num));
         }
         Ok(())
     }
 
+    #[inline]
     fn check_dup(&self, changes: &Self, alias: &'t str) -> Result<'t, ()> {
         let count = self.q_reg.iter().filter(|x| **x == alias).count();
         if count > 0 {
@@ -182,14 +189,16 @@ impl<'t> Int<'t> {
     }
 
     fn process_qreg(&self, changes: &mut Self, alias: &'t str, q_num: N) -> Result<'t, ()> {
-        Self::check_reg_args(alias, q_num)?;
+        Self::check_ident(alias)?;
+        Self::check_reg_size(alias, q_num)?;
         self.check_dup(changes, alias)?;
         changes.q_reg.append(&mut vec![alias; q_num]);
         Ok(())
     }
 
     fn process_creg(&self, changes: &mut Self, alias: &'t str, q_num: N) -> Result<'t, ()> {
-        Self::check_reg_args(alias, q_num)?;
+        Self::check_ident(alias)?;
+        Self::check_reg_size(alias, q_num)?;
         self.check_dup(changes, alias)?;
         changes.c_reg.append(&mut vec![alias; q_num]);
         Ok(())
@@ -271,6 +280,7 @@ impl<'t> Int<'t> {
     ) -> Result<'t, ()> {
         let macros = Macro::new(regs, args, nodes)?;
         if !self.macros.contains_key(&name) && !changes.macros.contains_key(&name) {
+            Self::check_ident(name)?;
             changes.macros.insert(name, macros);
             Ok(())
         } else {
@@ -584,6 +594,27 @@ mod tests {
                 Argument::Register("q"),
                 Argument::Register("c")
             )))
+        );
+    }
+
+    #[test]
+    fn invalid_ident() {
+        assert_eq!(
+            int_from_source(
+                "qreg AAaaaaaaaaaAAaaaaaaaaaAAaaaaaaaaaAAaaaaaaaaaAAaaaaaaaaaAAaaaaaaaaa[1];"
+            ),
+            Err(Error::IdentIsTooLarge(
+                "AAaaaaaaaaaAAaaaaaaaaaAAaaaaaaaaaAAaaaaaaaaaAAaaaaaaaaaAAaaaaaaaaa",
+                66
+            ))
+        );
+    }
+
+    #[test]
+    fn invalid_size() {
+        assert_eq!(
+            int_from_source("qreg q[64];"),
+            Err(Error::RegisterIsTooLarge("q", 64))
         );
     }
 
