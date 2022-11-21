@@ -44,51 +44,23 @@ impl<'t> IntoIterator for Ast<'t> {
 #[cfg(test)]
 mod tests {
     use qasm::Argument;
+    use AstNode::*;
 
     use super::*;
 
     #[test]
     fn ast_from_source() {
-        use AstNode::*;
-
         assert_eq!(
-            Ast::from_source("OPENQASM 2.0; qreg a[3]; rx(pi, sqrt(2.0)) a[0], a[1];"),
-            Ok(Ast {
-                source: "OPENQASM 2.0; qreg a[3]; rx(pi, sqrt(2.0)) a[0], a[1];",
-                ast: vec![
-                    QReg("a", 3),
-                    ApplyGate(
-                        "rx",
-                        vec![Argument::Qubit("a", 0), Argument::Qubit("a", 1),],
-                        vec!["pi", "sqrt(2.0)",]
-                    ),
-                ]
-            }),
-        );
-
-        assert_eq!(Ast::from_source(""), Err(Error::EmptySource),);
-        assert_eq!(
-            Ast::from_source("qreg a[3];"),
-            Ok(Ast {
-                source: "qreg a[3];",
-                ast: vec![QReg("a", 3)]
-            }),
-        );
-        assert_eq!(
-            Ast::from_source("OPENQASM 0.0; qreg a[3]; CX a[0], a[1];"),
-            Err(Error::ParseError(qasm::Error::UnsupportedVersion)),
-        );
-        assert_eq!(
-            Ast::from_source("OPENQASM 2.0 qreg a[3]; CX a[0], a[1];"),
-            Err(Error::ParseError(qasm::Error::MissingSemicolon)),
-        );
-        assert_eq!(
-            Ast::from_source("OPENQASM 2.0; qreg a[]; CX a[0], a[1];"),
-            Err(Error::ParseError(qasm::Error::MissingInt)),
-        );
-        assert_eq!(
-            Ast::from_source("OPENQASM 2.0; qreg a[3]; a[0], a[1];"),
-            Err(Error::ParseError(qasm::Error::MissingIdentifier)),
+            Ast::from_source("OPENQASM 2.0; qreg a[3]; rx(pi, sqrt(2.0)) a[0], a[1];")
+                .map(|ast| ast.ast),
+            Ok(vec![
+                QReg("a", 3),
+                ApplyGate(
+                    "rx",
+                    vec![Argument::Qubit("a", 0), Argument::Qubit("a", 1),],
+                    vec!["pi", "sqrt(2.0)",]
+                ),
+            ]),
         );
     }
 
@@ -97,30 +69,64 @@ mod tests {
         use qasm::Argument::*;
         use AstNode::*;
 
-        let source = std::fs::read_to_string("./src/qasm/examples/test.qasm").unwrap();
+        let source = include_str!("../examples/test.qasm");
 
         assert_eq!(
-            Ast::from_source(&source[..]),
-            Ok(Ast {
-                source: include_str!("../examples/test.qasm"),
-                ast: vec![
-                    QReg("q", 2),
-                    CReg("c", 2),
-                    Gate(
-                        "foo",
-                        vec!["a", "b"],
-                        vec!["x", "y"],
-                        vec![ApplyGate("rx", vec![Register("a")], vec!["x"])]
-                    ),
-                    ApplyGate("h", vec![Qubit("q", 0)], vec![]),
-                    ApplyGate("cx", vec![Qubit("q", 0), Qubit("q", 1)], vec![]),
-                    ApplyGate(
-                        "foo",
-                        vec![Qubit("q", 0), Qubit("q", 1)],
-                        vec!["3.141592653589793", "0"]
-                    )
-                ]
-            }),
+            Ast::from_source(source).map(|ast| ast.ast),
+            Ok(vec![
+                QReg("q", 2),
+                CReg("c", 2),
+                Gate(
+                    "foo",
+                    vec!["a", "b"],
+                    vec!["x", "y"],
+                    vec![ApplyGate("rx", vec![Register("a")], vec!["x"])]
+                ),
+                ApplyGate("h", vec![Qubit("q", 0)], vec![]),
+                ApplyGate("cx", vec![Qubit("q", 0), Qubit("q", 1)], vec![]),
+                ApplyGate(
+                    "foo",
+                    vec![Qubit("q", 0), Qubit("q", 1)],
+                    vec!["3.141592653589793", "0"]
+                )
+            ]),
+        );
+    }
+
+    #[test]
+    fn empty_source() {
+        assert_eq!(Ast::from_source(""), Err(Error::EmptySource));
+    }
+
+    #[test]
+    fn unsupported_version() {
+        assert_eq!(
+            Ast::from_source("OPENQASM 0.0; qreg a[3]; CX a[0], a[1];"),
+            Err(Error::ParseError(qasm::Error::UnsupportedVersion)),
+        );
+    }
+
+    #[test]
+    fn missing_semi() {
+        assert_eq!(
+            Ast::from_source("OPENQASM 2.0 qreg a[3]; CX a[0], a[1];"),
+            Err(Error::ParseError(qasm::Error::MissingSemicolon)),
+        );
+    }
+
+    #[test]
+    fn missing_int() {
+        assert_eq!(
+            Ast::from_source("OPENQASM 2.0; qreg a[]; CX a[0], a[1];"),
+            Err(Error::ParseError(qasm::Error::MissingInt)),
+        );
+    }
+
+    #[test]
+    fn missing_ident() {
+        assert_eq!(
+            Ast::from_source("OPENQASM 2.0; qreg a[3]; a[0], a[1];"),
+            Err(Error::ParseError(qasm::Error::MissingIdentifier)),
         );
     }
 }

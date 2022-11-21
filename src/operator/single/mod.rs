@@ -150,13 +150,13 @@ mod tests {
     }
 
     #[test]
-    fn unwrap_op() {
-        assert!(rotate::ryy(0b001, 1.35).is_none());
-        assert!(rotate::ryy(0b101, 1.35).unwrap().c(0b001).is_none());
-        let _ = rotate::ryy(0b101, 1.35).unwrap().c(0b010).unwrap();
+    fn wrong_ctrl_mask() {
+        let op = rotate::ryy(0b101, 1.35).unwrap();
 
-        assert!(swap::swap(0b001).is_none());
-        assert!(swap::swap(0b101).unwrap().c(0b100).is_none());
-        let _ = swap::swap(0b101).unwrap().c(0b010).unwrap();
+        assert_ne!(op.act_on() & 0b001, 0);
+        assert_eq!(op.clone().c(0b001), None);
+
+        assert_eq!(op.act_on() & 0b010, 0);
+        assert_ne!(op.c(0b010), None);
     }
 }

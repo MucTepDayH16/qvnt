@@ -146,6 +146,17 @@ impl<'t> Int<'t> {
         }
     }
 
+    fn check_reg_args(alias: &'t str, q_num: N) -> Result<'t, ()> {
+        let bytes_len = alias.as_bytes().len();
+        if bytes_len >= 32 {
+            return Err(Error::IdentIsTooLarge(alias, bytes_len));
+        }
+        if q_num >= 64 {
+            return Err(Error::RegisterIsTooLarge(alias, q_num));
+        }
+        Ok(())
+    }
+
     fn check_dup(&self, changes: &Self, alias: &'t str) -> Result<'t, ()> {
         let count = self.q_reg.iter().filter(|x| **x == alias).count();
         if count > 0 {
@@ -171,12 +182,14 @@ impl<'t> Int<'t> {
     }
 
     fn process_qreg(&self, changes: &mut Self, alias: &'t str, q_num: N) -> Result<'t, ()> {
+        Self::check_reg_args(alias, q_num)?;
         self.check_dup(changes, alias)?;
         changes.q_reg.append(&mut vec![alias; q_num]);
         Ok(())
     }
 
     fn process_creg(&self, changes: &mut Self, alias: &'t str, q_num: N) -> Result<'t, ()> {
+        Self::check_reg_args(alias, q_num)?;
         self.check_dup(changes, alias)?;
         changes.c_reg.append(&mut vec![alias; q_num]);
         Ok(())
@@ -454,55 +467,77 @@ mod tests {
         assert_ne!(int.asts.len(), 0);
     }
 
+    fn int_from_source(source: &'static str) -> Result<Int> {
+        let ast = Ast::from_source(source).unwrap();
+        Int::new(ast)
+    }
+
     #[test]
-    fn check_for_errors() {
-        fn int_from_source(source: &'static str) -> Result<Int> {
-            let ast = Ast::from_source(source).unwrap();
-            Int::new(ast)
-        }
-
+    fn no_qreg() {
         assert_eq!(int_from_source("h q[2];"), Err(Error::NoQReg("q")),);
+        assert!(int_from_source("qreg q[5]; h q[2];").is_ok());
+    }
 
+    #[test]
+    fn no_creg() {
         assert_eq!(
             int_from_source("qreg q[2]; measure q -> c;"),
             Err(Error::NoCReg("c")),
         );
+        assert!(int_from_source("qreg q[2]; creg c[2]; measure q -> c;").is_ok());
+    }
 
+    #[test]
+    fn dub_register() {
         assert_eq!(
             int_from_source("qreg q[3]; qreg q[2];"),
             Err(Error::DupQReg("q", 3)),
         );
-
         assert_eq!(
             int_from_source("creg c[5]; creg c[1];"),
             Err(Error::DupCReg("c", 5)),
         );
-
         assert_eq!(
             int_from_source("qreg x[5]; creg x[1];"),
             Err(Error::DupQReg("x", 5)),
         );
-
         assert_eq!(
             int_from_source("creg x[1]; qreg x[5];"),
             Err(Error::DupCReg("x", 1)),
         );
+    }
 
+    #[test]
+    fn out_of_range() {
         assert_eq!(
             int_from_source("qreg q[2]; h q[2];"),
             Err(Error::IdxOutOfRange("q", 2)),
         );
+        assert_eq!(
+            int_from_source("qreg q[2]; h q[3];"),
+            Err(Error::IdxOutOfRange("q", 3)),
+        );
+        assert!(int_from_source("qreg q[2]; h q[1];").is_ok());
+    }
 
+    #[test]
+    fn unknown_gate() {
         assert_eq!(
             int_from_source("qreg q[3]; g q[2];"),
             Err(Error::UnknownGate("g")),
         );
+    }
 
+    #[test]
+    fn invalid_ctrl_mask() {
         assert_eq!(
             int_from_source("qreg q[4]; cx q[0], q;"),
             Err(Error::InvalidControlMask(0b0001, 0b1111)),
         );
+    }
 
+    #[test]
+    fn evaluation_error() {
         assert_eq!(
             int_from_source("qreg q[4]; rx(2*a) q[0];"),
             Err(Error::UnevaluatedArgument(
@@ -510,7 +545,10 @@ mod tests {
                 meval::Error::UnknownVariable("a".to_string())
             )),
         );
+    }
 
+    #[test]
+    fn wrong_number() {
         assert_eq!(
             int_from_source("qreg q[4]; rx(pi) q[0], q[2];"),
             Err(Error::WrongRegNumber("rx", 2)),
@@ -520,39 +558,57 @@ mod tests {
             int_from_source("qreg q[4]; rx(pi, 2*pi) q[0];"),
             Err(Error::WrongArgNumber("rx", 2)),
         );
+    }
 
+    #[test]
+    fn unmatched_size() {
         assert_eq!(
             int_from_source("qreg q[4]; creg c[3]; measure q -> c;"),
             Err(Error::UnmatchedRegSize(4, 3)),
         );
+    }
 
-        assert_eq!(
-            int_from_source("gate M q { h q[0]; }"),
-            Err(Error::MacroError(macros::Error::DisallowedRegister("q", 0))),
-        );
-
-        assert_eq!(
-            int_from_source("gate M(a, b, c) x, y { rx(a) x; ry(b) y; rz(c) z; }"),
-            Err(Error::MacroError(macros::Error::UnknownReg("z")))
-        );
-
-        assert_eq!(
-            int_from_source("gate M(a, b) x, y, z { rx(a) x; ry(b) y; rz(c) z; }"),
-            Err(Error::MacroError(macros::Error::UnknownArg(
-                "c".to_string()
-            )))
-        );
-
+    #[test]
+    fn macro_already_defined() {
         assert_eq!(
             int_from_source("gate m q { h q; }  gate m q { x q; }"),
             Err(Error::MacroAlreadyDefined("m")),
         );
+    }
 
+    #[test]
+    fn bad_op_in_if_block() {
         assert_eq!(
             int_from_source("qreg q[1]; creg c[1]; if (c==1) measure q -> c;"),
             Err(Error::DisallowedNodeInIf(AstNode::Measure(
                 Argument::Register("q"),
                 Argument::Register("c")
+            )))
+        );
+    }
+
+    #[test]
+    fn index_register_in_macro() {
+        assert_eq!(
+            int_from_source("gate M q { h q[0]; }"),
+            Err(Error::MacroError(macros::Error::DisallowedRegister("q", 0))),
+        );
+    }
+
+    #[test]
+    fn unknown_reg() {
+        assert_eq!(
+            int_from_source("gate M(a, b, c) x, y { rx(a) x; ry(b) y; rz(c) z; }"),
+            Err(Error::MacroError(macros::Error::UnknownReg("z")))
+        );
+    }
+
+    #[test]
+    fn unknown_arg() {
+        assert_eq!(
+            int_from_source("gate M(a, b) x, y, z { rx(a) x; ry(b) y; rz(c) z; }"),
+            Err(Error::MacroError(macros::Error::UnknownArg(
+                "c".to_string()
             )))
         );
     }
