@@ -13,12 +13,13 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v2
 
-      - name: Set nightly channel
-        run: |
-          rustup install nightly
-          rustup default nightly
-          rustup component add rustfmt
-          rustup component add clippy
+      - name: Set rust channel
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+          components: rustfmt, clippy
 
       - name: Rustfmt checks
         run: cargo fmt --check

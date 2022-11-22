@@ -22,10 +22,12 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ github.ref_name }}
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Set stable channel
-        run: rustup default stable
+      - name: Set rust channel
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
 
       - name: Clean space
         run: cargo clean --package qvnt

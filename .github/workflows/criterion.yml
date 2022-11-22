@@ -24,8 +24,10 @@ jobs:
             target/
           key: Criterion-${{ github.ref_name }}
 
-      - name: Set stable channel
-        run: rustup default stable
+      - name: Set rust channel
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
 
       - name: Benchmark crate (performance)
         run: cargo bench --quiet --package qvnt --bench performance --features=multi-thread
