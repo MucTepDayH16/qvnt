@@ -22,12 +22,12 @@ qasm                = { package = "qvnt-qasm", version = "0.2.0", optional = tru
 meval               = { version = "0.2.0", optional = true }
 
 [dev-dependencies]
-criterion           = { version = "0.4.0", features = ["html_reports"] }
+criterion           = { version = "0.4.0", no-default-features = true }
 test-case           = "2.2.1"
 
 [features]
 default             = []
-multi-thread        = ["rayon"]
+multi-thread        = ["rayon", "criterion/rayon"]
 interpreter         = ["qasm", "meval"]
 
 [[bench]]
