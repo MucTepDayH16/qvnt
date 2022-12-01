@@ -20,6 +20,8 @@ pub enum Error<'t> {
     MacroError(macros::Error<'t>),
     MacroAlreadyDefined(&'t str),
     DisallowedNodeInIf(AstNode<'t>),
+    IdentIsTooLarge(&'t str, usize),
+    RegisterIsTooLarge(&'t str, usize),
 }
 
 impl<'t> From<macros::Error<'t>> for Error<'t> {
@@ -58,7 +60,11 @@ impl<'t> fmt::Display for Error<'t> {
             Error::MacroAlreadyDefined(name) =>
                 write!(f, "Macro with name {name:?} already defined"),
             Error::DisallowedNodeInIf(node) =>
-                write!(f, "Operation {node:?} isn't allowed in If block")
+                write!(f, "Operation {node:?} isn't allowed in If block"),
+            Error::IdentIsTooLarge(name, bytes_len) =>
+                write!(f, "Ident {name:?} has size({bytes_len} bytes) more than 32 bytes"),
+            Error::RegisterIsTooLarge(name, q_num) =>
+                write!(f, "Register {name:?} hase {q_num} qubits/bits which is more than simulator is capable of to simulate"),
         }
     }
 }

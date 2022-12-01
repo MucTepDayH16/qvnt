@@ -148,15 +148,3 @@ impl<'t> Macro<'t> {
             })
     }
 }
-
-#[cfg(test)]
-pub(crate) fn dummy_macro() -> Macro<'static> {
-    Macro {
-        regs: vec!["a", "b"],
-        args: vec!["x", "y"],
-        nodes: vec![
-            ("h", vec![Argument::Register("x")], vec![]),
-            ("x", vec![Argument::Register("x")], vec![]),
-        ],
-    }
-}

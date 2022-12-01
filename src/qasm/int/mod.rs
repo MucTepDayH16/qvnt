@@ -59,19 +59,21 @@ impl<'t> fmt::Debug for Int<'t> {
 
 impl<'t> Int<'t> {
     pub fn new(ast: Ast<'t>) -> Result<'t, Self> {
-        Self::default().add_ast(ast)
+        let mut new = Self::default();
+        new.add_ast(ast)?;
+        Ok(new)
     }
 
-    pub fn add_ast(mut self, ast: Ast<'t>) -> Result<'t, Self> {
-        Self::default().ast_changes(&mut self, ast)?;
-        Ok(self)
+    pub fn add_ast(&mut self, ast: Ast<'t>) -> Result<'t, ()> {
+        Self::default().ast_changes(self, ast)?;
+        Ok(())
     }
 
-    pub fn ast_changes(self, changes: &mut Self, ast: Ast<'t>) -> Result<'t, Self> {
+    pub fn ast_changes(&self, changes: &mut Self, ast: Ast<'t>) -> Result<'t, ()> {
         match self.process_nodes(changes, ast.iter().cloned()) {
-            Ok(mut ok) => {
-                ok.asts.push(ast);
-                Ok(ok)
+            Ok(_) => {
+                changes.asts.push(ast);
+                Ok(())
             }
             Err(err) => Err(err),
         }
@@ -116,17 +118,17 @@ impl<'t> Int<'t> {
     }
 
     fn process_nodes<'a, I: IntoIterator<Item = AstNode<'t>>>(
-        mut self,
+        &self,
         changes: &mut Self,
         nodes: I,
-    ) -> Result<'t, Self> {
+    ) -> Result<'t, ()> {
         for node in nodes {
-            self = self.process_node(changes, node)?;
+            self.process_node(changes, node)?;
         }
-        Ok(self)
+        Ok(())
     }
 
-    fn process_node(self, changes: &mut Self, node: AstNode<'t>) -> Result<'t, Self> {
+    fn process_node(&self, changes: &mut Self, node: AstNode<'t>) -> Result<'t, ()> {
         match node {
             AstNode::QReg(alias, size) => self.process_qreg(changes, alias, size as N),
             AstNode::CReg(alias, size) => self.process_creg(changes, alias, size as N),
@@ -140,10 +142,28 @@ impl<'t> Int<'t> {
             AstNode::Gate(name, regs, args, nodes) => {
                 self.process_gate(changes, name, regs, args, nodes)
             }
-            AstNode::If(lhs, rhs, if_block) => self.process_if(changes, lhs, rhs as N, &if_block),
+            AstNode::If(lhs, rhs, if_block) => self.process_if(changes, lhs, rhs as N, if_block),
         }
     }
 
+    #[inline]
+    fn check_ident(alias: &'t str) -> Result<'t, ()> {
+        let bytes_len = alias.as_bytes().len();
+        if bytes_len >= 32 {
+            return Err(Error::IdentIsTooLarge(alias, bytes_len));
+        }
+        Ok(())
+    }
+
+    #[inline]
+    fn check_reg_size(alias: &'t str, q_num: N) -> Result<'t, ()> {
+        if q_num >= 64 {
+            return Err(Error::RegisterIsTooLarge(alias, q_num));
+        }
+        Ok(())
+    }
+
+    #[inline]
     fn check_dup(&self, changes: &Self, alias: &'t str) -> Result<'t, ()> {
         let count = self.q_reg.iter().filter(|x| **x == alias).count();
         if count > 0 {
@@ -168,35 +188,39 @@ impl<'t> Int<'t> {
         Ok(())
     }
 
-    fn process_qreg(self, changes: &mut Self, alias: &'t str, q_num: N) -> Result<'t, Self> {
+    fn process_qreg(&self, changes: &mut Self, alias: &'t str, q_num: N) -> Result<'t, ()> {
+        Self::check_ident(alias)?;
+        Self::check_reg_size(alias, q_num)?;
         self.check_dup(changes, alias)?;
         changes.q_reg.append(&mut vec![alias; q_num]);
-        Ok(self)
+        Ok(())
     }
 
-    fn process_creg(self, changes: &mut Self, alias: &'t str, q_num: N) -> Result<'t, Self> {
+    fn process_creg(&self, changes: &mut Self, alias: &'t str, q_num: N) -> Result<'t, ()> {
+        Self::check_ident(alias)?;
+        Self::check_reg_size(alias, q_num)?;
         self.check_dup(changes, alias)?;
         changes.c_reg.append(&mut vec![alias; q_num]);
-        Ok(self)
+        Ok(())
     }
 
-    fn process_barrier(self, _changes: &mut Self) -> Result<'t, Self> {
+    fn process_barrier(&self, _changes: &mut Self) -> Result<'t, ()> {
         //  Does not really affect qvnt-i flow
-        Ok(self)
+        Ok(())
     }
 
-    fn process_reset(self, changes: &mut Self, q_reg: Argument<'t>) -> Result<'t, Self> {
+    fn process_reset(&self, changes: &mut Self, q_reg: Argument<'t>) -> Result<'t, ()> {
         let idx = self.get_q_idx_with_context(changes, q_reg)?;
         changes.branch_with_id(Sep::Reset(idx));
-        Ok(self)
+        Ok(())
     }
 
     fn process_measure(
-        self,
+        &self,
         changes: &mut Self,
         q_arg: Argument<'t>,
         c_arg: Argument<'t>,
-    ) -> Result<'t, Self> {
+    ) -> Result<'t, ()> {
         let q_arg = self.get_q_idx_with_context(changes, q_arg)?;
         let c_arg = self.get_c_idx_with_context(changes, c_arg)?;
 
@@ -208,16 +232,16 @@ impl<'t> Int<'t> {
         }
 
         changes.branch_with_id(Sep::Measure(q_arg, c_arg));
-        Ok(self)
+        Ok(())
     }
 
     fn process_apply_gate(
-        self,
+        &self,
         changes: &mut Self,
         name: &'t str,
         regs: Vec<Argument<'t>>,
         args: Vec<&'t str>,
-    ) -> Result<'t, Self> {
+    ) -> Result<'t, ()> {
         let regs = regs
             .into_iter()
             .map(|reg| self.get_q_idx_with_context(changes, reg))
@@ -238,120 +262,97 @@ impl<'t> Int<'t> {
         };
         changes.q_ops.push(q_ops);
 
-        Ok(self)
+        Ok(())
     }
 
-    fn process_opaque(self, _changes: &mut Self) -> Result<'t, Self> {
+    fn process_opaque(&self, _changes: &mut Self) -> Result<'t, ()> {
         //  TODO: To understand what opaque gate stands for
-        Ok(self)
+        Ok(())
     }
 
     fn process_gate(
-        self,
+        &self,
         changes: &mut Self,
         name: &'t str,
         regs: Vec<&'t str>,
         args: Vec<&'t str>,
         nodes: Vec<AstNode<'t>>,
-    ) -> Result<'t, Self> {
+    ) -> Result<'t, ()> {
         let macros = Macro::new(regs, args, nodes)?;
         if !self.macros.contains_key(&name) && !changes.macros.contains_key(&name) {
+            Self::check_ident(name)?;
             changes.macros.insert(name, macros);
-            Ok(self)
+            Ok(())
         } else {
             Err(Error::MacroAlreadyDefined(name))
         }
     }
 
     fn process_if(
-        mut self,
+        &self,
         changes: &mut Self,
         lhs: &'t str,
         rhs: N,
-        if_block: &AstNode<'t>,
-    ) -> Result<'t, Self> {
-        match if_block.clone() {
+        if_block: Box<AstNode<'t>>,
+    ) -> Result<'t, ()> {
+        match *if_block {
             if_block @ AstNode::ApplyGate(_, _, _) => {
                 changes.branch(Sep::Nop);
 
                 let val = self.get_c_idx_with_context(changes, Argument::Register(lhs))?;
-                self = self.process_node(changes, if_block)?;
+                self.process_node(changes, if_block)?;
                 changes.branch(Sep::IfBranch(val, rhs));
 
-                Ok(self)
+                Ok(())
             }
             if_block => Err(Error::DisallowedNodeInIf(if_block)),
         }
     }
 
-    fn get_idx_by_alias(&self, alias: &'t str) -> (N, N) {
-        let q_mask = self
-            .q_reg
-            .iter()
-            .cloned()
-            .enumerate()
-            .fold(0, |acc, (idx, name)| {
-                if name == alias {
-                    acc | 1_usize.wrapping_shl(idx as u32)
-                } else {
-                    acc
-                }
-            });
-        let c_mask = self
-            .c_reg
-            .iter()
-            .cloned()
-            .enumerate()
-            .fold(0, |acc, (idx, name)| {
-                if name == alias {
-                    acc | 1_usize.wrapping_shl(idx as u32)
-                } else {
-                    acc
-                }
-            });
+    fn get_idx_by_alias(&self, changes: &Self, alias: &'t str) -> (N, N) {
+        fn fold_idx_by_alias<'a>(iter: impl Iterator<Item = &'a str>, alias: &str) -> usize {
+            iter.enumerate()
+                .filter(|(_, name)| *name == alias)
+                .fold(0, |acc, (idx, _)| acc | 1_usize.wrapping_shl(idx as u32))
+        }
+
+        let q_mask = fold_idx_by_alias(self.q_reg.iter().chain(&changes.q_reg).cloned(), alias);
+        let c_mask = fold_idx_by_alias(self.c_reg.iter().chain(&changes.c_reg).cloned(), alias);
 
         (q_mask, c_mask)
     }
 
     fn get_q_idx_with_context(&self, changes: &Self, arg: Argument<'t>) -> Result<'t, N> {
-        let self_q_len = self.q_reg.len();
-        self.get_q_idx(arg.clone())
-            .or_else(|_| changes.get_q_idx(arg).map(|idx| self_q_len + idx))
+        match arg {
+            Argument::Qubit(alias, idx) => {
+                let mask = self.get_idx_by_alias(changes, alias).0;
+                if mask != 0 {
+                    BitsIter::from(mask)
+                        .nth(idx as N)
+                        .ok_or(Error::IdxOutOfRange(alias, idx as N))
+                } else {
+                    Err(Error::NoQReg(alias))
+                }
+            }
+            Argument::Register(alias) => {
+                let mask = self.get_idx_by_alias(changes, alias).0;
+                if mask != 0 {
+                    Ok(mask)
+                } else {
+                    Err(Error::NoQReg(alias))
+                }
+            }
+        }
     }
 
     fn get_q_idx(&self, arg: Argument<'t>) -> Result<'t, N> {
-        match arg {
-            Argument::Qubit(alias, idx) => {
-                let mask = self.get_idx_by_alias(alias).0;
-                if mask != 0 {
-                    BitsIter::from(mask)
-                        .nth(idx as N)
-                        .ok_or(Error::IdxOutOfRange(alias, idx as N))
-                } else {
-                    Err(Error::NoQReg(alias))
-                }
-            }
-            Argument::Register(alias) => {
-                let mask = self.get_idx_by_alias(alias).0;
-                if mask != 0 {
-                    Ok(mask)
-                } else {
-                    Err(Error::NoQReg(alias))
-                }
-            }
-        }
+        self.get_q_idx_with_context(&Default::default(), arg)
     }
 
     fn get_c_idx_with_context(&self, changes: &Self, arg: Argument<'t>) -> Result<'t, N> {
-        let self_c_len = self.c_reg.len();
-        self.get_c_idx(arg.clone())
-            .or_else(|_| changes.get_c_idx(arg).map(|idx| self_c_len + idx))
-    }
-
-    fn get_c_idx(&self, arg: Argument<'t>) -> Result<'t, N> {
         match arg {
             Argument::Qubit(alias, idx) => {
-                let mask = self.get_idx_by_alias(alias).1;
+                let mask = self.get_idx_by_alias(changes, alias).1;
                 if mask != 0 {
                     BitsIter::from(mask)
                         .nth(idx as N)
@@ -361,7 +362,7 @@ impl<'t> Int<'t> {
                 }
             }
             Argument::Register(alias) => {
-                let mask = self.get_idx_by_alias(alias).1;
+                let mask = self.get_idx_by_alias(changes, alias).1;
                 if mask != 0 {
                     Ok(mask)
                 } else {
@@ -369,6 +370,10 @@ impl<'t> Int<'t> {
                 }
             }
         }
+    }
+
+    fn get_c_idx(&self, arg: Argument<'t>) -> Result<'t, N> {
+        self.get_c_idx_with_context(&Default::default(), arg)
     }
 
     fn branch(&mut self, sep: Sep) {
@@ -469,57 +474,80 @@ mod tests {
         let int = Int::new(ast).unwrap();
 
         println!("{}", int.get_ops_tree());
+        assert_ne!(int.asts.len(), 0);
+    }
+
+    fn int_from_source(source: &'static str) -> Result<Int> {
+        let ast = Ast::from_source(source).unwrap();
+        Int::new(ast)
     }
 
     #[test]
-    fn check_for_errors() {
-        fn int_from_source(source: &'static str) -> Result<Int> {
-            let ast = Ast::from_source(source).unwrap();
-            Int::new(ast)
-        }
-
+    fn no_qreg() {
         assert_eq!(int_from_source("h q[2];"), Err(Error::NoQReg("q")),);
+        assert!(int_from_source("qreg q[5]; h q[2];").is_ok());
+    }
 
+    #[test]
+    fn no_creg() {
         assert_eq!(
             int_from_source("qreg q[2]; measure q -> c;"),
             Err(Error::NoCReg("c")),
         );
+        assert!(int_from_source("qreg q[2]; creg c[2]; measure q -> c;").is_ok());
+    }
 
+    #[test]
+    fn dub_register() {
         assert_eq!(
             int_from_source("qreg q[3]; qreg q[2];"),
             Err(Error::DupQReg("q", 3)),
         );
-
         assert_eq!(
             int_from_source("creg c[5]; creg c[1];"),
             Err(Error::DupCReg("c", 5)),
         );
-
         assert_eq!(
             int_from_source("qreg x[5]; creg x[1];"),
             Err(Error::DupQReg("x", 5)),
         );
-
         assert_eq!(
             int_from_source("creg x[1]; qreg x[5];"),
             Err(Error::DupCReg("x", 1)),
         );
+    }
 
+    #[test]
+    fn out_of_range() {
         assert_eq!(
             int_from_source("qreg q[2]; h q[2];"),
             Err(Error::IdxOutOfRange("q", 2)),
         );
+        assert_eq!(
+            int_from_source("qreg q[2]; h q[3];"),
+            Err(Error::IdxOutOfRange("q", 3)),
+        );
+        assert!(int_from_source("qreg q[2]; h q[1];").is_ok());
+    }
 
+    #[test]
+    fn unknown_gate() {
         assert_eq!(
             int_from_source("qreg q[3]; g q[2];"),
             Err(Error::UnknownGate("g")),
         );
+    }
 
+    #[test]
+    fn invalid_ctrl_mask() {
         assert_eq!(
             int_from_source("qreg q[4]; cx q[0], q;"),
             Err(Error::InvalidControlMask(0b0001, 0b1111)),
         );
+    }
 
+    #[test]
+    fn evaluation_error() {
         assert_eq!(
             int_from_source("qreg q[4]; rx(2*a) q[0];"),
             Err(Error::UnevaluatedArgument(
@@ -527,7 +555,10 @@ mod tests {
                 meval::Error::UnknownVariable("a".to_string())
             )),
         );
+    }
 
+    #[test]
+    fn wrong_number() {
         assert_eq!(
             int_from_source("qreg q[4]; rx(pi) q[0], q[2];"),
             Err(Error::WrongRegNumber("rx", 2)),
@@ -537,39 +568,78 @@ mod tests {
             int_from_source("qreg q[4]; rx(pi, 2*pi) q[0];"),
             Err(Error::WrongArgNumber("rx", 2)),
         );
+    }
 
+    #[test]
+    fn unmatched_size() {
         assert_eq!(
             int_from_source("qreg q[4]; creg c[3]; measure q -> c;"),
             Err(Error::UnmatchedRegSize(4, 3)),
         );
+    }
 
-        assert_eq!(
-            int_from_source("gate M q { h q[0]; }"),
-            Err(Error::MacroError(macros::Error::DisallowedRegister("q", 0))),
-        );
-
-        assert_eq!(
-            int_from_source("gate M(a, b, c) x, y { rx(a) x; ry(b) y; rz(c) z; }"),
-            Err(Error::MacroError(macros::Error::UnknownReg("z")))
-        );
-
-        assert_eq!(
-            int_from_source("gate M(a, b) x, y, z { rx(a) x; ry(b) y; rz(c) z; }"),
-            Err(Error::MacroError(macros::Error::UnknownArg(
-                "c".to_string()
-            )))
-        );
-
+    #[test]
+    fn macro_already_defined() {
         assert_eq!(
             int_from_source("gate m q { h q; }  gate m q { x q; }"),
             Err(Error::MacroAlreadyDefined("m")),
         );
+    }
 
+    #[test]
+    fn bad_op_in_if_block() {
         assert_eq!(
             int_from_source("qreg q[1]; creg c[1]; if (c==1) measure q -> c;"),
             Err(Error::DisallowedNodeInIf(AstNode::Measure(
                 Argument::Register("q"),
                 Argument::Register("c")
+            )))
+        );
+    }
+
+    #[test]
+    fn invalid_ident() {
+        assert_eq!(
+            int_from_source(
+                "qreg AAaaaaaaaaaAAaaaaaaaaaAAaaaaaaaaaAAaaaaaaaaaAAaaaaaaaaaAAaaaaaaaaa[1];"
+            ),
+            Err(Error::IdentIsTooLarge(
+                "AAaaaaaaaaaAAaaaaaaaaaAAaaaaaaaaaAAaaaaaaaaaAAaaaaaaaaaAAaaaaaaaaa",
+                66
+            ))
+        );
+    }
+
+    #[test]
+    fn invalid_size() {
+        assert_eq!(
+            int_from_source("qreg q[64];"),
+            Err(Error::RegisterIsTooLarge("q", 64))
+        );
+    }
+
+    #[test]
+    fn index_register_in_macro() {
+        assert_eq!(
+            int_from_source("gate M q { h q[0]; }"),
+            Err(Error::MacroError(macros::Error::DisallowedRegister("q", 0))),
+        );
+    }
+
+    #[test]
+    fn unknown_reg() {
+        assert_eq!(
+            int_from_source("gate M(a, b, c) x, y { rx(a) x; ry(b) y; rz(c) z; }"),
+            Err(Error::MacroError(macros::Error::UnknownReg("z")))
+        );
+    }
+
+    #[test]
+    fn unknown_arg() {
+        assert_eq!(
+            int_from_source("gate M(a, b) x, y, z { rx(a) x; ry(b) y; rz(c) z; }"),
+            Err(Error::MacroError(macros::Error::UnknownArg(
+                "c".to_string()
             )))
         );
     }

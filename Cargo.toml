@@ -22,7 +22,7 @@ qasm                = { package = "qvnt-qasm", version = "0.2.0", optional = tru
 meval               = { version = "0.2.0", optional = true }
 
 [dev-dependencies]
-criterion           = { version = "0.4.0", no-default-features = true }
+criterion           = { version = "0.4.0", default-features = false }
 test-case           = "2.2.1"
 
 [features]

@@ -47,6 +47,17 @@ mod tests {
     fn parse_expr() {
         let expr = "2 * pi / 16";
 
-        assert_eq!(eval_extended(expr, None), Ok(2. * PI / 16.));
+        assert_eq!(eval_extended(expr, vec![]), Ok(2. * PI / 16.));
+    }
+
+    #[test]
+    fn parse_expr_with_variable() {
+        let expr = "2 * x / 16";
+
+        assert_eq!(
+            eval_extended(expr, vec![]),
+            Err(Error::UnknownVariable("x".to_string()))
+        );
+        assert_eq!(eval_extended(expr, vec![("x", PI)]), Ok(2. * PI / 16.));
     }
 }
