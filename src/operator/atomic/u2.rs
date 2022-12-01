@@ -21,6 +21,7 @@ impl Op {
 impl crate::sealed::Seal for Op {}
 
 impl super::NativeCpuOp for Op {
+    #[inline(always)]
     fn native_cpu_op(&self, psi: &[C], idx: Mask) -> C {
         let a_bit = (idx & self.a_mask) != 0;
         let b_bit = (idx & self.b_mask) != 0;

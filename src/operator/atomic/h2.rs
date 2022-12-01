@@ -21,6 +21,7 @@ impl Op {
 impl crate::sealed::Seal for Op {}
 
 impl super::NativeCpuOp for Op {
+    #[inline(always)]
     fn native_cpu_op(&self, psi: &[C], idx: Mask) -> C {
         let mut psi = (
             psi[idx],

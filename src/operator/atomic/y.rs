@@ -16,6 +16,7 @@ impl Op {
 impl crate::sealed::Seal for Op {}
 
 impl super::NativeCpuOp for Op {
+    #[inline(always)]
     fn native_cpu_op(&self, psi: &[C], idx: Mask) -> C {
         let mut i_pow = self.i_pow;
         if (idx & self.a_mask).count_ones() & 1 == 0 {

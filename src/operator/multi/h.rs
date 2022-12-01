@@ -1,14 +1,14 @@
 use super::*;
-use crate::{math::count_bits, operator::atomic};
+use crate::{math::count_bits, operator::atomic::*};
 
 #[inline(always)]
 fn h1(a_mask: Mask) -> SingleOp {
-    atomic::h1::Op::new(a_mask).into()
+    H1::new(a_mask).into()
 }
 
 #[inline(always)]
 fn h2(a_mask: Mask, b_mask: Mask) -> SingleOp {
-    atomic::h2::Op::new(a_mask, b_mask).into()
+    H2::new(a_mask, b_mask).into()
 }
 
 pub fn h(a_mask: Mask) -> MultiOp {

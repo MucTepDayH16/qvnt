@@ -221,16 +221,26 @@ pub(crate) trait SingleThreadOp {
 impl<NOp: NativeCpuOp> SingleThreadOp for NOp {
     fn apply_for(&self, psi_out: &mut [C], psi_in: &[C]) {
         for (idx, psi_out) in psi_out.iter_mut().enumerate() {
+            if idx >= psi_in.len() {
+                unsafe {
+                    std::hint::unreachable_unchecked();
+                }
+            }
             *psi_out = self.native_cpu_op(psi_in, idx);
         }
     }
 
     fn apply_for_with_ctrl(&self, psi_out: &mut [C], psi_in: &[C], ctrl: Mask) {
         for (idx, psi_out) in psi_out.iter_mut().enumerate() {
+            if idx >= psi_in.len() {
+                unsafe {
+                    std::hint::unreachable_unchecked();
+                }
+            }
             *psi_out = if !idx & ctrl == 0 {
                 self.native_cpu_op(psi_in, idx)
             } else {
-                unsafe { *psi_in.get_unchecked(idx) }
+                psi_in[idx]
             }
         }
     }

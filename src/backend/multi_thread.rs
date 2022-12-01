@@ -319,6 +319,11 @@ impl<NOp: NativeCpuOp> MultiThreadOp for NOp {
             .par_iter_mut()
             .enumerate()
             .for_each(|(idx, psi_out)| {
+                if idx >= psi_in.len() {
+                    unsafe {
+                        std::hint::unreachable_unchecked();
+                    }
+                }
                 *psi_out = self.native_cpu_op(psi_in, idx);
             })
     }
@@ -328,10 +333,15 @@ impl<NOp: NativeCpuOp> MultiThreadOp for NOp {
             .par_iter_mut()
             .enumerate()
             .for_each(|(idx, psi_out)| {
+                if idx >= psi_in.len() {
+                    unsafe {
+                        std::hint::unreachable_unchecked();
+                    }
+                }
                 *psi_out = if !idx & ctrl == 0 {
                     self.native_cpu_op(psi_in, idx)
                 } else {
-                    unsafe { *psi_in.get_unchecked(idx) }
+                    psi_in[idx]
                 }
             })
     }

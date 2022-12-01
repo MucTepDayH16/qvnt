@@ -2,32 +2,32 @@
 
 use crate::math::{consts::*, types::*};
 
-pub mod id;
+mod id;
 
-pub mod rx;
-pub mod rxx;
-pub mod x;
+mod rx;
+mod rxx;
+mod x;
 
-pub mod ry;
-pub mod ryy;
-pub mod y;
+mod ry;
+mod ryy;
+mod y;
 
-pub mod rz;
-pub mod rzz;
-pub mod s;
-pub mod t;
-pub mod z;
+mod rz;
+mod rzz;
+mod s;
+mod t;
+mod z;
 
-pub mod u1;
-pub mod u2;
+mod u1;
+mod u2;
 
-pub mod h1;
-pub mod h2;
+mod h1;
+mod h2;
 
-pub mod i_swap;
-pub mod sqrt_i_swap;
-pub mod sqrt_swap;
-pub mod swap;
+mod i_swap;
+mod sqrt_i_swap;
+mod sqrt_swap;
+mod swap;
 
-pub mod dispatch;
+mod dispatch;
 pub use self::dispatch::*;
