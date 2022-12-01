@@ -87,11 +87,7 @@
 //!
 //! # Gate's modifiers - [`.c(...)`](crate::prelude::Applicable::c) and [`.dgr()`](crate::prelude::Applicable::dgr)
 
-pub use self::{
-    applicable::*,
-    multi::MultiOp,
-    single::SingleOp,
-};
+pub use self::{applicable::*, multi::MultiOp, single::SingleOp};
 use self::{multi::*, single::*};
 use crate::math::{consts::*, types::*};
 

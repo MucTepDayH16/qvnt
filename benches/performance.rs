@@ -1,5 +1,8 @@
 use criterion::*;
-use qvnt::{backend::*, prelude::*};
+use qvnt::{
+    backend::{multi_thread::*, single_thread::*, *},
+    prelude::*,
+};
 
 fn bench_op(q_num: usize) -> MultiOp {
     op::qft(0b0111 << (q_num - 4)) * op::qft(0b1110 << (q_num - 4))

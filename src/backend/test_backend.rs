@@ -1,9 +1,9 @@
 use super::*;
 
 pub(crate) fn test_build(q_num: usize) -> BackendResult<TestBackend> {
-    let b0 = SingleThreadBuilder::default().build(q_num)?;
+    let b0 = single_thread::SingleThreadBuilder::default().build(q_num)?;
     #[cfg(feature = "multi-thread")]
-    let b1 = MultiThreadBuilder::default().build(q_num)?;
+    let b1 = multi_thread::MultiThreadBuilder::default().build(q_num)?;
 
     Ok(TestBackend {
         b0,
@@ -14,9 +14,9 @@ pub(crate) fn test_build(q_num: usize) -> BackendResult<TestBackend> {
 
 #[derive(Debug, Clone)]
 pub(crate) struct TestBackend {
-    b0: SingleThread,
+    b0: single_thread::SingleThread,
     #[cfg(feature = "multi-thread")]
-    b1: MultiThread,
+    b1: multi_thread::MultiThread,
 }
 
 impl Backend for TestBackend {
