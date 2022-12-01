@@ -23,7 +23,7 @@ pub mod types {
     pub type Mask = usize;
 
     pub type N = usize;
-    pub type Z = isize;
+    // pub type Z = isize;
 
     pub type R = f64;
     pub type C = num_complex::Complex<R>;

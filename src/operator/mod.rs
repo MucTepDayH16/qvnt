@@ -89,7 +89,6 @@
 
 pub use self::{
     applicable::*,
-    atomic::{AtomicOp, AtomicOpDispatch, NativeCpuOp},
     multi::MultiOp,
     single::SingleOp,
 };

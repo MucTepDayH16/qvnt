@@ -7,26 +7,26 @@ use super::*;
 use crate::backend::multi_thread::MultiThreadOp;
 use crate::backend::single_thread::SingleThreadOp;
 
-type Id = id::Op;
-type X = x::Op;
-type RX = rx::Op;
-type RXX = rxx::Op;
-type Y = y::Op;
-type RY = ry::Op;
-type RYY = ryy::Op;
-type Z = z::Op;
-type S = s::Op;
-type T = t::Op;
-type RZ = rz::Op;
-type RZZ = rzz::Op;
-type U1 = u1::Op;
-type U2 = u2::Op;
-type H1 = h1::Op;
-type H2 = h2::Op;
-type Swap = swap::Op;
-type ISwap = i_swap::Op;
-type SqrtSwap = sqrt_swap::Op;
-type SqrtISwap = sqrt_i_swap::Op;
+pub type Id = id::Op;
+pub type X = x::Op;
+pub type RX = rx::Op;
+pub type RXX = rxx::Op;
+pub type Y = y::Op;
+pub type RY = ry::Op;
+pub type RYY = ryy::Op;
+pub type Z = z::Op;
+pub type S = s::Op;
+pub type T = t::Op;
+pub type RZ = rz::Op;
+pub type RZZ = rzz::Op;
+pub type U1 = u1::Op;
+pub type U2 = u2::Op;
+pub type H1 = h1::Op;
+pub type H2 = h2::Op;
+pub type Swap = swap::Op;
+pub type ISwap = i_swap::Op;
+pub type SqrtSwap = sqrt_swap::Op;
+pub type SqrtISwap = sqrt_i_swap::Op;
 
 #[enum_dispatch::enum_dispatch(AtomicOpDispatch)]
 pub trait AtomicOp: Clone + PartialEq + crate::sealed::Seal {

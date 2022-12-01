@@ -49,7 +49,7 @@ pub mod swap;
 pub struct SingleOp {
     act: Mask,
     ctrl: Mask,
-    op: dispatch::AtomicOpDispatch,
+    op: AtomicOpDispatch,
 }
 
 impl SingleOp {

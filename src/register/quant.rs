@@ -256,7 +256,7 @@ impl<B: Backend> Reg<B> {
             .iter()
             .zip(&p_sqrt_distr)
             .map(|(p, p_sqrt_distr)| {
-                ((c * p + c_sqrt * (p_sqrt_distr - p_sqrt_distr_sum * p)).round() as Z).max(0) as N
+                ((c * p + c_sqrt * (p_sqrt_distr - p_sqrt_distr_sum * p)).round() as isize).max(0) as N
             })
             .collect::<Vec<N>>();
         let n_sum: N = n.iter().sum();
