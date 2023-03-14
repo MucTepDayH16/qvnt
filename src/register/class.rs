@@ -127,9 +127,8 @@ impl Reg {
 
 impl fmt::Debug for Reg {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let value = crate::math::bits_iter::BitsIter::from(self.q_mask)
-            .into_iter()
-            .fold(String::new(), |s, i| {
+        let value =
+            crate::math::bits_iter::BitsIter::from(self.q_mask).fold(String::new(), |s, i| {
                 if i & self.value == 0 {
                     format!("0{}", s)
                 } else {

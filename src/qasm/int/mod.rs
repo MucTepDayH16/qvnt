@@ -23,16 +23,11 @@ pub use error::{Error, Result};
 pub use ext_op::{Op as ExtOp, Sep};
 use macros::Macro;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum MeasureOp {
+    #[default]
     Set,
     Xor,
-}
-
-impl Default for MeasureOp {
-    fn default() -> Self {
-        MeasureOp::Set
-    }
 }
 
 #[derive(Clone, Default, PartialEq)]
