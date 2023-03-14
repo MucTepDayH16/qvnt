@@ -2,18 +2,13 @@ use std::{collections::VecDeque, fmt};
 
 use crate::{math::types::*, operator::MultiOp};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub enum Sep {
+    #[default]
     Nop,
     Measure(N, N),
     IfBranch(N, N),
     Reset(N),
-}
-
-impl Default for Sep {
-    fn default() -> Self {
-        Sep::Nop
-    }
 }
 
 #[derive(Clone, Default, PartialEq)]

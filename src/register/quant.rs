@@ -338,7 +338,6 @@ impl Reg {
 
         let psi = match th {
             threading::Single => (0..q_size.max(MIN_BUFFER_LEN))
-                .into_iter()
                 .map(move |idx| {
                     if idx < q_size {
                         self.psi[(idx >> shift.0) & mask.0] * other.psi[(idx >> shift.1) & mask.1]
@@ -532,7 +531,6 @@ impl Reg {
                 let n_sum = n.iter().sum::<R>();
 
                 let n = (0..self.psi.len())
-                    .into_iter()
                     .map(|idx| {
                         ((c * p[idx] + c_sqrt * (n[idx] - n_sum * p[idx])).round() as Z).max(0) as N
                     })
@@ -555,7 +553,6 @@ impl Reg {
                 let n_sum = n.par_iter().sum::<R>();
 
                 let n = (0..self.psi.len())
-                    .into_par_iter()
                     .map(|idx| {
                         ((c * p[idx] + c_sqrt * (n[idx] - n_sum * p[idx])).round() as Z).max(0) as N
                     })
